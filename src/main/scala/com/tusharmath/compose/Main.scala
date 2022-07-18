@@ -1,9 +1,10 @@
 package com.tusharmath.compose
 
-import zio.schema.DeriveSchema
+import zio.schema.{DeriveSchema, DynamicValue, Schema}
 import zio.schema.codec.JsonCodec
+import zio.{ZIO, ZIOAppDefault}
 
-object Main extends App {
+object Main extends ZIOAppDefault {
 
   case class Round(name: String, id: Round.Id)
   object Round {
@@ -57,11 +58,17 @@ object Main extends App {
   val getContest = GraphQL.constant(Contest("Contest 1", Contest.Id(1), 100.0, 10, Round.Id(1)))
 
   // From contest prepare round details
-  val program = getContest >>> Contest.roundId >>> getRound && getContest
+  val program = getContest >>> Contest.roundId >>> getRound
 
+  // Execution plan that can be transferred over the wire
   val plan = ExecutionPlan.fromGraphQL(program)
 
   val encoded = new String(JsonCodec.encode(ExecutionPlan.schema)(plan).toArray)
 
-  println("Encoded: " + encoded)
+  val dUnit = implicitly[Schema[Unit]].toDynamic(())
+
+  override def run = for {
+    result <- Executor.execute(plan, dUnit)
+    _      <- ZIO.attempt(println(new String(JsonCodec.encode(implicitly[Schema[DynamicValue]])(result).toArray)))
+  } yield ()
 }

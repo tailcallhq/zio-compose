@@ -16,6 +16,7 @@ lazy val root = project
     name                := "GraphQLCompose",
     version             := "0.1.0-SNAPSHOT",
     scalaVersion        := scala3Version,
+    fork                := true,
     libraryDependencies := Seq(
       ZIOCore,
       ZIOSchema,
