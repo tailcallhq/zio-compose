@@ -6,5 +6,6 @@ object Dependencies {
   val ZIOCore             = "dev.zio" %% "zio"                   % zioVersion
   val ZIOTest             = "dev.zio" %% "zio-test"              % zioVersion
   val ZIOSchema           = "dev.zio" %% "zio-schema"            % zioSchemaVersion
+  val ZIOSchemaJson       = "dev.zio" %% "zio-schema-json"       % zioSchemaVersion
   val ZIOSchemaDerivation = "dev.zio" %% "zio-schema-derivation" % zioSchemaVersion
 }
