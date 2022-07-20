@@ -11,7 +11,7 @@ object Main extends ZIOAppDefault {
     case class Id(id: Long)
     implicit val schema  = DeriveSchema.gen[Round]
     implicit val matchId = DeriveSchema.gen[Id]
-    val accessors        = schema.makeAccessors(GraphQL.Accessors)
+    val accessors        = schema.makeAccessors(ZLambda.Accessors)
   }
 
   case class Contest(
@@ -30,7 +30,7 @@ object Main extends ZIOAppDefault {
     implicit val schema    = DeriveSchema.gen[Contest]
     implicit val contestId = DeriveSchema.gen[Id]
 
-    val (name, id, entryFee, size, roundId) = schema.makeAccessors(GraphQL.Accessors)
+    val (name, id, entryFee, size, roundId) = schema.makeAccessors(ZLambda.Accessors)
   }
 
   case class User(name: String, id: User.Id, age: Int)
@@ -40,14 +40,14 @@ object Main extends ZIOAppDefault {
     implicit val schema = DeriveSchema.gen[User]
     implicit val userId = DeriveSchema.gen[Id]
 
-    val (name, id, age) = schema.makeAccessors(GraphQL.Accessors)
+    val (name, id, age) = schema.makeAccessors(ZLambda.Accessors)
   }
 
-  val getUser1 = GraphQL.constant(User("Tushar Mathur", User.Id(1), 30))
+  val getUser1 = ZLambda.constant(User("Tushar Mathur", User.Id(1), 30))
 
-  val getUser2 = GraphQL.constant(User("Aiswarya Prakasan", User.Id(2), 90))
+  val getUser2 = ZLambda.constant(User("Aiswarya Prakasan", User.Id(2), 90))
 
-  val getRound = GraphQL.fromMap {
+  val getRound = ZLambda.fromMap {
     Map(
       Round.Id(1) -> Round("Round 1", Round.Id(1)),
       Round.Id(2) -> Round("Round 2", Round.Id(2)),
@@ -55,12 +55,12 @@ object Main extends ZIOAppDefault {
     )
   }
 
-  val getContest = GraphQL.constant(Contest("Contest 1", Contest.Id(1), 100.0, 10, Round.Id(1)))
+  val getContest = ZLambda.constant(Contest("Contest 1", Contest.Id(1), 100.0, 10, Round.Id(1)))
 
   // From contest prepare round details
   val program = getContest >>> Contest.roundId >>> getRound
 
-  val program0 = GraphQL.add(100, 5)
+  val program0 = ZLambda.add(100, 5)
 
   // Execution plan that can be transferred over the wire
   val plan = ExecutionPlan.fromGraphQL(program0)
