@@ -1,8 +1,11 @@
 package com.tusharmath.compose
 
-import com.tusharmath.compose.GraphQL.{Pipe, Zip2}
-import zio.schema.{AccessorBuilder, DynamicValue, Schema}
+import com.tusharmath.compose.GraphQL.Pipe
+import com.tusharmath.compose.GraphQL.Zip2
 import zio.prelude.NonEmptyList
+import zio.schema.AccessorBuilder
+import zio.schema.Schema
+import zio.schema.StandardType
 
 sealed trait GraphQL[A, B] { self =>
   def <<<[X](other: GraphQL[X, A]): GraphQL[X, B] = self compose other
@@ -20,31 +23,17 @@ object GraphQL {
   def fromMap[A, B](source: Map[A, B])(implicit input: Schema[A], output: Schema[B]): GraphQL[A, B] =
     FromMap(input, source, output)
 
+  def add[A](a: A, b: A)(implicit ev: IsNumeric[A], schema: Schema[A], standard: StandardType[A]): GraphQL[Unit, A] =
+    Add(a, b, schema, standard)
+
   final case class FromMap[A, B](input: Schema[A], source: Map[A, B], output: Schema[B]) extends GraphQL[A, B]
   final case class Constant[B](b: B, schema: Schema[B])                                  extends GraphQL[Unit, B]
   final case class Identity[A]()                                                         extends GraphQL[A, A]
   final case class Pipe[A, B, C](f: GraphQL[A, B], g: GraphQL[B, C])                     extends GraphQL[A, C]
   final case class Zip2[A, B, C](g: GraphQL[A, B], f: GraphQL[A, C])                     extends GraphQL[A, (B, C)]
   final case class Select[A, B](input: Schema[A], path: NonEmptyList[String], output: Schema[B]) extends GraphQL[A, B]
-
-  def execute[A, B](graphQL: GraphQL[A, B])(a: A): Either[String, B] =
-    graphQL match {
-      case Constant(b, _)     => Right(b)
-      case Identity()         => Right(a.asInstanceOf[B])
-      case Pipe(f, g)         => execute(f)(a).flatMap(execute(g))
-      case FromMap(_, map, _) => map.get(a).toRight("No value found for " + a)
-      case Zip2(g, f)         =>
-        for {
-          a <- execute(g)(a)
-          b <- execute(f)(a)
-        } yield (a, b)
-
-      case Select(input, path, output) =>
-        input.toDynamic(a) match {
-          case record @ DynamicValue.Record(_) => Left("TODO")
-          case _                               => Left(s"Cannot select field}")
-        }
-    }
+  final case class Add[A](first: A, second: A, schema: Schema[A], standardType: StandardType[A])
+      extends GraphQL[Unit, A]
 
   object Accessors extends AccessorBuilder {
     override type Lens[S, A]      = GraphQL[S, A]

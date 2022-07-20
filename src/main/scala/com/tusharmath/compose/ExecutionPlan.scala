@@ -1,5 +1,6 @@
 package com.tusharmath.compose
 import zio.schema.{DeriveSchema, DynamicValue}
+import zio.schema.StandardType
 
 sealed trait ExecutionPlan {}
 
@@ -15,6 +16,7 @@ object ExecutionPlan {
       case GraphQL.Select(input, path, output) => Select(path)
       case GraphQL.Constant(b, schema)         => Constant(schema.toDynamic(b))
       case GraphQL.Identity()                  => Identity
+      case GraphQL.Add(a, b, schema, standard) => Add(schema.toDynamic(a), schema.toDynamic(b), standard.tag)
     }
 
   case class Constant(value: DynamicValue)                         extends ExecutionPlan
@@ -23,4 +25,5 @@ object ExecutionPlan {
   case class Dictionary(value: Map[DynamicValue, DynamicValue])    extends ExecutionPlan
   case class Select(path: List[String])                            extends ExecutionPlan
   case object Identity                                             extends ExecutionPlan
+  case class Add(a: DynamicValue, b: DynamicValue, tag: String)    extends ExecutionPlan
 }

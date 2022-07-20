@@ -60,15 +60,18 @@ object Main extends ZIOAppDefault {
   // From contest prepare round details
   val program = getContest >>> Contest.roundId >>> getRound
 
-  // Execution plan that can be transferred over the wire
-  val plan = ExecutionPlan.fromGraphQL(program)
+  val program0 = GraphQL.add(100, 5)
 
-  val encoded = new String(JsonCodec.encode(ExecutionPlan.schema)(plan).toArray)
+  // Execution plan that can be transferred over the wire
+  val plan = ExecutionPlan.fromGraphQL(program0)
+
+  val encoded = new String(JsonCodec.Encoder.encode(ExecutionPlan.schema, plan).toArray)
 
   val dUnit = implicitly[Schema[Unit]].toDynamic(())
 
-  override def run = for {
-    result <- Executor.execute(plan, dUnit)
-    _      <- ZIO.attempt(println(new String(JsonCodec.encode(implicitly[Schema[DynamicValue]])(result).toArray)))
-  } yield ()
+  override def run =
+    for {
+      result <- Executor.execute(plan, dUnit)
+      _      <- ZIO.attempt(println(new String(JsonCodec.encode(implicitly[Schema[DynamicValue]])(result).toArray)))
+    } yield ()
 }
