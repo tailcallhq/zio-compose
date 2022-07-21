@@ -8,12 +8,12 @@ import zio.schema.codec.JsonCodec
 
 object Main extends ZIOAppDefault {
 
-  val program = ZLambda.constant(10).zip(ZLambda.constant(5)) >>> ZLambda.add
+  val unit: DynamicValue   = Schema[Unit].toDynamic {}
+  val program: Unit ~> Int = ZLambda(10) >>> ZLambda.inc
 
   override def run =
     for {
-      _      <- ZIO.succeed(println(s"Executable: ${program.executable.binary}"))
-      result <- program.executable.unsafeExecute(())
+      result <- program.executable.unsafeExecute(unit)
       _      <- ZIO.attempt(println(new String(JsonCodec.encode(Schema[DynamicValue])(result).toArray)))
     } yield ()
 }

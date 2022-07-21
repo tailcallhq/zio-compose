@@ -19,20 +19,29 @@ sealed trait ZLambda[A, B] { self =>
   def zip[C](other: ZLambda[A, C])(implicit s1: Schema[B], s2: Schema[C]): ZLambda[A, (B, C)] =
     Zip2(self, other, s1, s2)
 
-  def executable: ExecutionPlan = ExecutionPlan.fromGraphQL(self)
+  def executable: ExecutionPlan = ExecutionPlan.fromLambda(self)
 }
 
 object ZLambda {
   def fromMap[A, B](source: Map[A, B])(implicit input: Schema[A], output: Schema[B]): ZLambda[A, B] =
     FromMap(input, source, output)
 
+  def inc: Int ~> Int = ZLambda.partial2(add, 1)
+
+  def dec: Int ~> Int = ZLambda.partial2(add, -1)
+
   def add: (Int, Int) ~> Int = AddInt
 
-  def identity[A]: ZLambda[A, A] = Identity[A]()
+  def partial2[A1, A2, B](f: (A1, A2) ~> B, a1: A1)(implicit s1: Schema[A1], s2: Schema[A2]): A2 ~> B =
+    Partial21(f, a1, s1, s2)
 
-  def useWith[A, A1, A2, B](
-    f: (A1, A2) ~> B,
-  )(f1: A ~> A1, f2: A ~> A2)(implicit s1: Schema[A1], s2: Schema[A2]): A ~> B = zip(f1, f2) >>> f
+  def partial1[A1, B](f: A1 ~> B, a1: A1)(implicit s1: Schema[A1]): Unit ~> B =
+    Partial11(f, a1, s1)
+
+  def partial2[A1, A2, B](f: (A1, A2) ~> B, a1: A1, a2: A2)(implicit s1: Schema[A1], s2: Schema[A2]): Unit ~> B =
+    Partial22(f, a1, a2, s1, s2)
+
+  def identity[A]: ZLambda[A, A] = Identity[A]()
 
   def zip[A, B1, B2](f1: A ~> B1, f2: A ~> B2)(implicit s1: Schema[B1], s2: Schema[B2]): A ~> (B1, B2) =
     Zip2(f1, f2, s1, s2)
@@ -50,6 +59,10 @@ object ZLambda {
   final case class Zip2[A, B1, B2](f1: A ~> B1, f2: A ~> B2, s1: Schema[B1], s2: Schema[B2])
       extends ZLambda[A, (B1, B2)]
   final case class Select[A, B](input: Schema[A], path: NonEmptyList[String], output: Schema[B]) extends ZLambda[A, B]
+  final case class Partial11[A1, B](f: A1 ~> B, a1: A1, s1: Schema[A1]) extends ZLambda[Unit, B]
+  final case class Partial21[A1, A2, B](f: (A1, A2) ~> B, a1: A1, s1: Schema[A1], s2: Schema[A2]) extends ZLambda[A2, B]
+  final case class Partial22[A1, A2, B](f: (A1, A2) ~> B, a1: A1, a2: A2, s1: Schema[A1], s2: Schema[A2])
+      extends ZLambda[Unit, B]
   final case object AddInt extends ZLambda[(Int, Int), Int]
 
   object Accessors extends AccessorBuilder {
@@ -64,4 +77,5 @@ object ZLambda {
 
     override def makeTraversal[S, A](collection: Schema.Collection[S, A], element: Schema[A]): Traversal[S, A] = ()
   }
+
 }
