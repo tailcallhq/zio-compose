@@ -1,77 +1,19 @@
 package com.tusharmath.compose
 
-import zio.schema.{DeriveSchema, DynamicValue, Schema}
+import zio.ZIO
+import zio.ZIOAppDefault
+import zio.schema.DynamicValue
+import zio.schema.Schema
 import zio.schema.codec.JsonCodec
-import zio.{ZIO, ZIOAppDefault}
 
 object Main extends ZIOAppDefault {
 
-  case class Round(name: String, id: Round.Id)
-  object Round {
-    case class Id(id: Long)
-    implicit val schema  = DeriveSchema.gen[Round]
-    implicit val matchId = DeriveSchema.gen[Id]
-    val accessors        = schema.makeAccessors(ZLambda.Accessors)
-  }
-
-  case class Contest(
-    name: String,
-    id: Contest.Id,
-    entryFee: Double,
-    size: Long,
-//    users: List[User.Id],
-    roundId: Round.Id,
-  )
-
-  object Contest {
-
-    case class Id(id: Long)
-
-    implicit val schema    = DeriveSchema.gen[Contest]
-    implicit val contestId = DeriveSchema.gen[Id]
-
-    val (name, id, entryFee, size, roundId) = schema.makeAccessors(ZLambda.Accessors)
-  }
-
-  case class User(name: String, id: User.Id, age: Int)
-  object User {
-    case class Id(id: Long)
-
-    implicit val schema = DeriveSchema.gen[User]
-    implicit val userId = DeriveSchema.gen[Id]
-
-    val (name, id, age) = schema.makeAccessors(ZLambda.Accessors)
-  }
-
-  val getUser1 = ZLambda.constant(User("Tushar Mathur", User.Id(1), 30))
-
-  val getUser2 = ZLambda.constant(User("Aiswarya Prakasan", User.Id(2), 90))
-
-  val getRound = ZLambda.fromMap {
-    Map(
-      Round.Id(1) -> Round("Round 1", Round.Id(1)),
-      Round.Id(2) -> Round("Round 2", Round.Id(2)),
-      Round.Id(3) -> Round("Round 3", Round.Id(3)),
-    )
-  }
-
-  val getContest = ZLambda.constant(Contest("Contest 1", Contest.Id(1), 100.0, 10, Round.Id(1)))
-
-  // From contest prepare round details
-  val program = getContest >>> Contest.roundId >>> getRound
-
-  val program0 = ZLambda.add(100, 5)
-
-  // Execution plan that can be transferred over the wire
-  val plan = ExecutionPlan.fromGraphQL(program0)
-
-  val encoded = new String(JsonCodec.Encoder.encode(ExecutionPlan.schema, plan).toArray)
-
-  val dUnit = implicitly[Schema[Unit]].toDynamic(())
+  val program = ZLambda.constant(10).zip(ZLambda.constant(5)) >>> ZLambda.add
 
   override def run =
     for {
-      result <- Executor.execute(plan, dUnit)
-      _      <- ZIO.attempt(println(new String(JsonCodec.encode(implicitly[Schema[DynamicValue]])(result).toArray)))
+      _      <- ZIO.succeed(println(s"Executable: ${program.executable.binary}"))
+      result <- program.executable.unsafeExecute(())
+      _      <- ZIO.attempt(println(new String(JsonCodec.encode(Schema[DynamicValue])(result).toArray)))
     } yield ()
 }

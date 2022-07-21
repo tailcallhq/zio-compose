@@ -1,49 +1,44 @@
 package com.tusharmath.compose
 
 import zio.{Task, ZIO}
-import zio.schema.DynamicValue
+import zio.schema.{DynamicValue, Schema}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.ListMap
-import zio.schema.StandardType
-import zio.schema.Schema
 
 object Executor {
 
-  private def sum[A](standard: StandardType[A])(a: DynamicValue, b: DynamicValue)(
-    f: (A, A) => A,
-  ): Task[DynamicValue] = ZIO
-    .fromEither(for {
-      aa <- a.toTypedValue(Schema.primitive[A](standard))
-      bb <- b.toTypedValue(Schema.primitive[A](standard))
-    } yield DynamicValue.Primitive(f(aa, bb), standard))
-    .catchAll(err => ZIO.fail(new Exception(err)))
-
   def execute(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] =
     plan match {
-      case ExecutionPlan.Combine(left, right)    =>
-        execute(left, input).zip(execute(right, input)) map { case (d1, d2) => DynamicValue.Tuple(d1, d2) }
+      case ExecutionPlan.Combine(f1, f2, ast1, ast2) =>
+        val s1 = ast1.toSchema.asInstanceOf[Schema[Any]]
+        val s2 = ast2.toSchema.asInstanceOf[Schema[Any]]
+
+        execute(f1, input)
+          .zipWithPar(execute(f2, input)) { (d1, d2) =>
+            ZIO
+              .fromEither(for {
+                v1 <- d1.toTypedValue(s1)
+                v2 <- d2.toTypedValue(s2)
+              } yield (s1 <*> s2).toDynamic((v1, v2)))
+              .catchAll(err => ZIO.fail(new Exception(err)))
+          }
+          .flatten
+
       case ExecutionPlan.Constant(value)         => ZIO.succeed(value)
       case ExecutionPlan.Sequence(first, second) => execute(first, input).flatMap(output => execute(second, output))
       case ExecutionPlan.Identity                => ZIO.succeed(input)
-      case ExecutionPlan.Add(a, b, tag)          =>
-        StandardType.fromString(tag) match {
-          case Some(StandardType.BigDecimalType) => sum(StandardType.BigDecimalType)(a, b) { (a, b) => a.add(b) }
-          case Some(StandardType.BigIntegerType) => sum(StandardType.BigIntegerType)(a, b) { (a, b) => a.add(b) }
-          case Some(StandardType.DoubleType)     => sum(StandardType.DoubleType)(a, b)(_ + _)
-          case Some(StandardType.FloatType)      => sum(StandardType.FloatType)(a, b)(_ + _)
-          case Some(StandardType.IntType)        => sum(StandardType.IntType)(a, b)(_ + _)
-          case Some(StandardType.LongType)       => sum(StandardType.LongType)(a, b)(_ + _)
-          case Some(StandardType.StringType)     => sum(StandardType.StringType)(a, b)(_ + _)
-          case _                                 => ZIO.fail(new Exception("Addition is not possible"))
+      case ExecutionPlan.AddInt                  =>
+        input.toTypedValue(Schema[(Int, Int)]) match {
+          case Left(error)   => ZIO.fail(new Exception(error))
+          case Right(a -> b) => ZIO.succeed(Schema.primitive[Int].toDynamic(a + b))
         }
-
-      case ExecutionPlan.Dictionary(value) =>
+      case ExecutionPlan.Dictionary(value)       =>
         value.get(input) match {
           case Some(v) => ZIO.succeed(v)
           case None    => ZIO.fail(new Exception("Key lookup failed in dictionary"))
         }
-      case ExecutionPlan.Select(path)      =>
+      case ExecutionPlan.Select(path)            =>
         input match {
           case DynamicValue.Record(values) =>
             @tailrec
