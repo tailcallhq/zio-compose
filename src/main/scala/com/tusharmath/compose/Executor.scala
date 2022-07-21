@@ -21,13 +21,14 @@ object Executor {
           case Left(error)  => ZIO.fail(new Exception(error))
           case Right(value) =>
             f1.unsafeExecute(iSchema1.toDynamic(value._1))
-              .zipWithPar(f2.unsafeExecute(iSchema2.toDynamic(value._2))) { case (b1, b2) =>
-                ZIO.fromEither {
-                  for {
-                    v1 <- b1.toTypedValue(oSchema1)
-                    v2 <- b2.toTypedValue(oSchema2)
-                  } yield (oSchema1 <*> oSchema2).toDynamic((v1, v2))
-                }.catchAll(err => ZIO.fail(new Exception(err)))
+              .zipWithPar(f2.unsafeExecute(iSchema2.toDynamic(value._2))) {
+                case (b1, b2) =>
+                  ZIO.fromEither {
+                    for {
+                      v1 <- b1.toTypedValue(oSchema1)
+                      v2 <- b2.toTypedValue(oSchema2)
+                    } yield (oSchema1 <*> oSchema2).toDynamic((v1, v2))
+                  }.catchAll(err => ZIO.fail(new Exception(err)))
               }
               .flatten
         }
@@ -42,13 +43,20 @@ object Executor {
           case Right(a -> b) =>
             ZIO.succeed(Schema.primitive[Int].toDynamic(a + b))
         }
-      case ExecutionPlan.Dictionary(value)       =>
+
+      case ExecutionPlan.MulInt            =>
+        input.toTypedValue(Schema[(Int, Int)]) match {
+          case Left(error)   => ZIO.fail(new Exception(error))
+          case Right(a -> b) =>
+            ZIO.succeed(Schema.primitive[Int].toDynamic(a * b))
+        }
+      case ExecutionPlan.Dictionary(value) =>
         value.get(input) match {
           case Some(v) => ZIO.succeed(v)
           case None    =>
             ZIO.fail(new Exception("Key lookup failed in dictionary"))
         }
-      case ExecutionPlan.Select(path)            =>
+      case ExecutionPlan.Select(path)      =>
         input match {
           case DynamicValue.Record(values) =>
             @tailrec

@@ -44,6 +44,8 @@ object ZLambda {
 
   def inc: Int ~> Int = ZLambda.partial2(add, 1)
 
+  def dec: Int ~> Int = ZLambda.partial2(add, -1)
+
   def add: (Int, Int) ~> Int = AddInt
 
   def partial2[A1, A2, B](f: (A1, A2) ~> B, a1: A1)(implicit
@@ -52,7 +54,7 @@ object ZLambda {
   ): A2 ~> B =
     Partial21(f, a1, s1, s2)
 
-  def dec: Int ~> Int = ZLambda.partial2(add, -1)
+  def mul: (Int, Int) ~> Int = MulInt
 
   def partial1[A1, B](f: A1 ~> B, a1: A1)(implicit s1: Schema[A1]): Unit ~> B =
     Partial11(f, a1, s1)
@@ -73,7 +75,8 @@ object ZLambda {
   ): (A1, A2) ~> (B1, B2) =
     Zip2(f1, f2, a1, a2, b1, b2)
 
-  def useWith[A1, B1, A2, B2, B](f: (B1, B2) ~> B)(f1: A1 ~> B1, f2: A2 ~> B2)(implicit
+  def useWith[A1, B1, A2, B2, B](f: (B1, B2) ~> B)(f1: A1 ~> B1, f2: A2 ~> B2)(
+    implicit
     a1: Schema[A1],
     a2: Schema[A2],
     b1: Schema[B1],
@@ -94,8 +97,9 @@ object ZLambda {
     output: Schema[B],
   ) extends ZLambda[A, B]
   final case class Constant[B](b: B, schema: Schema[B]) extends ZLambda[Unit, B]
-  final case class Identity[A]()                                        extends ZLambda[A, A]
-  final case class Pipe[A, B, C](f: ZLambda[A, B], g: ZLambda[B, C])    extends ZLambda[A, C]
+  final case class Identity[A]() extends ZLambda[A, A]
+  final case class Pipe[A, B, C](f: ZLambda[A, B], g: ZLambda[B, C])
+      extends ZLambda[A, C]
   final case class Zip2[A1, A2, B1, B2](
     f1: A1 ~> B1,
     f2: A2 ~> B2,
@@ -109,7 +113,8 @@ object ZLambda {
     path: NonEmptyList[String],
     output: Schema[B],
   ) extends ZLambda[A, B]
-  final case class Partial11[A1, B](f: A1 ~> B, a1: A1, s1: Schema[A1]) extends ZLambda[Unit, B]
+  final case class Partial11[A1, B](f: A1 ~> B, a1: A1, s1: Schema[A1])
+      extends ZLambda[Unit, B]
   final case class Partial21[A1, A2, B](
     f: (A1, A2) ~> B,
     a1: A1,
@@ -123,7 +128,8 @@ object ZLambda {
     s1: Schema[A1],
     s2: Schema[A2],
   ) extends ZLambda[Unit, B]
-  final case object AddInt                                              extends ZLambda[(Int, Int), Int]
+  final case object AddInt       extends ZLambda[(Int, Int), Int]
+  final case object MulInt       extends ZLambda[(Int, Int), Int]
 
   object Accessors extends AccessorBuilder {
     override type Lens[S, A]      = ZLambda[S, A]

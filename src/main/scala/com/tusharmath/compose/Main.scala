@@ -11,9 +11,9 @@ object Main extends ZIOAppDefault {
   val unit: DynamicValue = Schema[Unit].toDynamic(())
 
   val program: Unit ~> Int = ZLambda.partial2(
-    (ZLambda(10) && ZLambda(200)) >>> ZLambda.useWith(ZLambda.add)(
+    (ZLambda(10) && ZLambda(200)) >>> ZLambda.useWith(ZLambda.mul)(
       ZLambda.partial2(ZLambda.add, 1),
-      ZLambda.identity,
+      ZLambda.partial2(ZLambda.add, -1),
     ),
     (),
   )
