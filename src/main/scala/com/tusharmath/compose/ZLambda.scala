@@ -9,6 +9,8 @@ sealed trait ZLambda[A, B] { self =>
 
   def compose[X](other: ZLambda[X, A]): ZLambda[X, B] = Pipe(other, self)
 
+  def call(a: A)(implicit schema: Schema[A]): Unit ~> B = ZLambda(a) >>> self
+
   def >>>[C](other: ZLambda[B, C]): ZLambda[A, C] = self pipe other
 
   def pipe[C](other: ZLambda[B, C]): ZLambda[A, C] = Pipe(self, other)
@@ -86,17 +88,17 @@ object ZLambda {
 
   def unit: ZLambda[Unit, Unit] = ZLambda(())
 
-  def apply[B](a: B)(implicit schema: Schema[B]): ZLambda[Unit, B] = constant(a)
+  def apply[B](a: B)(implicit schema: Schema[B]): ZLambda[Unit, B] = always(a)
 
-  def constant[B](a: B)(implicit schema: Schema[B]): ZLambda[Unit, B] =
-    Constant(a, schema)
+  def always[B](a: B)(implicit schema: Schema[B]): ZLambda[Unit, B] =
+    Always(a, schema)
 
   final case class FromMap[A, B](
     input: Schema[A],
     source: Map[A, B],
     output: Schema[B],
   ) extends ZLambda[A, B]
-  final case class Constant[B](b: B, schema: Schema[B]) extends ZLambda[Unit, B]
+  final case class Always[B](b: B, schema: Schema[B]) extends ZLambda[Unit, B]
   final case class Identity[A]() extends ZLambda[A, A]
   final case class Pipe[A, B, C](f: ZLambda[A, B], g: ZLambda[B, C])
       extends ZLambda[A, C]

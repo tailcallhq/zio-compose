@@ -2,7 +2,7 @@ package com.tusharmath.compose
 import zio.schema.{DeriveSchema, DynamicValue}
 import zio.schema.ast.SchemaAst
 import zio.schema.codec.JsonCodec
-import zio.{Chunk, Task}
+import zio.{Chunk, Task, ZIO}
 
 sealed trait ExecutionPlan { self =>
   def json: String        = new String(binary.toArray)
@@ -12,6 +12,14 @@ sealed trait ExecutionPlan { self =>
 }
 
 object ExecutionPlan {
+
+  def fromJson(json: String): ZIO[Any, Exception, ExecutionPlan] =
+    JsonCodec.decode(ExecutionPlan.schema)(
+      Chunk.fromArray(json.getBytes),
+    ) match {
+      case Left(value)  => ZIO.fail(new Exception(value))
+      case Right(value) => ZIO.succeed(value)
+    }
 
   def fromLambda[A, B](lmb: ZLambda[A, B]): ExecutionPlan =
     lmb match {
@@ -23,7 +31,7 @@ object ExecutionPlan {
           (i.toDynamic(k), o.toDynamic(v))
         })
       case ZLambda.Select(input, path, output)  => Select(path)
-      case ZLambda.Constant(b, schema)          => Constant(schema.toDynamic(b))
+      case ZLambda.Always(b, schema)          => Constant(schema.toDynamic(b))
       case ZLambda.Identity()                   => Identity
       case ZLambda.AddInt                       => AddInt
       case ZLambda.MulInt                       => MulInt

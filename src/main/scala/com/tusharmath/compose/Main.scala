@@ -1,30 +1,44 @@
 package com.tusharmath.compose
 
-import zio.ZIO
-import zio.ZIOAppDefault
-import zio.schema.DynamicValue
-import zio.schema.Schema
+import zio.{ZIO, ZIOAppDefault}
+import zio.schema.{DeriveSchema, DynamicValue, Schema}
 import zio.schema.codec.JsonCodec
+import zio.schema.DeriveSchema.gen
 
 object Main extends ZIOAppDefault {
 
-  val unit: DynamicValue = Schema[Unit].toDynamic(())
+  val unit: DynamicValue = Schema.primitive[Unit].toDynamic(())
 
-  val program: Unit ~> Int = ZLambda.partial2(
-    (ZLambda(10) && ZLambda(200)) >>> ZLambda.useWith(ZLambda.mul)(
-      ZLambda.partial2(ZLambda.add, 1),
-      ZLambda.partial2(ZLambda.add, -1),
-    ),
-    (),
+  import ZLambda._
+  val userMap = Map(
+    1 -> User("John", 30),
+    2 -> User("Jane", 25),
+    3 -> User("Jack", 20),
+    4 -> User("Jill", 15),
   )
+
+  def negate: Int ~> Int = partial2(mul, -1)
 
   override def run =
     for {
-      result <- program.executable.unsafeExecute(unit)
-      _      <- ZIO.attempt(
-        println(
-          new String(JsonCodec.encode(Schema[DynamicValue])(result).toArray),
-        ),
+      json    <- ZIO.succeed(program.executable.json)
+      exe     <- ExecutionPlan.fromJson(json)
+      res     <- exe.unsafeExecute(unit)
+      resJson <- ZIO.succeed(
+        new String(JsonCodec.encode(Schema[DynamicValue])(res).toArray),
       )
+      _       <- ZIO.succeed(println(resJson))
     } yield ()
+
+  def program =
+    (useWith(mul)(inc, dec) <<< (ZLambda(10) && ZLambda(20))).call(() -> ())
+
+  case class User(name: String, age: Int)
+
+  object User {
+    implicit val schema = DeriveSchema.gen[User]
+    val (name, age)     = Schema[User]
+      .makeAccessors(ZLambda.Accessors)
+      .asInstanceOf[(User ~> String, User ~> Int)]
+  }
 }
