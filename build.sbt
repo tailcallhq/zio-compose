@@ -22,6 +22,6 @@ Global / semanticdbEnabled    := true
 Global / onChangedBuildSource := ReloadOnSourceChanges
 Global / scalacOptions        := Seq(
   "-Ywarn-unused:imports",
-  "-Xfatal-warnings",
+  "-Werror",
 )
 val scala3Version = "2.13.8"

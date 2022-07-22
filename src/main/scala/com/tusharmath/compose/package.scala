@@ -1,7 +1,5 @@
 package com.tusharmath
 
-import com.tusharmath.compose.internal.EitherExtensions
-
-package object compose extends EitherExtensions {
+package object compose {
   type ~>[A, B] = Lambda[A, B]
 }

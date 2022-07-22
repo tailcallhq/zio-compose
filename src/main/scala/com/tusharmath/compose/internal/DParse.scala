@@ -1,5 +1,6 @@
 package com.tusharmath.compose.internal
 
+import zio.prelude.AssociativeBothOps
 import zio.schema.{DynamicValue, Schema}
 
 object DParse {

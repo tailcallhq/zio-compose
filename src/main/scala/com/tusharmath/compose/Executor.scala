@@ -2,6 +2,7 @@ package com.tusharmath.compose
 
 import com.tusharmath.compose.internal.{DExtract, DParse}
 import zio.{Task, ZIO}
+import zio.prelude.AssociativeBothOps
 import zio.schema.{DynamicValue, Schema}
 import zio.schema.ast.SchemaAst
 
