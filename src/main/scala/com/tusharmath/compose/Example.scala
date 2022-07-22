@@ -6,7 +6,6 @@ import zio.schema.codec.JsonCodec
 import zio.schema.DeriveSchema.gen
 
 object Example extends ZIOAppDefault {
-  val unit: DynamicValue = Schema.primitive[Unit].toDynamic(())
 
   import Lambda._
 
@@ -20,6 +19,7 @@ object Example extends ZIOAppDefault {
       exe <- ExecutionPlan.fromJson(json)
 
       // Execute the program
+      unit = Schema.primitive[Unit].toDynamic(())
       res <- exe.unsafeExecute(unit)
 
       // Serialize and print the output
@@ -29,25 +29,12 @@ object Example extends ZIOAppDefault {
       _       <- ZIO.succeed(println(resJson))
     } yield ()
 
-  def isLT20: Int ~> Boolean = gt <<< partial[Int, Int](20)
-  def isGT12: Int ~> Boolean = lt <<< partial[Int, Int](12)
-  def isGT60: Int ~> Boolean = lt <<< partial[Int, Int](60)
-
-  def userAge = User.age
-
-  def isTeen: Unit ~> Boolean =
-    and <<<
-      (isGT12 zip isLT20) <<<
-      unary <<<
-      userAge <<<
-      always(User("John", 15))
-
-  def demographic = ifElse(isTeen)(
-    isTrue = always("Is a teen"),
-    isFalse = always("Is not a teen"),
+  def demographic = ifElse(between(13, 19) <<< User.age)(
+    isTrue = always("Is a teen").accept[User],
+    isFalse = always("Is not a teen").accept[User],
   )
 
-  def program: Unit ~> Int = converge1(add)(identity, identity) <<< always(100)
+  def program: Unit ~> String = demographic <<< always(User("John", 5))
 
   case class User(name: String, age: Int)
   object User {

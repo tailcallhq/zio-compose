@@ -1,32 +1,13 @@
 package com.tusharmath.compose
 
-import com.tusharmath.compose.Lambda.converge1
+import com.tusharmath.compose.Lambda.partial
 import zio.prelude.NonEmptyList
 import zio.schema.Schema
 
 sealed trait Lambda[A, B] { self =>
-  final def <<<[X](other: Lambda[X, A]): Lambda[X, B] = self compose other
-
-  final def compose[X](other: Lambda[X, A]): Lambda[X, B] =
-    Lambda.Pipe(other, self)
-
-  final def >>:(a: A)(implicit schema: Schema[A]): Unit ~> B = call(a)
-
-  final def call(a: A)(implicit schema: Schema[A]): Unit ~> B =
-    Lambda(a) >>> self
-
   final def >>>[C](other: Lambda[B, C]): Lambda[A, C] = self pipe other
 
-  final def pipe[C](other: Lambda[B, C]): Lambda[A, C] =
-    Lambda.Pipe(self, other)
-
-  final def unary[A1](implicit
-    ev: A =:= (A1, A1),
-    schema: Schema[A1],
-  ): A1 ~> B = converge1(self.asInstanceOf[(A1, A1) ~> B])(
-    Lambda.identity,
-    Lambda.identity,
-  )
+  final def <<<[X](other: Lambda[X, A]): Lambda[X, B] = self compose other
 
   final def <*>[A1, B1](
     other: Lambda[A1, B1],
@@ -36,6 +17,26 @@ sealed trait Lambda[A, B] { self =>
     b1: Schema[B],
     b2: Schema[B1],
   ): (A, A1) ~> (B, B1) = self zip other
+
+  final def accept[A1](implicit ev: A =:= Unit): A1 ~> B =
+    self.asInstanceOf[A1 ~> B]
+
+  final def bind[A1, A2](
+    a1: A1,
+  )(implicit ev: A =:= (A1, A2), s1: Schema[A1], s2: Schema[A2]): A2 ~> B =
+    self.asInstanceOf[(A1, A2) ~> B] <<< partial[A1, A2](a1)
+
+  final def call(a: A)(implicit schema: Schema[A]): Unit ~> B =
+    Lambda(a) >>> self
+
+  final def compose[X](other: Lambda[X, A]): Lambda[X, B] =
+    Lambda.Pipe(other, self)
+
+  final def pipe[C](other: Lambda[B, C]): Lambda[A, C] =
+    Lambda.Pipe(self, other)
+
+  final def unary[A1](implicit ev: A =:= (A1, A1), s1: Schema[A1]): A1 ~> B =
+    Lambda.unary(self.asInstanceOf[(A1, A1) ~> B])
 
   final def zip[A1, B1](
     other: Lambda[A1, B1],
@@ -51,8 +52,23 @@ sealed trait Lambda[A, B] { self =>
 
 object Lambda {
 
-  def unary[A, B](f: (A, A) ~> B)(implicit a: Schema[A]): A ~> B =
-    converge1(f)(identity, identity)
+  def F: Unit ~> Boolean = always(false)
+
+  def T: Unit ~> Boolean = always(true)
+
+  def add: (Int, Int) ~> Int = AddInt
+
+  def always[B](a: B)(implicit schema: Schema[B]): Lambda[Unit, B] =
+    Always(a, schema)
+
+  def and: (Boolean, Boolean) ~> Boolean = LogicalAnd
+
+  def apply[B](a: B)(implicit schema: Schema[B]): Lambda[Unit, B] = always(a)
+
+  def between(min: Int, max: Int): Int ~> Boolean =
+    and <<< unary(lte.bind(min) zip gte.bind(max))
+
+  def call[A, B](f: A ~> B, a: A)(implicit ev: Schema[A]): Unit ~> B = f.call(a)
 
   def converge1[A, A1, A2, C](
     f: (A1, A2) ~> C,
@@ -62,22 +78,6 @@ object Lambda {
   ): A ~> C =
     Converge1(f, f1, f2, a1, a2)
 
-  def identity[A]: Lambda[A, A] = Identity[A]()
-
-  def lt: (Int, Int) ~> Boolean = gt >>> not
-
-  def not: Boolean ~> Boolean = LogicalNot
-
-  def gt: (Int, Int) ~> Boolean = GreaterThanInt
-
-  def gte: (Int, Int) ~> Boolean = GreaterThanEqualInt
-
-  def eq[A]: (A, A) ~> Boolean = EqualTo()
-
-  def and: (Boolean, Boolean) ~> Boolean = LogicalAnd
-
-  def or: (Boolean, Boolean) ~> Boolean = LogicalOr
-
   def converge2[A, B, A1, A2, C](
     f: (A1, A2) ~> C,
   )(f1: (A, B) ~> A1, f2: (A, B) ~> A2)(implicit
@@ -85,15 +85,35 @@ object Lambda {
     a2: Schema[A2],
   ): (A, B) ~> C = Converge2(f, f1, f2, a1, a2)
 
-  def ifElse[A, B](f: A ~> Boolean)(isTrue: A ~> B, isFalse: A ~> B): A ~> B =
-    IfElse(f, isTrue, isFalse)
+  def dec: Int ~> Int = Lambda.partial[Int, Int](-1) >>> add
+
+  def eq[A]: (A, A) ~> Boolean = EqualTo()
 
   def fromMap[A, B](
     source: Map[A, B],
   )(implicit input: Schema[A], output: Schema[B]): Lambda[A, B] =
     FromMap(input, source, output)
 
+  def gt: (Int, Int) ~> Boolean = GreaterThanInt
+
+  def gte: (Int, Int) ~> Boolean = GreaterThanEqualInt
+
+  def identity[A]: Lambda[A, A] = Identity[A]()
+
+  def ifElse[A, B](f: A ~> Boolean)(isTrue: A ~> B, isFalse: A ~> B): A ~> B =
+    IfElse(f, isTrue, isFalse)
+
   def inc: Int ~> Int = Lambda.partial[Int, Int](1) >>> add
+
+  def lt: (Int, Int) ~> Boolean = gt >>> not
+
+  def lte: (Int, Int) ~> Boolean = not <<< gte
+
+  def mul: (Int, Int) ~> Int = MulInt
+
+  def not: Boolean ~> Boolean = LogicalNot
+
+  def or: (Boolean, Boolean) ~> Boolean = LogicalOr
 
   def partial[A1, A2](a1: A1)(implicit
     s1: Schema[A1],
@@ -101,22 +121,17 @@ object Lambda {
   ): A2 ~> (A1, A2) =
     Partial21(a1, s1, s2)
 
-  def add: (Int, Int) ~> Int = AddInt
-
-  def call[A, B](f: A ~> B, a: A)(implicit ev: Schema[A]): Unit ~> B = f.call(a)
-
-  def dec: Int ~> Int = Lambda.partial[Int, Int](-1) >>> add
-
   def partial[A1, A2](a1: A1, a2: A2)(implicit
     s1: Schema[A1],
     s2: Schema[A2],
   ): Unit ~> (A1, A2) =
     Partial22(a1, a2, s1, s2)
 
-  def mul: (Int, Int) ~> Int = MulInt
-
   def partial[A1](a1: A1)(implicit s1: Schema[A1]): Unit ~> A1 =
     Partial11(a1, s1)
+
+  def unary[A, B](f: (A, A) ~> B)(implicit a: Schema[A]): A ~> B =
+    converge1(f)(identity, identity)
 
   def useWith[A1, B1, A2, B2, B](f: (B1, B2) ~> B)(f1: A1 ~> B1, f2: A2 ~> B2)(
     implicit
@@ -127,22 +142,11 @@ object Lambda {
   ): (A1, A2) ~> B =
     (f1 zip f2) >>> f
 
-  def T: Unit ~> Boolean = always(true)
-
-  def F: Unit ~> Boolean = always(false)
-
-  def always[B](a: B)(implicit schema: Schema[B]): Lambda[Unit, B] =
-    Always(a, schema)
-
   def zip[A1, A2, B1, B2](f1: A1 ~> B1, f2: A2 ~> B2)(implicit
     b1: Schema[B1],
     b2: Schema[B2],
   ): (A1, A2) ~> (B1, B2) =
     Zip2(f1, f2, b1, b2)
-
-  def unit: Lambda[Unit, Unit] = Lambda(())
-
-  def apply[B](a: B)(implicit schema: Schema[B]): Lambda[Unit, B] = always(a)
 
   final case class Converge2[A, B, A1, A2, C](
     f: (A1, A2) ~> C,
