@@ -29,8 +29,6 @@ sealed trait Lambda[A, B] { self =>
   def zip[A1, B1](
     other: Lambda[A1, B1],
   )(implicit
-    a1: Schema[A],
-    a2: Schema[A1],
     b1: Schema[B],
     b2: Schema[B1],
   ): (A, A1) ~> (B, B1) =
@@ -87,12 +85,10 @@ object Lambda {
     (f1 zip f2) >>> f
 
   def zip[A1, A2, B1, B2](f1: A1 ~> B1, f2: A2 ~> B2)(implicit
-    a1: Schema[A1],
-    a2: Schema[A2],
     b1: Schema[B1],
     b2: Schema[B2],
   ): (A1, A2) ~> (B1, B2) =
-    Zip2(f1, f2, a1, a2, b1, b2)
+    Zip2(f1, f2, b1, b2)
 
   def unit: Lambda[Unit, Unit] = Lambda(())
 
@@ -117,8 +113,6 @@ object Lambda {
   final case class Zip2[A1, A2, B1, B2](
     f1: A1 ~> B1,
     f2: A2 ~> B2,
-    i1: Schema[A1],
-    i2: Schema[A2],
     o1: Schema[B1],
     o2: Schema[B2],
   ) extends Lambda[(A1, A2), (B1, B2)]

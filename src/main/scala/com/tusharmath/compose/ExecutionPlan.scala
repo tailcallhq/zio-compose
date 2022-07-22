@@ -26,8 +26,8 @@ object ExecutionPlan {
 
       case Lambda.Pipe(f, g) => Sequence(f.executable, g.executable)
 
-      case Lambda.Zip2(f1, f2, i1, i2, o1, o2) =>
-        Zip2(f1.executable, f2.executable, i1.ast, i2.ast, o1.ast, o2.ast)
+      case Lambda.Zip2(f1, f2, o1, o2) =>
+        Zip2(f1.executable, f2.executable, o1.ast, o2.ast)
 
       case Lambda.FromMap(i, source, o) =>
         Dictionary(source.map { case (k, v) =>
@@ -65,8 +65,6 @@ object ExecutionPlan {
   case class Zip2(
     e1: ExecutionPlan,
     e2: ExecutionPlan,
-    i1: SchemaAst,
-    i2: SchemaAst,
     o1: SchemaAst,
     o2: SchemaAst,
   ) extends ExecutionPlan

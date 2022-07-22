@@ -2,6 +2,7 @@ package com.tusharmath.compose
 
 import zio.{Task, ZIO}
 import zio.schema.{DynamicValue, Schema}
+import zio.schema.ast.SchemaAst
 
 import scala.annotation.tailrec
 import scala.collection.immutable.ListMap
@@ -10,28 +11,14 @@ object Executor {
 
   def execute(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
-      case ExecutionPlan.Zip2(f1, f2, i1, i2, o1, o2) =>
-        val iSchema1 = i1.toSchema.asInstanceOf[Schema[Any]]
-        val iSchema2 = i2.toSchema.asInstanceOf[Schema[Any]]
-        val oSchema1 = o1.toSchema.asInstanceOf[Schema[Any]]
-        val oSchema2 = o2.toSchema.asInstanceOf[Schema[Any]]
-        val si       = Schema.tuple2(iSchema1, iSchema2)
-
-        input.toTypedValue(si) match {
-          case Left(error)  => ZIO.fail(new Exception(error))
-          case Right(value) =>
-            f1.unsafeExecute(iSchema1.toDynamic(value._1))
-              .zipWithPar(f2.unsafeExecute(iSchema2.toDynamic(value._2))) {
-                case (b1, b2) =>
-                  effect {
-                    for {
-                      v1 <- b1.toTypedValue(oSchema1)
-                      v2 <- b2.toTypedValue(oSchema2)
-                    } yield (oSchema1 <*> oSchema2).toDynamic((v1, v2))
-                  }
-              }
-              .flatten
-        }
+      case ExecutionPlan.Zip2(f1, f2, o1, o2) =>
+        for {
+          d1a <- effect(DExtract.paramIdN(1, input))
+          d2a <- effect(DExtract.paramIdN(2, input))
+          res <- f1.unsafeExecute(d1a).zipPar(f2.unsafeExecute(d2a)) flatMap {
+            case (d1b, d2b) => effect(merge((d1b, o1), (d2b, o2)))
+          }
+        } yield res
 
       case ExecutionPlan.Always(value)           => ZIO.succeed(value)
       case ExecutionPlan.Sequence(first, second) =>
@@ -82,14 +69,7 @@ object Executor {
       case ExecutionPlan.Partial(argSchemas, argValues) =>
         effect {
           argValues.appended(input).zip(argSchemas).toArray match {
-            case Array(d1 -> a1, d2 -> a2) =>
-              val s1 = a1.toSchema.asInstanceOf[Schema[Any]]
-              val s2 = a2.toSchema.asInstanceOf[Schema[Any]]
-
-              for {
-                v1 <- d1.toTypedValue(s1)
-                v2 <- d2.toTypedValue(s2)
-              } yield (s1 <*> s2).toDynamic((v1, v2))
+            case Array(da1, da2) => merge(da1, da2)
           }
         }
 
@@ -112,5 +92,19 @@ object Executor {
       case Left(error) => ZIO.fail(new Exception(error))
       case Right(a)    => ZIO.succeed(a)
     }
+
+  private def merge(
+    ds1: (DynamicValue, SchemaAst),
+    ds2: (DynamicValue, SchemaAst),
+  ): Either[String, DynamicValue] = {
+    val s1 = ds1._2.toSchema.asInstanceOf[Schema[Any]]
+    val s2 = ds2._2.toSchema.asInstanceOf[Schema[Any]]
+    val d1 = ds1._1
+    val d2 = ds2._1
+    for {
+      v1 <- d1.toTypedValue(s1)
+      v2 <- d2.toTypedValue(s2)
+    } yield (s1 <*> s2).toDynamic((v1, v2))
+  }
 
 }
