@@ -1,7 +1,7 @@
 package com.tusharmath.compose
 
 import zio.{ZIO, ZIOAppDefault}
-import zio.schema.{DeriveSchema, DynamicValue, Schema}
+import zio.schema.{DynamicValue, Schema}
 import zio.schema.codec.JsonCodec
 import zio.schema.DeriveSchema.gen
 
@@ -9,7 +9,7 @@ object Main extends ZIOAppDefault {
 
   val unit: DynamicValue = Schema.primitive[Unit].toDynamic(())
 
-  import ZLambda._
+  import Lambda._
   def userMap = Map(
     1 -> User("John", 30),
     2 -> User("Jane", 25),
@@ -30,7 +30,7 @@ object Main extends ZIOAppDefault {
       _       <- ZIO.succeed(println(resJson))
     } yield ()
 
-  def program = ((1, 2)) >>: add
+  def program = ifElse(always(true))(always("Hey!"), always("Bye"))
 
   case class User(name: String, age: Int)
 

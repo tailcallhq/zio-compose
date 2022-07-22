@@ -1,14 +1,5 @@
 import Dependencies._
 
-val scala3Version = "2.13.8"
-
-// Flags
-Global / semanticdbEnabled    := true
-Global / onChangedBuildSource := ReloadOnSourceChanges
-Global / scalacOptions        := Seq(
-  "-Ywarn-unused:imports",
-)
-
 // Projects
 lazy val root = project
   .in(file("."))
@@ -25,3 +16,12 @@ lazy val root = project
       ZIOTest % Test,
     ),
   )
+
+// Flags
+Global / semanticdbEnabled    := true
+Global / onChangedBuildSource := ReloadOnSourceChanges
+Global / scalacOptions        := Seq(
+  "-Ywarn-unused:imports",
+  "-Xfatal-warnings",
+)
+val scala3Version = "2.13.8"

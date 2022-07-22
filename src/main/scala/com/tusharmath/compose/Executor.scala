@@ -8,6 +8,15 @@ import scala.collection.immutable.ListMap
 
 object Executor {
 
+  private def encode[A](a: A)(implicit schema: Schema[A]): DynamicValue =
+    schema.toDynamic(a)
+
+  private def effect[A](e: Either[String, A]): Task[A] =
+    e match {
+      case Left(error) => ZIO.fail(new Exception(error))
+      case Right(a)    => ZIO.succeed(a)
+    }
+
   def execute(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
       case ExecutionPlan.Zip2(f1, f2, i1, i2, o1, o2) =>
@@ -23,12 +32,12 @@ object Executor {
             f1.unsafeExecute(iSchema1.toDynamic(value._1))
               .zipWithPar(f2.unsafeExecute(iSchema2.toDynamic(value._2))) {
                 case (b1, b2) =>
-                  ZIO.fromEither {
+                  effect {
                     for {
                       v1 <- b1.toTypedValue(oSchema1)
                       v2 <- b2.toTypedValue(oSchema2)
                     } yield (oSchema1 <*> oSchema2).toDynamic((v1, v2))
-                  }.catchAll(err => ZIO.fail(new Exception(err)))
+                  }
               }
               .flatten
         }
@@ -38,18 +47,15 @@ object Executor {
         first.unsafeExecute(input).flatMap(second.unsafeExecute)
       case ExecutionPlan.Identity                => ZIO.succeed(input)
       case ExecutionPlan.AddInt                  =>
-        getParams2[Int](input) match {
-          case Left(error)   => ZIO.fail(new Exception(error))
-          case Right(a -> b) =>
-            ZIO.succeed(Schema.primitive[Int].toDynamic(a + b))
-        }
+        val p1 = DExtract.paramIdN(1, input).flatMap(DParse.toInt)
+        val p2 = DExtract.paramIdN(2, input).flatMap(DParse.toInt)
+        effect(p1.flatMap(v1 => p2.map(v2 => encode(v1 + v2))))
 
-      case ExecutionPlan.MulInt            =>
-        getParams2[Int](input) match {
-          case Left(error)   => ZIO.fail(new Exception(error))
-          case Right(a -> b) =>
-            ZIO.succeed(Schema.primitive[Int].toDynamic(a * b))
-        }
+      case ExecutionPlan.MulInt =>
+        val p1 = DExtract.paramIdN(1, input).flatMap(DParse.toInt)
+        val p2 = DExtract.paramIdN(2, input).flatMap(DParse.toInt)
+        effect(p1.flatMap(v1 => p2.map(v2 => encode(v1 * v2))))
+
       case ExecutionPlan.Dictionary(value) =>
         value.get(input) match {
           case Some(v) => ZIO.succeed(v)
@@ -83,39 +89,29 @@ object Executor {
         }
 
       case ExecutionPlan.Partial(plan, argSchema, args) =>
-        ZIO.fromEither {
-          val tuples = args.appended(input).zip(argSchema)
-          tuples.toArray match {
+        effect {
+          args.appended(input).zip(argSchema).toArray match {
             case Array(d1 -> a1, d2 -> a2) =>
-              val (s1, s2) = (
-                a1.toSchema.asInstanceOf[Schema[Any]],
-                a2.toSchema.asInstanceOf[Schema[Any]],
-              )
+              val s1 = a1.toSchema.asInstanceOf[Schema[Any]]
+              val s2 = a2.toSchema.asInstanceOf[Schema[Any]]
+
               for {
                 v1 <- d1.toTypedValue(s1)
                 v2 <- d2.toTypedValue(s2)
               } yield (s1 <*> s2).toDynamic((v1, v2))
           }
-        }.catchAll(err => ZIO.fail(new Exception(err)))
+        }
           .flatMap(plan.unsafeExecute)
+
+      case ExecutionPlan.IfElse(cond, isTrue, isFalse) =>
+        for {
+          dBool   <- cond.unsafeExecute(input)
+          bool    <- effect(DParse.toBoolean(dBool))
+          dResult <-
+            if (bool) isTrue.unsafeExecute(input)
+            else isFalse.unsafeExecute(input)
+        } yield dResult
     }
   }
-
-  def getParams2[A](
-    db: DynamicValue,
-  )(implicit s: Schema[A]): Either[String, (A, A)] =
-    (db match {
-      case DynamicValue.Record(values)     =>
-        values
-          .get("_1")
-          .zip(values.get("_2"))
-          .toRight("Record isn't like a tuple")
-      case DynamicValue.Tuple(left, right) => Right((left, right))
-      case _                               => Left("Not a tuple")
-    }).flatMap { case (d1, d2) =>
-      d1
-        .toTypedValue(Schema[A])
-        .flatMap(v1 => d2.toTypedValue(Schema[A]).map(v2 => (v1, v2)))
-    }
 
 }
