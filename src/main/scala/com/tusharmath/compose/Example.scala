@@ -10,10 +10,6 @@ object Example extends ZIOAppDefault {
 
   import Lambda._
 
-  def program = {
-    always(User("Tushar", 30)) >>> User.age >>> partial[Int, Int](20) >>> gte
-  }
-
   override def run =
     for {
 
@@ -32,6 +28,26 @@ object Example extends ZIOAppDefault {
       )
       _       <- ZIO.succeed(println(resJson))
     } yield ()
+
+  def isLT20: Int ~> Boolean = gt <<< partial[Int, Int](20)
+  def isGT12: Int ~> Boolean = lt <<< partial[Int, Int](12)
+  def isGT60: Int ~> Boolean = lt <<< partial[Int, Int](60)
+
+  def userAge = User.age
+
+  def isTeen: Unit ~> Boolean =
+    and <<<
+      (isGT12 zip isLT20) <<<
+      unary <<<
+      userAge <<<
+      always(User("John", 15))
+
+  def demographic = ifElse(isTeen)(
+    isTrue = always("Is a teen"),
+    isFalse = always("Is not a teen"),
+  )
+
+  def program: Unit ~> Int = converge1(add)(identity, identity) <<< always(100)
 
   case class User(name: String, age: Int)
   object User {

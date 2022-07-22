@@ -99,6 +99,17 @@ object Executor {
 
       case ExecutionPlan.LogicalOr =>
         effect(evalAsBoolean(input) { (v1, v2) => v1 || v2 })
+
+      case ExecutionPlan.Converge(f, f1, f2, a1, a2) =>
+        for {
+          d1 <- f1.unsafeExecute(input)
+          d2 <- f2.unsafeExecute(input)
+          s1 = a1.toSchema.asInstanceOf[Schema[Any]]
+          s2 = a2.toSchema.asInstanceOf[Schema[Any]]
+          v1  <- effect(d1.toTypedValue(s1))
+          v2  <- effect(d2.toTypedValue(s2))
+          res <- f.unsafeExecute((s1 <*> s2).toDynamic((v1, v2)))
+        } yield res
     }
   }
 

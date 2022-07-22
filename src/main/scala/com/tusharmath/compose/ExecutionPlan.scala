@@ -58,12 +58,36 @@ object ExecutionPlan {
       case Lambda.IfElse(f, isTrue, isFalse) =>
         IfElse(f.executable, isTrue.executable, isFalse.executable)
 
-      case Lambda.LogicalNot          => LogicalNot
-      case Lambda.LogicalAnd          => LogicalAnd
-      case Lambda.LogicalOr           => LogicalOr
+      case Lambda.LogicalNot => LogicalNot
+
+      case Lambda.LogicalAnd => LogicalAnd
+
+      case Lambda.LogicalOr => LogicalOr
+
       case Lambda.GreaterThanEqualInt => GreaterThanEqualInt
-      case Lambda.GreaterThanInt      => GreaterThanInt
-      case Lambda.EqualTo()           => EqualTo
+
+      case Lambda.GreaterThanInt => GreaterThanInt
+
+      case Lambda.EqualTo() => EqualTo
+
+      case Lambda.Converge1(f, f1, f2, s1, s2) =>
+        Converge(
+          f.executable,
+          f1.executable,
+          f2.executable,
+          s1.ast,
+          s2.ast,
+        )
+
+      case Lambda.Converge2(f, f1, f2, s1, s2) =>
+        Converge(
+          f.executable,
+          f1.executable,
+          f2.executable,
+          s1.ast,
+          s2.ast,
+        )
+
     }
 
   final case class Always(value: DynamicValue) extends ExecutionPlan
@@ -94,6 +118,14 @@ object ExecutionPlan {
     ifFalse: ExecutionPlan,
   ) extends ExecutionPlan
 
+  case class Converge(
+    f: ExecutionPlan,
+    f1: ExecutionPlan,
+    f2: ExecutionPlan,
+    a1: SchemaAst,
+    a2: SchemaAst,
+  ) extends ExecutionPlan
+
   case object EqualTo extends ExecutionPlan
 
   case object GreaterThanEqualInt extends ExecutionPlan
@@ -101,8 +133,10 @@ object ExecutionPlan {
   case object GreaterThanInt extends ExecutionPlan
 
   case object LogicalNot extends ExecutionPlan
+
   case object LogicalAnd extends ExecutionPlan
-  case object LogicalOr  extends ExecutionPlan
+
+  case object LogicalOr extends ExecutionPlan
 
   case object AddInt extends ExecutionPlan
 
@@ -110,5 +144,5 @@ object ExecutionPlan {
 
   case object Identity extends ExecutionPlan
 
-  implicit val schema = DeriveSchema.gen[ExecutionPlan]
+  implicit def schema = DeriveSchema.gen[ExecutionPlan]
 }
