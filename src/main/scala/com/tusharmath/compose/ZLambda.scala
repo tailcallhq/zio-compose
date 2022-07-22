@@ -9,6 +9,8 @@ sealed trait ZLambda[A, B] { self =>
 
   def compose[X](other: ZLambda[X, A]): ZLambda[X, B] = Pipe(other, self)
 
+  def >>:(a: A)(implicit schema: Schema[A]): Unit ~> B = call(a)
+
   def call(a: A)(implicit schema: Schema[A]): Unit ~> B = ZLambda(a) >>> self
 
   def >>>[C](other: ZLambda[B, C]): ZLambda[A, C] = self pipe other
@@ -45,6 +47,8 @@ object ZLambda {
     FromMap(input, source, output)
 
   def inc: Int ~> Int = ZLambda.partial2(add, 1)
+
+  def call[A, B](f: A ~> B, a: A)(implicit ev: Schema[A]): Unit ~> B = f.call(a)
 
   def dec: Int ~> Int = ZLambda.partial2(add, -1)
 

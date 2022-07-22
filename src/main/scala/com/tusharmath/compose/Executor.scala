@@ -38,14 +38,14 @@ object Executor {
         first.unsafeExecute(input).flatMap(second.unsafeExecute)
       case ExecutionPlan.Identity                => ZIO.succeed(input)
       case ExecutionPlan.AddInt                  =>
-        input.toTypedValue(Schema[(Int, Int)]) match {
+        getParams2[Int](input) match {
           case Left(error)   => ZIO.fail(new Exception(error))
           case Right(a -> b) =>
             ZIO.succeed(Schema.primitive[Int].toDynamic(a + b))
         }
 
       case ExecutionPlan.MulInt            =>
-        input.toTypedValue(Schema[(Int, Int)]) match {
+        getParams2[Int](input) match {
           case Left(error)   => ZIO.fail(new Exception(error))
           case Right(a -> b) =>
             ZIO.succeed(Schema.primitive[Int].toDynamic(a * b))
@@ -97,7 +97,25 @@ object Executor {
               } yield (s1 <*> s2).toDynamic((v1, v2))
           }
         }.catchAll(err => ZIO.fail(new Exception(err)))
-          .flatMap(plan.unsafeExecute(_))
+          .flatMap(plan.unsafeExecute)
     }
   }
+
+  def getParams2[A](
+    db: DynamicValue,
+  )(implicit s: Schema[A]): Either[String, (A, A)] =
+    (db match {
+      case DynamicValue.Record(values)     =>
+        values
+          .get("_1")
+          .zip(values.get("_2"))
+          .toRight("Record isn't like a tuple")
+      case DynamicValue.Tuple(left, right) => Right((left, right))
+      case _                               => Left("Not a tuple")
+    }).flatMap { case (d1, d2) =>
+      d1
+        .toTypedValue(Schema[A])
+        .flatMap(v1 => d2.toTypedValue(Schema[A]).map(v2 => (v1, v2)))
+    }
+
 }

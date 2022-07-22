@@ -10,7 +10,7 @@ object Main extends ZIOAppDefault {
   val unit: DynamicValue = Schema.primitive[Unit].toDynamic(())
 
   import ZLambda._
-  val userMap = Map(
+  def userMap = Map(
     1 -> User("John", 30),
     2 -> User("Jane", 25),
     3 -> User("Jack", 20),
@@ -30,15 +30,8 @@ object Main extends ZIOAppDefault {
       _       <- ZIO.succeed(println(resJson))
     } yield ()
 
-  def program =
-    (useWith(mul)(inc, dec) <<< (ZLambda(10) && ZLambda(20))).call(() -> ())
+  def program = ((1, 2)) >>: add
 
   case class User(name: String, age: Int)
 
-  object User {
-    implicit val schema = DeriveSchema.gen[User]
-    val (name, age)     = Schema[User]
-      .makeAccessors(ZLambda.Accessors)
-      .asInstanceOf[(User ~> String, User ~> Int)]
-  }
 }
