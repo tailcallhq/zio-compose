@@ -23,33 +23,45 @@ object ExecutionPlan {
 
   def fromLambda[A, B](lmb: Lambda[A, B]): ExecutionPlan =
     lmb match {
+
       case Lambda.Pipe(f, g) => Sequence(f.executable, g.executable)
+
       case Lambda.Zip2(f1, f2, i1, i2, o1, o2) =>
         Zip2(f1.executable, f2.executable, i1.ast, i2.ast, o1.ast, o2.ast)
-      case Lambda.FromMap(i, source, o)        =>
+
+      case Lambda.FromMap(i, source, o) =>
         Dictionary(source.map { case (k, v) =>
           (i.toDynamic(k), o.toDynamic(v))
         })
-      case Lambda.Select(input, path, output)  => Select(path)
-      case Lambda.Always(b, schema)            => Constant(schema.toDynamic(b))
-      case Lambda.Identity()                   => Identity
-      case Lambda.AddInt                       => AddInt
-      case Lambda.MulInt                       => MulInt
-      case Lambda.Partial11(f, a1, s1)         =>
-        Partial(f.executable, List(s1.ast), List(s1.toDynamic(a1)))
-      case Lambda.Partial21(f, a1, s1, s2)     =>
-        Partial(f.executable, List(s1.ast, s2.ast), List(s1.toDynamic(a1)))
-      case Lambda.Partial22(f, a1, a2, s1, s2) =>
+
+      case Lambda.Select(input, path, output) => Select(path)
+
+      case Lambda.Always(b, schema) => Always(schema.toDynamic(b))
+
+      case Lambda.Identity() => Identity
+
+      case Lambda.AddInt => AddInt
+
+      case Lambda.MulInt => MulInt
+
+      case Lambda.Partial11(a1, s1) =>
+        Partial(List(s1.ast), List(s1.toDynamic(a1)))
+
+      case Lambda.Partial21(a1, s1, s2) =>
+        Partial(List(s1.ast, s2.ast), List(s1.toDynamic(a1)))
+
+      case Lambda.Partial22(a1, a2, s1, s2) =>
         Partial(
-          f.executable,
           List(s1.ast, s2.ast),
           List(s1.toDynamic(a1), s2.toDynamic(a2)),
         )
-      case Lambda.IfElse(f, isTrue, isFalse)   =>
+
+      case Lambda.IfElse(f, isTrue, isFalse) =>
         IfElse(f.executable, isTrue.executable, isFalse.executable)
     }
 
-  case class Constant(value: DynamicValue) extends ExecutionPlan
+  case class Always(value: DynamicValue) extends ExecutionPlan
+
   case class Zip2(
     e1: ExecutionPlan,
     e2: ExecutionPlan,
@@ -58,15 +70,18 @@ object ExecutionPlan {
     o1: SchemaAst,
     o2: SchemaAst,
   ) extends ExecutionPlan
+
   case class Sequence(first: ExecutionPlan, second: ExecutionPlan)
       extends ExecutionPlan
+
   case class Dictionary(value: Map[DynamicValue, DynamicValue])
       extends ExecutionPlan
-  case class Select(path: List[String])    extends ExecutionPlan
+
+  case class Select(path: List[String]) extends ExecutionPlan
+
   case class Partial(
-    f: ExecutionPlan,
     argSchema: List[SchemaAst],
-    args: List[DynamicValue],
+    argValues: List[DynamicValue],
   ) extends ExecutionPlan
 
   case class IfElse(

@@ -8,15 +8,6 @@ import scala.collection.immutable.ListMap
 
 object Executor {
 
-  private def encode[A](a: A)(implicit schema: Schema[A]): DynamicValue =
-    schema.toDynamic(a)
-
-  private def effect[A](e: Either[String, A]): Task[A] =
-    e match {
-      case Left(error) => ZIO.fail(new Exception(error))
-      case Right(a)    => ZIO.succeed(a)
-    }
-
   def execute(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
       case ExecutionPlan.Zip2(f1, f2, i1, i2, o1, o2) =>
@@ -42,7 +33,7 @@ object Executor {
               .flatten
         }
 
-      case ExecutionPlan.Constant(value)         => ZIO.succeed(value)
+      case ExecutionPlan.Always(value)           => ZIO.succeed(value)
       case ExecutionPlan.Sequence(first, second) =>
         first.unsafeExecute(input).flatMap(second.unsafeExecute)
       case ExecutionPlan.Identity                => ZIO.succeed(input)
@@ -88,9 +79,9 @@ object Executor {
           case _ => ZIO.fail(new Exception("Select only works on records"))
         }
 
-      case ExecutionPlan.Partial(plan, argSchema, args) =>
+      case ExecutionPlan.Partial(argSchemas, argValues) =>
         effect {
-          args.appended(input).zip(argSchema).toArray match {
+          argValues.appended(input).zip(argSchemas).toArray match {
             case Array(d1 -> a1, d2 -> a2) =>
               val s1 = a1.toSchema.asInstanceOf[Schema[Any]]
               val s2 = a2.toSchema.asInstanceOf[Schema[Any]]
@@ -101,7 +92,6 @@ object Executor {
               } yield (s1 <*> s2).toDynamic((v1, v2))
           }
         }
-          .flatMap(plan.unsafeExecute)
 
       case ExecutionPlan.IfElse(cond, isTrue, isFalse) =>
         for {
@@ -113,5 +103,14 @@ object Executor {
         } yield dResult
     }
   }
+
+  private def encode[A](a: A)(implicit schema: Schema[A]): DynamicValue =
+    schema.toDynamic(a)
+
+  private def effect[A](e: Either[String, A]): Task[A] =
+    e match {
+      case Left(error) => ZIO.fail(new Exception(error))
+      case Right(a)    => ZIO.succeed(a)
+    }
 
 }

@@ -2,7 +2,7 @@ package com.tusharmath.compose
 
 import com.tusharmath.compose.Lambda.Pipe
 import zio.prelude.NonEmptyList
-import zio.schema.{AccessorBuilder, Schema}
+import zio.schema.Schema
 
 sealed trait Lambda[A, B] { self =>
   def <<<[X](other: Lambda[X, A]): Lambda[X, B] = self compose other
@@ -50,30 +50,30 @@ object Lambda {
   )(implicit input: Schema[A], output: Schema[B]): Lambda[A, B] =
     FromMap(input, source, output)
 
-  def inc: Int ~> Int = Lambda.partial2(add, 1)
+  def inc: Int ~> Int = Lambda.partial[Int, Int](1) >>> add
 
-  def call[A, B](f: A ~> B, a: A)(implicit ev: Schema[A]): Unit ~> B = f.call(a)
-
-  def dec: Int ~> Int = Lambda.partial2(add, -1)
+  def partial[A1, A2](a1: A1)(implicit
+    s1: Schema[A1],
+    s2: Schema[A2],
+  ): A2 ~> (A1, A2) =
+    Partial21(a1, s1, s2)
 
   def add: (Int, Int) ~> Int = AddInt
 
-  def partial2[A1, A2, B](f: (A1, A2) ~> B, a1: A1)(implicit
+  def call[A, B](f: A ~> B, a: A)(implicit ev: Schema[A]): Unit ~> B = f.call(a)
+
+  def dec: Int ~> Int = Lambda.partial[Int, Int](-1) >>> add
+
+  def partial[A1, A2](a1: A1, a2: A2)(implicit
     s1: Schema[A1],
     s2: Schema[A2],
-  ): A2 ~> B =
-    Partial21(f, a1, s1, s2)
+  ): Unit ~> (A1, A2) =
+    Partial22(a1, a2, s1, s2)
 
   def mul: (Int, Int) ~> Int = MulInt
 
-  def partial1[A1, B](f: A1 ~> B, a1: A1)(implicit s1: Schema[A1]): Unit ~> B =
-    Partial11(f, a1, s1)
-
-  def partial2[A1, A2, B](f: (A1, A2) ~> B, a1: A1, a2: A2)(implicit
-    s1: Schema[A1],
-    s2: Schema[A2],
-  ): Unit ~> B =
-    Partial22(f, a1, a2, s1, s2)
+  def partial[A1](a1: A1)(implicit s1: Schema[A1]): Unit ~> A1 =
+    Partial11(a1, s1)
 
   def identity[A]: Lambda[A, A] = Identity[A]()
 
@@ -106,10 +106,14 @@ object Lambda {
     source: Map[A, B],
     output: Schema[B],
   ) extends Lambda[A, B]
+
   final case class Always[B](b: B, schema: Schema[B]) extends Lambda[Unit, B]
+
   final case class Identity[A]() extends Lambda[A, A]
+
   final case class Pipe[A, B, C](f: Lambda[A, B], g: Lambda[B, C])
       extends Lambda[A, C]
+
   final case class Zip2[A1, A2, B1, B2](
     f1: A1 ~> B1,
     f2: A2 ~> B2,
@@ -118,26 +122,28 @@ object Lambda {
     o1: Schema[B1],
     o2: Schema[B2],
   ) extends Lambda[(A1, A2), (B1, B2)]
+
   final case class Select[A, B](
     input: Schema[A],
     path: NonEmptyList[String],
     output: Schema[B],
   ) extends Lambda[A, B]
-  final case class Partial11[A1, B](f: A1 ~> B, a1: A1, s1: Schema[A1])
-      extends Lambda[Unit, B]
-  final case class Partial21[A1, A2, B](
-    f: (A1, A2) ~> B,
+
+  final case class Partial11[A1](a1: A1, s1: Schema[A1])
+      extends Lambda[Unit, A1]
+
+  final case class Partial21[A1, A2](
     a1: A1,
     s1: Schema[A1],
     s2: Schema[A2],
-  ) extends Lambda[A2, B]
-  final case class Partial22[A1, A2, B](
-    f: (A1, A2) ~> B,
+  ) extends Lambda[A2, (A1, A2)]
+
+  final case class Partial22[A1, A2](
     a1: A1,
     a2: A2,
     s1: Schema[A1],
     s2: Schema[A2],
-  ) extends Lambda[Unit, B]
+  ) extends Lambda[Unit, (A1, A2)]
 
   final case class IfElse[A, B](
     f: A ~> Boolean,
@@ -148,27 +154,4 @@ object Lambda {
   final case object AddInt extends Lambda[(Int, Int), Int]
 
   final case object MulInt extends Lambda[(Int, Int), Int]
-
-  object Accessors extends AccessorBuilder {
-    override type Lens[S, A]      = Lambda[S, A]
-    override type Prism[S, A]     = Unit
-    override type Traversal[S, A] = Unit
-
-    override def makeLens[S, A](
-      product: Schema.Record[S],
-      term: Schema.Field[A],
-    ): Lens[S, A] =
-      Lambda.Select(product, NonEmptyList(term.label), term.schema)
-
-    override def makePrism[S, A](
-      sum: Schema.Enum[S],
-      term: Schema.Case[A, S],
-    ): Prism[S, A] = ()
-
-    override def makeTraversal[S, A](
-      collection: Schema.Collection[S, A],
-      element: Schema[A],
-    ): Traversal[S, A] = ()
-  }
-
 }

@@ -17,7 +17,7 @@ object Main extends ZIOAppDefault {
     4 -> User("Jill", 15),
   )
 
-  def negate: Int ~> Int = partial2(mul, -1)
+  def negate: Int ~> Int = partial[Int, Int](-1) >>> mul
 
   override def run =
     for {
