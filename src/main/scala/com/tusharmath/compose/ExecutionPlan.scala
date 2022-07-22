@@ -23,7 +23,6 @@ object ExecutionPlan {
 
   def fromLambda[A, B](lmb: Lambda[A, B]): ExecutionPlan =
     lmb match {
-
       case Lambda.Pipe(f, g) => Sequence(f.executable, g.executable)
 
       case Lambda.Zip2(f1, f2, o1, o2) =>
@@ -58,35 +57,52 @@ object ExecutionPlan {
 
       case Lambda.IfElse(f, isTrue, isFalse) =>
         IfElse(f.executable, isTrue.executable, isFalse.executable)
+
+      case Lambda.LogicalNot          => LogicalNot
+      case Lambda.LogicalAnd          => LogicalAnd
+      case Lambda.LogicalOr           => LogicalOr
+      case Lambda.GreaterThanEqualInt => GreaterThanEqualInt
+      case Lambda.GreaterThanInt      => GreaterThanInt
+      case Lambda.EqualTo()           => EqualTo
     }
 
-  case class Always(value: DynamicValue) extends ExecutionPlan
+  final case class Always(value: DynamicValue) extends ExecutionPlan
 
-  case class Zip2(
+  final case class Zip2(
     e1: ExecutionPlan,
     e2: ExecutionPlan,
     o1: SchemaAst,
     o2: SchemaAst,
   ) extends ExecutionPlan
 
-  case class Sequence(first: ExecutionPlan, second: ExecutionPlan)
+  final case class Sequence(first: ExecutionPlan, second: ExecutionPlan)
       extends ExecutionPlan
 
-  case class Dictionary(value: Map[DynamicValue, DynamicValue])
+  final case class Dictionary(value: Map[DynamicValue, DynamicValue])
       extends ExecutionPlan
 
-  case class Select(path: List[String]) extends ExecutionPlan
+  final case class Select(path: List[String]) extends ExecutionPlan
 
-  case class Partial(
+  final case class Partial(
     argSchema: List[SchemaAst],
     argValues: List[DynamicValue],
   ) extends ExecutionPlan
 
-  case class IfElse(
+  final case class IfElse(
     condition: ExecutionPlan,
     ifTrue: ExecutionPlan,
     ifFalse: ExecutionPlan,
   ) extends ExecutionPlan
+
+  case object EqualTo extends ExecutionPlan
+
+  case object GreaterThanEqualInt extends ExecutionPlan
+
+  case object GreaterThanInt extends ExecutionPlan
+
+  case object LogicalNot extends ExecutionPlan
+  case object LogicalAnd extends ExecutionPlan
+  case object LogicalOr  extends ExecutionPlan
 
   case object AddInt extends ExecutionPlan
 

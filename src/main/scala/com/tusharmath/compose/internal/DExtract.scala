@@ -1,4 +1,4 @@
-package com.tusharmath.compose
+package com.tusharmath.compose.internal
 
 import zio.schema.DynamicValue
 

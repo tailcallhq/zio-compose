@@ -5,13 +5,13 @@ import zio.schema.{DynamicValue, Schema}
 import zio.schema.codec.JsonCodec
 import zio.schema.DeriveSchema.gen
 
-object Main extends ZIOAppDefault {
+object Example extends ZIOAppDefault {
   val unit: DynamicValue = Schema.primitive[Unit].toDynamic(())
 
   import Lambda._
 
   def program = {
-    always(User("Tushar", 10)) >>> User.age
+    always(User("Tushar", 30)) >>> User.age >>> partial[Int, Int](20) >>> gte
   }
 
   override def run =

@@ -1,5 +1,6 @@
 package com.tusharmath.compose
 
+import com.tusharmath.compose.internal.{DExtract, DParse}
 import zio.{Task, ZIO}
 import zio.schema.{DynamicValue, Schema}
 import zio.schema.ast.SchemaAst
@@ -25,14 +26,10 @@ object Executor {
         first.unsafeExecute(input).flatMap(second.unsafeExecute)
       case ExecutionPlan.Identity                => ZIO.succeed(input)
       case ExecutionPlan.AddInt                  =>
-        val p1 = DExtract.paramIdN(1, input).flatMap(DParse.toInt)
-        val p2 = DExtract.paramIdN(2, input).flatMap(DParse.toInt)
-        effect(p1.flatMap(v1 => p2.map(v2 => encode(v1 + v2))))
+        effect(evalAsInt(input) { (v1, v2) => v1 + v2 })
 
       case ExecutionPlan.MulInt =>
-        val p1 = DExtract.paramIdN(1, input).flatMap(DParse.toInt)
-        val p2 = DExtract.paramIdN(2, input).flatMap(DParse.toInt)
-        effect(p1.flatMap(v1 => p2.map(v2 => encode(v1 * v2))))
+        effect(evalAsInt(input) { (v1, v2) => v1 * v2 })
 
       case ExecutionPlan.Dictionary(value) =>
         value.get(input) match {
@@ -81,11 +78,43 @@ object Executor {
             if (bool) isTrue.unsafeExecute(input)
             else isFalse.unsafeExecute(input)
         } yield dResult
+
+      case ExecutionPlan.LogicalNot =>
+        effect(DParse.toBoolean(input).map(bool => encode(!bool)))
+
+      case ExecutionPlan.EqualTo =>
+        val p1 = DExtract.paramIdN(1, input)
+        val p2 = DExtract.paramIdN(2, input)
+        effect(p1.zip(p2).map(encode(_)))
+
+      case ExecutionPlan.GreaterThanInt =>
+        effect(evalAsInt(input) { (v1, v2) => v1 > v2 })
+
+      case ExecutionPlan.GreaterThanEqualInt =>
+        effect(evalAsInt(input) { (v1, v2) => v1 >= v2 })
+
+      case ExecutionPlan.LogicalAnd =>
+        effect(evalAsBoolean(input) { (v1, v2) => v1 && v2 })
+
+      case ExecutionPlan.LogicalOr =>
+        effect(evalAsBoolean(input) { (v1, v2) => v1 || v2 })
     }
+  }
+
+  def evalAsInt[A](input: DynamicValue)(
+    f: (Int, Int) => A,
+  )(implicit ev: Schema[A]): Either[String, DynamicValue] = {
+    DParse.toIntTuple(input).map { case (v1, v2) => encode(f(v1, v2)) }
   }
 
   private def encode[A](a: A)(implicit schema: Schema[A]): DynamicValue =
     schema.toDynamic(a)
+
+  def evalAsBoolean[A](input: DynamicValue)(
+    f: (Boolean, Boolean) => A,
+  )(implicit ev: Schema[A]): Either[String, DynamicValue] = {
+    DParse.toBooleanTuple(input).map { case (v1, v2) => encode(f(v1, v2)) }
+  }
 
   private def effect[A](e: Either[String, A]): Task[A] =
     e match {

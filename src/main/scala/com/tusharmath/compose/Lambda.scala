@@ -17,7 +17,7 @@ sealed trait Lambda[A, B] { self =>
 
   def pipe[C](other: Lambda[B, C]): Lambda[A, C] = Pipe(self, other)
 
-  def &&[A1, B1](
+  def <*>[A1, B1](
     other: Lambda[A1, B1],
   )(implicit
     a1: Schema[A],
@@ -39,6 +39,20 @@ sealed trait Lambda[A, B] { self =>
 }
 
 object Lambda {
+
+  def lt: (Int, Int) ~> Boolean = gt >>> not
+
+  def not: Boolean ~> Boolean = LogicalNot
+
+  def gt: (Int, Int) ~> Boolean = GreaterThanInt
+
+  def gte: (Int, Int) ~> Boolean = GreaterThanEqualInt
+
+  def eq[A]: (A, A) ~> Boolean = EqualTo()
+
+  def and: (Boolean, Boolean) ~> Boolean = LogicalAnd
+
+  def or: (Boolean, Boolean) ~> Boolean = LogicalOr
 
   def ifElse[A, B](f: A ~> Boolean)(isTrue: A ~> B, isFalse: A ~> B): A ~> B =
     IfElse(f, isTrue, isFalse)
@@ -84,6 +98,13 @@ object Lambda {
   ): (A1, A2) ~> B =
     (f1 zip f2) >>> f
 
+  def T: Unit ~> Boolean = always(true)
+
+  def F: Unit ~> Boolean = always(false)
+
+  def always[B](a: B)(implicit schema: Schema[B]): Lambda[Unit, B] =
+    Always(a, schema)
+
   def zip[A1, A2, B1, B2](f1: A1 ~> B1, f2: A2 ~> B2)(implicit
     b1: Schema[B1],
     b2: Schema[B2],
@@ -94,8 +115,7 @@ object Lambda {
 
   def apply[B](a: B)(implicit schema: Schema[B]): Lambda[Unit, B] = always(a)
 
-  def always[B](a: B)(implicit schema: Schema[B]): Lambda[Unit, B] =
-    Always(a, schema)
+  final case class EqualTo[A]() extends Lambda[(A, A), Boolean]
 
   final case class FromMap[A, B](
     input: Schema[A],
@@ -144,6 +164,14 @@ object Lambda {
     isTrue: A ~> B,
     isFalse: A ~> B,
   ) extends Lambda[A, B]
+
+  case object LogicalNot extends Lambda[Boolean, Boolean]
+  case object LogicalAnd extends Lambda[(Boolean, Boolean), Boolean]
+  case object LogicalOr  extends Lambda[(Boolean, Boolean), Boolean]
+
+  case object GreaterThanInt extends Lambda[(Int, Int), Boolean]
+
+  case object GreaterThanEqualInt extends Lambda[(Int, Int), Boolean]
 
   final case object AddInt extends Lambda[(Int, Int), Int]
 
