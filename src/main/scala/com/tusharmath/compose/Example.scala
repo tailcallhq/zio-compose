@@ -3,24 +3,31 @@ package com.tusharmath.compose
 import zio.{ZIO, ZIOAppDefault}
 import zio.schema.{DynamicValue, Schema}
 import zio.schema.codec.JsonCodec
-import zio.schema.DeriveSchema.gen
 
 object Example extends ZIOAppDefault {
+  import Remote._
+  val program = {
 
-  import Lambda._
+    ifElse(lit(1) + lit(2) > lit(2))(
+      ifTrue = lit("Greater!"),
+      ifFalse = lit("Lesser!"),
+    ).map(Remote.length)
+  }
 
   override def run =
     for {
 
       // Serialize the program to JSON
-      json <- ZIO.succeed(program.executable.json)
+      json <- ZIO.succeed(program.compile.json)
+
+      // _ <- ZIO.succeed(println(json))
 
       // Deserialize the program from JSON
       exe <- ExecutionPlan.fromJson(json)
 
       // Execute the program
       unit = Schema.primitive[Unit].toDynamic(())
-      res <- exe.unsafeExecute(unit)
+      res <- exe.execute
 
       // Serialize and print the output
       resJson <- ZIO.succeed(
@@ -28,19 +35,5 @@ object Example extends ZIOAppDefault {
       )
       _       <- ZIO.succeed(println(resJson))
     } yield ()
-
-  def demographic = ifElse(between(13, 19) <<< User.age)(
-    isTrue = always("Is a teen").accept[User],
-    isFalse = always("Is not a teen").accept[User],
-  )
-
-  def program: Unit ~> String = demographic <<< always(User("John", 5))
-
-  case class User(name: String, age: Int)
-  object User {
-    val (name, age) = Schema[User]
-      .makeAccessors(LambdaAccessor)
-      .asInstanceOf[(User ~> String, User ~> Int)]
-  }
 
 }
