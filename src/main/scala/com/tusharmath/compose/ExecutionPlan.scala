@@ -32,17 +32,22 @@ object ExecutionPlan {
       case Lambda.Zip2(f1, f2, o1, o2) =>
         Zip2(f1.compile, f2.compile, o1.ast, o2.ast)
 
-      case Lambda.FromMap(i, source, o) =>
+      case Lambda.FromMap(
+            i: Schema[A] @unchecked,
+            source: Map[A, B] @unchecked,
+            o: Schema[B] @unchecked,
+          ) =>
         Dictionary(source.map { case (k, v) =>
           (
-            i.asInstanceOf[Schema[Any]].toDynamic(k),
-            o.asInstanceOf[Schema[Any]].toDynamic(v),
+            i.toDynamic(k),
+            o.toDynamic(v),
           )
         })
 
       case Lambda.Select(input, path, output) => Select(path)
 
-      case Lambda.Always(b, schema) => Always(schema.toDynamic(b))
+      case Lambda.Always(b: B @unchecked, schema: Schema[B] @unchecked) =>
+        Always(schema.toDynamic(b))
 
       case Lambda.Identity() => Identity
 

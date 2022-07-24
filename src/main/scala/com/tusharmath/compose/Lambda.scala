@@ -20,7 +20,7 @@ sealed trait Lambda[-A, +B] { self =>
     b1: Schema[B1],
     b2: Schema[B2],
   ): (A1, A2) ~> (B1, B2) =
-    Lambda.zip(self, other)
+    Lambda.zip(self: A1 ~> B1, other)
 
   private[compose] final def compile: ExecutionPlan =
     ExecutionPlan.fromLambda(self)
@@ -28,18 +28,18 @@ sealed trait Lambda[-A, +B] { self =>
 
 object Lambda {
 
-  def F: Unit ~> Boolean = always(false)
+  def F: Any ~> Boolean = always(false)
 
-  def T: Unit ~> Boolean = always(true)
+  def T: Any ~> Boolean = always(true)
 
   def add: (Int, Int) ~> Int = AddInt
 
-  def always[B](a: B)(implicit schema: Schema[B]): Lambda[Unit, B] =
+  def always[B](a: B)(implicit schema: Schema[B]): Any ~> B =
     Always(a, schema)
 
   def and: (Boolean, Boolean) ~> Boolean = LogicalAnd
 
-  def apply[B](a: B)(implicit schema: Schema[B]): Lambda[Unit, B] = always(a)
+  def apply[B](a: B)(implicit schema: Schema[B]): Any ~> B = always(a)
 
   def dec: Int ~> Int = ???
 
@@ -85,7 +85,7 @@ object Lambda {
     output: Schema[B],
   ) extends Lambda[A, B]
 
-  final case class Always[B](b: B, schema: Schema[B]) extends Lambda[Unit, B]
+  final case class Always[B](b: B, schema: Schema[B]) extends Lambda[Any, B]
 
   final case class Identity[A]() extends Lambda[A, A]
 
