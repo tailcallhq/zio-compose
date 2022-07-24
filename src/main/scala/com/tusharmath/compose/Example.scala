@@ -20,7 +20,7 @@ object Example extends ZIOAppDefault {
       // Serialize the program to JSON
       json <- ZIO.succeed(program.executable.json)
 
-       _ <- ZIO.succeed(println(json))
+      _ <- ZIO.succeed(println(json))
 
       // Deserialize the program from JSON
       exe <- Executable.fromJson(json)

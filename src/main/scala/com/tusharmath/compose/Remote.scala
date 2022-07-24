@@ -65,7 +65,11 @@ object Remote {
         Executable.AddInteger(first.executable, second.executable)
 
       case IfElse(cond, isTrue, isFalse) =>
-        Executable.IfElse(cond.executable, isTrue.executable, isFalse.executable)
+        Executable.IfElse(
+          cond.executable,
+          isTrue.executable,
+          isFalse.executable,
+        )
 
       case GreaterThan(first, second) =>
         Executable.GreaterThan(first.executable, second.executable)
