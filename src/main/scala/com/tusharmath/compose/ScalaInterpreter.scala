@@ -5,8 +5,7 @@ import zio.{Task, ZIO}
 import zio.schema.{DynamicValue, Schema}
 import zio.schema.ast.SchemaAst
 
-object ScalaExecutor {
-
+object ScalaInterpreter {
   def evalAsBoolean[A](input: DynamicValue)(
     f: (Boolean, Boolean) => A,
   )(implicit ev: Schema[A]): Either[String, DynamicValue] = {
@@ -19,7 +18,7 @@ object ScalaExecutor {
     DParse.toIntTuple(input).map { case (v1, v2) => encode(f(v1, v2)) }
   }
 
-  def execute(plan: Executable, dv: DynamicValue): Task[DynamicValue] = {
+  def interpret(plan: Executable, dv: DynamicValue): Task[DynamicValue] = {
     plan match {
       case Executable.Literal(a)       => ZIO.succeed(a)
       case Executable.AddInteger(a, b) =>

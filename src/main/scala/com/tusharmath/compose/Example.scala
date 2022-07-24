@@ -8,10 +8,10 @@ object Example extends ZIOAppDefault {
   import Remote._
   val program = {
 
-    ifElse(lit(1) + lit(2) > lit(2))(
+    ifElse(lit(1) + lit(2) > lit(1))(
       ifTrue = lit("Greater!"),
       ifFalse = lit("Lesser!"),
-    ).map(Remote.length)
+    )
   }
 
   override def run =
@@ -20,7 +20,7 @@ object Example extends ZIOAppDefault {
       // Serialize the program to JSON
       json <- ZIO.succeed(program.executable.json)
 
-      // _ <- ZIO.succeed(println(json))
+       _ <- ZIO.succeed(println(json))
 
       // Deserialize the program from JSON
       exe <- Executable.fromJson(json)

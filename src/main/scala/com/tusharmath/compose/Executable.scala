@@ -7,10 +7,10 @@ sealed trait Executable { self =>
   def binary: Chunk[Byte] = JsonCodec.encode(Executable.schema)(self)
 
   def execute: Task[DynamicValue] =
-    ScalaExecutor.execute(self, unit)
+    ScalaInterpreter.interpret(self, unit)
 
   def executeWith(dynamicValue: DynamicValue): Task[DynamicValue] =
-    ScalaExecutor.execute(self, dynamicValue)
+    ScalaInterpreter.interpret(self, dynamicValue)
 
   def json: String = new String(binary.toArray)
 
