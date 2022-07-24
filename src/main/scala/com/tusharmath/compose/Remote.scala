@@ -25,7 +25,7 @@ sealed trait Remote[A] { self =>
   def asInt(implicit ev: A =:= Int): Remote[Int] =
     self.asInstanceOf[Remote[Int]]
 
-  def compile: ExecutionPlan = Remote.compile(self)
+  def executable: Executable = Remote.compile(self)
 
   def gt(other: Remote[Int])(implicit ev: A =:= Int): Remote[Boolean] =
     Remote.GreaterThan(self.asInstanceOf[Remote[Int]], other)
@@ -57,25 +57,25 @@ object Remote {
 
   def upperCase: Remote[String => String] = UpperCase
 
-  private[compose] def compile[A](self: Remote[A]): ExecutionPlan =
+  private[compose] def compile[A](self: Remote[A]): Executable =
     self match {
-      case And(left, right) => ExecutionPlan.And(left.compile, right.compile)
-      case Literal(a, s)             => ExecutionPlan.Literal(s.toDynamic(a))
+      case And(left, right) => Executable.And(left.executable, right.executable)
+      case Literal(a, s)    => Executable.Literal(s.toDynamic(a))
       case AddInteger(first, second) =>
-        ExecutionPlan.AddInteger(first.compile, second.compile)
+        Executable.AddInteger(first.executable, second.executable)
 
       case IfElse(cond, isTrue, isFalse) =>
-        ExecutionPlan.IfElse(cond.compile, isTrue.compile, isFalse.compile)
+        Executable.IfElse(cond.executable, isTrue.executable, isFalse.executable)
 
       case GreaterThan(first, second) =>
-        ExecutionPlan.GreaterThan(first.compile, second.compile)
+        Executable.GreaterThan(first.executable, second.executable)
 
       case RemoteMap(r, f) =>
-        ExecutionPlan.ExecMap(r.compile, f.compile)
+        Executable.ExecMap(r.executable, f.executable)
 
-      case UpperCase => ExecutionPlan.UpperCase
+      case UpperCase => Executable.UpperCase
 
-      case Length => ExecutionPlan.Length
+      case Length => Executable.Length
     }
 
   final case class RemoteMap[A, B](remote: Remote[A], f: Remote[A => B])
@@ -95,10 +95,10 @@ object Remote {
   final case class GreaterThan(first: Remote[Int], second: Remote[Int])
       extends Remote[Boolean]
 
+  final case class And(left: Remote[Boolean], right: Remote[Boolean])
+      extends Remote[Boolean]
+
   final case object Length extends Remote[String => Int]
 
   final case object UpperCase extends Remote[String => String]
-
-  final case class And(left: Remote[Boolean], right: Remote[Boolean])
-      extends Remote[Boolean]
 }

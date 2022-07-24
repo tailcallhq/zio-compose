@@ -19,16 +19,16 @@ object ScalaExecutor {
     DParse.toIntTuple(input).map { case (v1, v2) => encode(f(v1, v2)) }
   }
 
-  def execute(plan: ExecutionPlan, dv: DynamicValue): Task[DynamicValue] = {
+  def execute(plan: Executable, dv: DynamicValue): Task[DynamicValue] = {
     plan match {
-      case ExecutionPlan.Literal(a)       => ZIO.succeed(a)
-      case ExecutionPlan.AddInteger(a, b) =>
+      case Executable.Literal(a)       => ZIO.succeed(a)
+      case Executable.AddInteger(a, b) =>
         for {
           a <- a.executeWith(dv).flatMap(x => effect(DParse.toInt(x)))
           b <- b.executeWith(dv).flatMap(x => effect(DParse.toInt(x)))
         } yield encode(a + b)
 
-      case ExecutionPlan.IfElse(cond, ifTrue, ifFalse) =>
+      case Executable.IfElse(cond, ifTrue, ifFalse) =>
         for {
           cond    <- cond
             .executeWith(dv)
@@ -37,23 +37,23 @@ object ScalaExecutor {
           ifFalse <- ifFalse.executeWith(dv)
         } yield if (cond) ifTrue else ifFalse
 
-      case ExecutionPlan.GreaterThan(first, second) =>
+      case Executable.GreaterThan(first, second) =>
         for {
           i <- first.executeWith(dv).flatMap(x => effect(DParse.toInt(x)))
           j <- second.executeWith(dv).flatMap(x => effect(DParse.toInt(x)))
         } yield encode(i > j)
 
-      case ExecutionPlan.ExecMap(input, f) =>
+      case Executable.ExecMap(input, f) =>
         for {
           dv     <- input.executeWith(dv)
           result <- f.executeWith(dv)
         } yield result
-      case ExecutionPlan.Length            =>
+      case Executable.Length            =>
         effect(DParse.toString(dv).map(str => encode(str.length)))
-      case ExecutionPlan.UpperCase         =>
+      case Executable.UpperCase         =>
         effect(DParse.toString(dv).map(str => encode(str.toUpperCase)))
 
-      case ExecutionPlan.And(left, right) =>
+      case Executable.And(left, right) =>
         for {
           left  <- left.execute.flatMap(dv => effect(DParse.toBoolean(dv)))
           right <- right.execute.flatMap(dv => effect(DParse.toBoolean(dv)))

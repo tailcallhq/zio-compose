@@ -1,4 +1,3 @@
 package com.tusharmath
 
-package object compose {
-}
+package object compose {}

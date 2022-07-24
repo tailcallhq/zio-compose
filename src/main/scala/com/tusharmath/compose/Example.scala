@@ -18,12 +18,12 @@ object Example extends ZIOAppDefault {
     for {
 
       // Serialize the program to JSON
-      json <- ZIO.succeed(program.compile.json)
+      json <- ZIO.succeed(program.executable.json)
 
       // _ <- ZIO.succeed(println(json))
 
       // Deserialize the program from JSON
-      exe <- ExecutionPlan.fromJson(json)
+      exe <- Executable.fromJson(json)
 
       // Execute the program
       unit = Schema.primitive[Unit].toDynamic(())
