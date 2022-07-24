@@ -46,8 +46,8 @@ sealed trait Lambda[A, B] { self =>
   ): (A, A1) ~> (B, B1) =
     Lambda.zip(self, other)
 
-  private[compose] final def executable: ExecutionPlan =
-    ExecutionPlan.fromLambda(self)
+  private[compose] final def executable: Executable =
+    Executable.fromLambda(self)
 }
 
 object Lambda {

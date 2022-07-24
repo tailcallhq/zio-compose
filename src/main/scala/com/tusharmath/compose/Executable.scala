@@ -4,24 +4,26 @@ import zio.schema.ast.SchemaAst
 import zio.schema.codec.JsonCodec
 import zio.{Chunk, Task, ZIO}
 
-sealed trait ExecutionPlan { self =>
-  def json: String        = new String(binary.toArray)
-  def binary: Chunk[Byte] = JsonCodec.encode(ExecutionPlan.schema)(self)
+sealed trait Executable { self =>
+  def binary: Chunk[Byte] = JsonCodec.encode(Executable.schema)(self)
+
+  def json: String = new String(binary.toArray)
+
   def unsafeExecute(value: DynamicValue): Task[DynamicValue] =
     Executor.execute(self, value)
 }
 
-object ExecutionPlan {
+object Executable {
 
-  def fromJson(json: String): ZIO[Any, Exception, ExecutionPlan] =
-    JsonCodec.decode(ExecutionPlan.schema)(
+  def fromJson(json: String): ZIO[Any, Exception, Executable] =
+    JsonCodec.decode(Executable.schema)(
       Chunk.fromArray(json.getBytes),
     ) match {
       case Left(value)  => ZIO.fail(new Exception(value))
       case Right(value) => ZIO.succeed(value)
     }
 
-  def fromLambda[A, B](lmb: Lambda[A, B]): ExecutionPlan =
+  def fromLambda[A, B](lmb: Lambda[A, B]): Executable =
     lmb match {
       case Lambda.Pipe(f, g) => Sequence(f.executable, g.executable)
 
@@ -90,59 +92,59 @@ object ExecutionPlan {
 
     }
 
-  final case class Always(value: DynamicValue) extends ExecutionPlan
+  final case class Always(value: DynamicValue) extends Executable
 
   final case class Zip2(
-    e1: ExecutionPlan,
-    e2: ExecutionPlan,
+    e1: Executable,
+    e2: Executable,
     o1: SchemaAst,
     o2: SchemaAst,
-  ) extends ExecutionPlan
+  ) extends Executable
 
-  final case class Sequence(first: ExecutionPlan, second: ExecutionPlan)
-      extends ExecutionPlan
+  final case class Sequence(first: Executable, second: Executable)
+      extends Executable
 
   final case class Dictionary(value: Map[DynamicValue, DynamicValue])
-      extends ExecutionPlan
+      extends Executable
 
-  final case class Select(path: List[String]) extends ExecutionPlan
+  final case class Select(path: List[String]) extends Executable
 
   final case class Partial(
     argSchema: List[SchemaAst],
     argValues: List[DynamicValue],
-  ) extends ExecutionPlan
+  ) extends Executable
 
   final case class IfElse(
-    condition: ExecutionPlan,
-    ifTrue: ExecutionPlan,
-    ifFalse: ExecutionPlan,
-  ) extends ExecutionPlan
+    condition: Executable,
+    ifTrue: Executable,
+    ifFalse: Executable,
+  ) extends Executable
 
   case class Converge(
-    f: ExecutionPlan,
-    f1: ExecutionPlan,
-    f2: ExecutionPlan,
+    f: Executable,
+    f1: Executable,
+    f2: Executable,
     a1: SchemaAst,
     a2: SchemaAst,
-  ) extends ExecutionPlan
+  ) extends Executable
 
-  case object EqualTo extends ExecutionPlan
+  case object EqualTo extends Executable
 
-  case object GreaterThanEqualInt extends ExecutionPlan
+  case object GreaterThanEqualInt extends Executable
 
-  case object GreaterThanInt extends ExecutionPlan
+  case object GreaterThanInt extends Executable
 
-  case object LogicalNot extends ExecutionPlan
+  case object LogicalNot extends Executable
 
-  case object LogicalAnd extends ExecutionPlan
+  case object LogicalAnd extends Executable
 
-  case object LogicalOr extends ExecutionPlan
+  case object LogicalOr extends Executable
 
-  case object AddInt extends ExecutionPlan
+  case object AddInt extends Executable
 
-  case object MulInt extends ExecutionPlan
+  case object MulInt extends Executable
 
-  case object Identity extends ExecutionPlan
+  case object Identity extends Executable
 
-  implicit def schema = DeriveSchema.gen[ExecutionPlan]
+  implicit def schema = DeriveSchema.gen[Executable]
 }

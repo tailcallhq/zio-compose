@@ -9,14 +9,29 @@ object Example extends ZIOAppDefault {
 
   import Lambda._
 
+  def createUser: Unit ~> User = always(User("John", 5))
+
+  def demographic: User ~> String = ifElse(between(13, 19) <<< User.age)(
+    isTrue = always("Is a teen").accept[User],
+    isFalse = always("Is not a teen").accept[User],
+  )
+
+  // demographic: User ~> String
+  // createUser: Unit ~> User
+  def program: Unit ~> String = {
+    demographic <<< createUser
+  }
+
   override def run =
     for {
 
       // Serialize the program to JSON
       json <- ZIO.succeed(program.executable.json)
 
+      _ <- ZIO.succeed(println(json))
+
       // Deserialize the program from JSON
-      exe <- ExecutionPlan.fromJson(json)
+      exe <- Executable.fromJson(json)
 
       // Execute the program
       unit = Schema.primitive[Unit].toDynamic(())
@@ -28,13 +43,6 @@ object Example extends ZIOAppDefault {
       )
       _       <- ZIO.succeed(println(resJson))
     } yield ()
-
-  def demographic = ifElse(between(13, 19) <<< User.age)(
-    isTrue = always("Is a teen").accept[User],
-    isFalse = always("Is not a teen").accept[User],
-  )
-
-  def program: Unit ~> String = demographic <<< always(User("John", 5))
 
   case class User(name: String, age: Int)
   object User {

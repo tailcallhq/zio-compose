@@ -11,9 +11,21 @@ import scala.collection.immutable.ListMap
 
 object Executor {
 
-  def execute(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
+  def evalAsBoolean[A](input: DynamicValue)(
+    f: (Boolean, Boolean) => A,
+  )(implicit ev: Schema[A]): Either[String, DynamicValue] = {
+    DParse.toBooleanTuple(input).map { case (v1, v2) => encode(f(v1, v2)) }
+  }
+
+  def evalAsInt[A](input: DynamicValue)(
+    f: (Int, Int) => A,
+  )(implicit ev: Schema[A]): Either[String, DynamicValue] = {
+    DParse.toIntTuple(input).map { case (v1, v2) => encode(f(v1, v2)) }
+  }
+
+  def execute(plan: Executable, input: DynamicValue): Task[DynamicValue] = {
     plan match {
-      case ExecutionPlan.Zip2(f1, f2, o1, o2) =>
+      case Executable.Zip2(f1, f2, o1, o2) =>
         for {
           d1a <- effect(DExtract.paramIdN(1, input))
           d2a <- effect(DExtract.paramIdN(2, input))
@@ -22,23 +34,23 @@ object Executor {
           }
         } yield res
 
-      case ExecutionPlan.Always(value)           => ZIO.succeed(value)
-      case ExecutionPlan.Sequence(first, second) =>
+      case Executable.Always(value)           => ZIO.succeed(value)
+      case Executable.Sequence(first, second) =>
         first.unsafeExecute(input).flatMap(second.unsafeExecute)
-      case ExecutionPlan.Identity                => ZIO.succeed(input)
-      case ExecutionPlan.AddInt                  =>
+      case Executable.Identity                => ZIO.succeed(input)
+      case Executable.AddInt                  =>
         effect(evalAsInt(input) { (v1, v2) => v1 + v2 })
 
-      case ExecutionPlan.MulInt =>
+      case Executable.MulInt =>
         effect(evalAsInt(input) { (v1, v2) => v1 * v2 })
 
-      case ExecutionPlan.Dictionary(value) =>
+      case Executable.Dictionary(value) =>
         value.get(input) match {
           case Some(v) => ZIO.succeed(v)
           case None    =>
             ZIO.fail(new Exception("Key lookup failed in dictionary"))
         }
-      case ExecutionPlan.Select(path)      =>
+      case Executable.Select(path)      =>
         input match {
           case DynamicValue.Record(values) =>
             @tailrec
@@ -64,14 +76,14 @@ object Executor {
           case _ => ZIO.fail(new Exception("Select only works on records"))
         }
 
-      case ExecutionPlan.Partial(argSchemas, argValues) =>
+      case Executable.Partial(argSchemas, argValues) =>
         effect {
           argValues.appended(input).zip(argSchemas).toArray match {
             case Array(da1, da2) => merge(da1, da2)
           }
         }
 
-      case ExecutionPlan.IfElse(cond, isTrue, isFalse) =>
+      case Executable.IfElse(cond, isTrue, isFalse) =>
         for {
           dBool   <- cond.unsafeExecute(input)
           bool    <- effect(DParse.toBoolean(dBool))
@@ -80,27 +92,27 @@ object Executor {
             else isFalse.unsafeExecute(input)
         } yield dResult
 
-      case ExecutionPlan.LogicalNot =>
+      case Executable.LogicalNot =>
         effect(DParse.toBoolean(input).map(bool => encode(!bool)))
 
-      case ExecutionPlan.EqualTo =>
+      case Executable.EqualTo =>
         val p1 = DExtract.paramIdN(1, input)
         val p2 = DExtract.paramIdN(2, input)
         effect(p1.zip(p2).map(encode(_)))
 
-      case ExecutionPlan.GreaterThanInt =>
+      case Executable.GreaterThanInt =>
         effect(evalAsInt(input) { (v1, v2) => v1 > v2 })
 
-      case ExecutionPlan.GreaterThanEqualInt =>
+      case Executable.GreaterThanEqualInt =>
         effect(evalAsInt(input) { (v1, v2) => v1 >= v2 })
 
-      case ExecutionPlan.LogicalAnd =>
+      case Executable.LogicalAnd =>
         effect(evalAsBoolean(input) { (v1, v2) => v1 && v2 })
 
-      case ExecutionPlan.LogicalOr =>
+      case Executable.LogicalOr =>
         effect(evalAsBoolean(input) { (v1, v2) => v1 || v2 })
 
-      case ExecutionPlan.Converge(f, f1, f2, a1, a2) =>
+      case Executable.Converge(f, f1, f2, a1, a2) =>
         for {
           d1 <- f1.unsafeExecute(input)
           d2 <- f2.unsafeExecute(input)
@@ -113,26 +125,14 @@ object Executor {
     }
   }
 
-  def evalAsInt[A](input: DynamicValue)(
-    f: (Int, Int) => A,
-  )(implicit ev: Schema[A]): Either[String, DynamicValue] = {
-    DParse.toIntTuple(input).map { case (v1, v2) => encode(f(v1, v2)) }
-  }
-
-  private def encode[A](a: A)(implicit schema: Schema[A]): DynamicValue =
-    schema.toDynamic(a)
-
-  def evalAsBoolean[A](input: DynamicValue)(
-    f: (Boolean, Boolean) => A,
-  )(implicit ev: Schema[A]): Either[String, DynamicValue] = {
-    DParse.toBooleanTuple(input).map { case (v1, v2) => encode(f(v1, v2)) }
-  }
-
   private def effect[A](e: Either[String, A]): Task[A] =
     e match {
       case Left(error) => ZIO.fail(new Exception(error))
       case Right(a)    => ZIO.succeed(a)
     }
+
+  private def encode[A](a: A)(implicit schema: Schema[A]): DynamicValue =
+    schema.toDynamic(a)
 
   private def merge(
     ds1: (DynamicValue, SchemaAst),
