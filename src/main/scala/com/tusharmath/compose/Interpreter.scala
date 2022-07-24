@@ -9,7 +9,7 @@ import zio.schema.ast.SchemaAst
 import scala.annotation.tailrec
 import scala.collection.immutable.ListMap
 
-object Executor {
+object Interpreter {
 
   def evalAsBoolean[A](input: DynamicValue)(
     f: (Boolean, Boolean) => A,
@@ -23,9 +23,9 @@ object Executor {
     DParse.toIntTuple(input).map { case (v1, v2) => encode(f(v1, v2)) }
   }
 
-  def execute(plan: Executable, input: DynamicValue): Task[DynamicValue] = {
+  def execute(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
-      case Executable.Zip2(f1, f2, o1, o2) =>
+      case ExecutionPlan.Zip2(f1, f2, o1, o2) =>
         for {
           d1a <- effect(DExtract.paramIdN(1, input))
           d2a <- effect(DExtract.paramIdN(2, input))
@@ -34,23 +34,23 @@ object Executor {
           }
         } yield res
 
-      case Executable.Always(value)           => ZIO.succeed(value)
-      case Executable.Sequence(first, second) =>
+      case ExecutionPlan.Always(value)           => ZIO.succeed(value)
+      case ExecutionPlan.Sequence(first, second) =>
         first.unsafeExecute(input).flatMap(second.unsafeExecute)
-      case Executable.Identity                => ZIO.succeed(input)
-      case Executable.AddInt                  =>
+      case ExecutionPlan.Identity                => ZIO.succeed(input)
+      case ExecutionPlan.AddInt                  =>
         effect(evalAsInt(input) { (v1, v2) => v1 + v2 })
 
-      case Executable.MulInt =>
+      case ExecutionPlan.MulInt =>
         effect(evalAsInt(input) { (v1, v2) => v1 * v2 })
 
-      case Executable.Dictionary(value) =>
+      case ExecutionPlan.Dictionary(value) =>
         value.get(input) match {
           case Some(v) => ZIO.succeed(v)
           case None    =>
             ZIO.fail(new Exception("Key lookup failed in dictionary"))
         }
-      case Executable.Select(path)      =>
+      case ExecutionPlan.Select(path)      =>
         input match {
           case DynamicValue.Record(values) =>
             @tailrec
@@ -76,14 +76,7 @@ object Executor {
           case _ => ZIO.fail(new Exception("Select only works on records"))
         }
 
-      case Executable.Partial(argSchemas, argValues) =>
-        effect {
-          argValues.appended(input).zip(argSchemas).toArray match {
-            case Array(da1, da2) => merge(da1, da2)
-          }
-        }
-
-      case Executable.IfElse(cond, isTrue, isFalse) =>
+      case ExecutionPlan.IfElse(cond, isTrue, isFalse) =>
         for {
           dBool   <- cond.unsafeExecute(input)
           bool    <- effect(DParse.toBoolean(dBool))
@@ -92,36 +85,25 @@ object Executor {
             else isFalse.unsafeExecute(input)
         } yield dResult
 
-      case Executable.LogicalNot =>
+      case ExecutionPlan.LogicalNot =>
         effect(DParse.toBoolean(input).map(bool => encode(!bool)))
 
-      case Executable.EqualTo =>
+      case ExecutionPlan.EqualTo =>
         val p1 = DExtract.paramIdN(1, input)
         val p2 = DExtract.paramIdN(2, input)
         effect(p1.zip(p2).map(encode(_)))
 
-      case Executable.GreaterThanInt =>
+      case ExecutionPlan.GreaterThanInt =>
         effect(evalAsInt(input) { (v1, v2) => v1 > v2 })
 
-      case Executable.GreaterThanEqualInt =>
+      case ExecutionPlan.GreaterThanEqualInt =>
         effect(evalAsInt(input) { (v1, v2) => v1 >= v2 })
 
-      case Executable.LogicalAnd =>
+      case ExecutionPlan.LogicalAnd =>
         effect(evalAsBoolean(input) { (v1, v2) => v1 && v2 })
 
-      case Executable.LogicalOr =>
+      case ExecutionPlan.LogicalOr =>
         effect(evalAsBoolean(input) { (v1, v2) => v1 || v2 })
-
-      case Executable.Converge(f, f1, f2, a1, a2) =>
-        for {
-          d1 <- f1.unsafeExecute(input)
-          d2 <- f2.unsafeExecute(input)
-          s1 = a1.toSchema.asInstanceOf[Schema[Any]]
-          s2 = a2.toSchema.asInstanceOf[Schema[Any]]
-          v1  <- effect(d1.toTypedValue(s1))
-          v2  <- effect(d2.toTypedValue(s2))
-          res <- f.unsafeExecute((s1 <*> s2).toDynamic((v1, v2)))
-        } yield res
     }
   }
 

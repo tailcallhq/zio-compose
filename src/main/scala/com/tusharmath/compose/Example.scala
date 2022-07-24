@@ -9,29 +9,20 @@ object Example extends ZIOAppDefault {
 
   import Lambda._
 
-  def createUser: Unit ~> User = always(User("John", 5))
-
-  def demographic: User ~> String = ifElse(between(13, 19) <<< User.age)(
-    isTrue = always("Is a teen").accept[User],
-    isFalse = always("Is not a teen").accept[User],
-  )
-
   // demographic: User ~> String
   // createUser: Unit ~> User
   def program: Unit ~> String = {
-    demographic <<< createUser
+    User.name <<< always(User("John", 5))
   }
 
   override def run =
     for {
 
       // Serialize the program to JSON
-      json <- ZIO.succeed(program.executable.json)
-
-      _ <- ZIO.succeed(println(json))
+      json <- ZIO.succeed(program.compile.json)
 
       // Deserialize the program from JSON
-      exe <- Executable.fromJson(json)
+      exe <- ExecutionPlan.fromJson(json)
 
       // Execute the program
       unit = Schema.primitive[Unit].toDynamic(())
