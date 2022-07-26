@@ -55,12 +55,21 @@ object ExecutionPlan {
         IsNumeric.schema.toDynamic(num),
       )
 
-    case Lambda.LogicalOperation(operation, left, right) =>
-      LogicalOperation(operation, left.compile, right.compile)
+    case Lambda.LogicalAnd(left, right) =>
+      LogicalAnd(left.compile, right.compile)
+
+    case Lambda.LogicalOr(left, right) =>
+      LogicalOr(left.compile, right.compile)
+
+    case Lambda.LogicalNot(logic) =>
+      LogicalNot(logic.compile)
   }
 
-  final case class LogicalOperation(operation: Logical.Operation, left: ExecutionPlan, right: ExecutionPlan)
-      extends ExecutionPlan
+  final case class LogicalAnd(left: ExecutionPlan, right: ExecutionPlan) extends ExecutionPlan
+
+  final case class LogicalOr(left: ExecutionPlan, right: ExecutionPlan) extends ExecutionPlan
+
+  final case class LogicalNot(plan: ExecutionPlan) extends ExecutionPlan
 
   final case class NumericOperation(
     operation: Numeric.Operation,

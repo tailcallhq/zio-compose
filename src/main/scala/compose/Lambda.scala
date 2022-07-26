@@ -5,6 +5,14 @@ import zio.schema.Schema
 import zio.Task
 
 sealed trait Lambda[-A, +B] { self =>
+  final def >[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
+    num: IsNumeric[B1],
+  ): A1 ~> B1 = numOp(Numeric.Operation.GreaterThan, other)
+
+  final def >=[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
+    num: IsNumeric[B1],
+  ): A1 ~> B1 = numOp(Numeric.Operation.GreaterThanEqualTo, other)
+
   final def >>>[C](other: Lambda[B, C]): Lambda[A, C] = self pipe other
 
   final def <<<[X](other: Lambda[X, A]): Lambda[X, B] = self compose other
@@ -35,6 +43,14 @@ sealed trait Lambda[-A, +B] { self =>
     schema: Schema[B1],
   ): A1 ~> Boolean =
     Lambda.Equals(self, other, schema)
+
+  final def gt[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
+    num: IsNumeric[B1],
+  ): A1 ~> B1 = numOp(Numeric.Operation.GreaterThan, other)
+
+  final def gte[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
+    num: IsNumeric[B1],
+  ): A1 ~> B1 = numOp(Numeric.Operation.GreaterThanEqualTo, other)
 
   final def pipe[C](other: Lambda[B, C]): Lambda[A, C] =
     Lambda.Pipe(self, other)
@@ -92,6 +108,7 @@ object Lambda {
     num: IsNumeric[B],
   ) extends Lambda[A, B]
 
-  case class LogicalOperation[A](operation: Logical.Operation, left: A ~> Boolean, right: A ~> Boolean)
-      extends Lambda[A, Boolean]
+  case class LogicalAnd[A](left: A ~> Boolean, right: A ~> Boolean) extends Lambda[A, Boolean]
+  case class LogicalOr[A](left: A ~> Boolean, right: A ~> Boolean)  extends Lambda[A, Boolean]
+  case class LogicalNot[A](logic: A ~> Boolean)                     extends Lambda[A, Boolean]
 }

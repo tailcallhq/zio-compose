@@ -17,16 +17,22 @@ object Interpreter {
 
   def eval(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] =
     plan match {
-      case ExecutionPlan.LogicalOperation(operation, left, right)     =>
+      case ExecutionPlan.LogicalAnd(left, right) =>
         for {
           left  <- evalTyped[Boolean](left, input)
           right <- evalTyped[Boolean](right, input)
-        } yield encode {
-          operation match {
-            case Logical.And => left && right
-            case Logical.Or  => left || right
-          }
-        }
+        } yield encode { left && right }
+
+      case ExecutionPlan.LogicalOr(left, right) =>
+        for {
+          left  <- evalTyped[Boolean](left, input)
+          right <- evalTyped[Boolean](right, input)
+        } yield encode { left || right }
+
+      case ExecutionPlan.LogicalNot(plan)                             =>
+        for {
+          bool <- evalTyped[Boolean](plan, input)
+        } yield encode { !bool }
       case ExecutionPlan.NumericOperation(operation, left, right, is) =>
         for {
           isNumeric <- effect(is.toTypedValue(Schema[IsNumeric[_]]))

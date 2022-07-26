@@ -13,10 +13,12 @@ object Example extends ZIOAppDefault {
   // WAP to sum two numbers
   def program1: Any ~> Int = constant(1) + constant(2)
 
-  def program = ifElse(constant(true))(
+  def program2 = ifElse(constant(true))(
     isTrue = constant("Yes"),
     isFalse = constant("No"),
   )
+
+  def program = constant(1) > constant(2)
 
   override def run =
     for {
