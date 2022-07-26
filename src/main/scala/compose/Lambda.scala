@@ -11,7 +11,6 @@ sealed trait Lambda[-A, +B] { self =>
 
   final def +[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
-    schema: Schema[IsNumeric[B1]],
   ): A1 ~> B1 = self add other
 
   final def ++[A1 <: A, B1 >: B, B2](
@@ -24,11 +23,9 @@ sealed trait Lambda[-A, +B] { self =>
 
   final def add[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
-    schema: Schema[IsNumeric[B1]],
-  ): A1 ~> B1 =
-    Lambda.NumericOperation(Numeric.Operation.Add, self, other, num, schema)
+  ): A1 ~> B1 = numOp(Numeric.Operation.Add, other)
 
-  def apply[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
+  final def apply[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
     Interpreter.evalTyped[B1](ExecutionPlan.fromLambda(self), in.toDynamic(a))
 
   final def compose[X](other: Lambda[X, A]): Lambda[X, B] =
@@ -49,6 +46,11 @@ sealed trait Lambda[-A, +B] { self =>
 
   private[compose] final def compile: ExecutionPlan =
     ExecutionPlan.fromLambda(self)
+
+  private final def numOp[A1 <: A, B1 >: B](operation: Numeric.Operation, other: A1 ~> B1)(implicit
+    num: IsNumeric[B1],
+  ): A1 ~> B1 =
+    Lambda.NumericOperation(operation, self, other, num)
 }
 
 object Lambda {
@@ -88,7 +90,6 @@ object Lambda {
     left: A ~> B,
     right: A ~> B,
     num: IsNumeric[B],
-    schema: Schema[IsNumeric[B]],
   ) extends Lambda[A, B]
 
   case class LogicalOperation[A](operation: Logical.Operation, left: A ~> Boolean, right: A ~> Boolean)

@@ -35,10 +35,12 @@ object Interpreter {
               case IsNumeric.NumericInt =>
                 evalTyped[Int](left, input).zip(evalTyped[Int](right, input)).map { case (a, b) =>
                   operation match {
-                    case Numeric.Operation.Add      => a + b
-                    case Numeric.Operation.Multiply => a * b
-                    case Numeric.Operation.Subtract => a - b
-                    case Numeric.Operation.Divide   => a / b
+                    case Numeric.Operation.Add                => a + b
+                    case Numeric.Operation.Multiply           => a * b
+                    case Numeric.Operation.Subtract           => a - b
+                    case Numeric.Operation.Divide             => a / b
+                    case Numeric.Operation.GreaterThan        => if (a > b) 1 else 0
+                    case Numeric.Operation.GreaterThanEqualTo => if (a >= b) 1 else 0
                   }
                 }
             }

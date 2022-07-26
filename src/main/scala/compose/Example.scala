@@ -11,8 +11,12 @@ object Example extends ZIOAppDefault {
   import IsNumeric._
 
   // WAP to sum two numbers
-  def program: Any ~> Int = constant(1) + constant(2)
+  def program1: Any ~> Int = constant(1) + constant(2)
 
+  def program = ifElse(constant(true))(
+    isTrue = constant("Yes"),
+    isFalse = constant("No"),
+  )
 
   override def run =
     for {

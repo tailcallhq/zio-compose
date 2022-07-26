@@ -47,8 +47,13 @@ object ExecutionPlan {
     case Lambda.Combine(left, right, o1, o2) =>
       Combine(left.compile, right.compile, o1.ast, o2.ast)
 
-    case Lambda.NumericOperation(operation, left, right, num, schema) =>
-      NumericOperation(operation, left.compile, right.compile, schema.toDynamic(num))
+    case Lambda.NumericOperation(operation, left, right, num) =>
+      NumericOperation(
+        operation,
+        left.compile,
+        right.compile,
+        IsNumeric.schema.toDynamic(num),
+      )
 
     case Lambda.LogicalOperation(operation, left, right) =>
       LogicalOperation(operation, left.compile, right.compile)
