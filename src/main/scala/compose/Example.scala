@@ -1,18 +1,16 @@
-package com.tusharmath.compose
+package compose
 
 import zio.{ZIO, ZIOAppDefault}
-import zio.schema.{DynamicValue, Schema}
 import zio.schema.codec.JsonCodec
+import zio.schema.{DynamicValue, Schema}
 import zio.schema.DeriveSchema.gen
 
 object Example extends ZIOAppDefault {
 
   import Lambda._
 
-  // demographic: User ~> String
-  // createUser: Unit ~> User
   def program: Unit ~> String = {
-    User.name <<< always(User("John", 5))
+    User.name <<< constant(User("John", 5))
   }
 
   override def run =

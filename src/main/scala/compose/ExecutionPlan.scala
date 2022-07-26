@@ -1,4 +1,5 @@
-package com.tusharmath.compose
+package compose
+
 import zio.schema.{DeriveSchema, DynamicValue, Schema}
 import zio.schema.ast.SchemaAst
 import zio.schema.codec.JsonCodec
@@ -15,7 +16,7 @@ sealed trait ExecutionPlan { self =>
 
 object ExecutionPlan {
 
-  implicit def schema = DeriveSchema.gen[ExecutionPlan]
+  implicit def schema: Schema[ExecutionPlan] = DeriveSchema.gen[ExecutionPlan]
 
   def fromJson(json: String): ZIO[Any, Exception, ExecutionPlan] =
     JsonCodec.decode(ExecutionPlan.schema)(
@@ -29,8 +30,8 @@ object ExecutionPlan {
     lmb match {
       case Lambda.Pipe(f, g) => Sequence(f.compile, g.compile)
 
-      case Lambda.Zip2(f1, f2, o1, o2) =>
-        Zip2(f1.compile, f2.compile, o1.ast, o2.ast)
+      case Lambda.Combine(f1, f2, o1, o2) =>
+        Combine(f1.compile, f2.compile, o1.ast, o2.ast)
 
       case Lambda.FromMap(
             i: Schema[A] @unchecked,
@@ -44,37 +45,21 @@ object ExecutionPlan {
           )
         })
 
-      case Lambda.Select(input, path, output) => Select(path)
+      case Lambda.Select(_, path, _) => Select(path)
 
       case Lambda.Always(b: B @unchecked, schema: Schema[B] @unchecked) =>
         Always(schema.toDynamic(b))
 
       case Lambda.Identity() => Identity
 
-      case Lambda.AddInt => AddInt
-
-      case Lambda.MulInt => MulInt
-
       case Lambda.IfElse(f, isTrue, isFalse) =>
         IfElse(f.compile, isTrue.compile, isFalse.compile)
-
-      case Lambda.LogicalNot => LogicalNot
-
-      case Lambda.LogicalAnd => LogicalAnd
-
-      case Lambda.LogicalOr => LogicalOr
-
-      case Lambda.GreaterThanEqualInt => GreaterThanEqualInt
-
-      case Lambda.GreaterThanInt => GreaterThanInt
-
-      case Lambda.EqualTo() => EqualTo
 
     }
 
   final case class Always(value: DynamicValue) extends ExecutionPlan
 
-  final case class Zip2(
+  final case class Combine(
     e1: ExecutionPlan,
     e2: ExecutionPlan,
     o1: SchemaAst,

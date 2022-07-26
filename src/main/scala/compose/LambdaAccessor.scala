@@ -1,4 +1,4 @@
-package com.tusharmath.compose
+package compose
 
 import zio.schema.{AccessorBuilder, Schema}
 import zio.prelude.NonEmptyList

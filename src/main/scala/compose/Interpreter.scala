@@ -1,13 +1,13 @@
-package com.tusharmath.compose
+package compose
 
-import com.tusharmath.compose.internal.{DExtract, DParse}
+import zio.schema.ast.SchemaAst
 import zio.{Task, ZIO}
 import zio.prelude.AssociativeBothOps
+
+import scala.collection.immutable.ListMap
 import zio.schema.{DynamicValue, Schema}
-import zio.schema.ast.SchemaAst
 
 import scala.annotation.tailrec
-import scala.collection.immutable.ListMap
 
 object Interpreter {
 
@@ -25,7 +25,7 @@ object Interpreter {
 
   def execute(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
-      case ExecutionPlan.Zip2(f1, f2, o1, o2) =>
+      case ExecutionPlan.Combine(f1, f2, o1, o2) =>
         for {
           d1a <- effect(DExtract.paramIdN(1, input))
           d2a <- effect(DExtract.paramIdN(2, input))

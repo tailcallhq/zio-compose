@@ -1,4 +1,4 @@
-package com.tusharmath.compose.internal
+package compose
 
 import zio.prelude.AssociativeBothOps
 import zio.schema.{DynamicValue, Schema}
