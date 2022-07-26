@@ -87,15 +87,20 @@ object Interpreter {
             ZIO.fromEither(loop(path, values))
           case _                           => ZIO.fail(new Exception("Select only works on records"))
         }
-      case ExecutionPlan.Equals(left, right)           => ZIO.succeed(encode(left == right))
-      case ExecutionPlan.FromMap(value)                =>
+      case ExecutionPlan.Equals(left, right)           =>
+        for {
+          left  <- eval(left, input)
+          right <- eval(right, input)
+        } yield encode(left == right)
+
+      case ExecutionPlan.FromMap(value)  =>
         value.get(input) match {
           case Some(v) => ZIO.succeed(v)
           case None    =>
             ZIO.fail(new Exception("Key lookup failed in dictionary"))
         }
-      case ExecutionPlan.Constant(value)               => ZIO.succeed(value)
-      case ExecutionPlan.Identity                      => ZIO.succeed(input)
+      case ExecutionPlan.Constant(value) => ZIO.succeed(value)
+      case ExecutionPlan.Identity        => ZIO.succeed(input)
     }
 
   private def effect[A](e: Either[String, A]): Task[A] =

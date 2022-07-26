@@ -5,13 +5,16 @@ import zio.schema.Schema
 import zio.Task
 
 sealed trait Lambda[-A, +B] { self =>
+  def ===[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
+    Lambda.Equals(self, other)
+
   final def >[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
-  ): A1 ~> B1 = numOp(Numeric.Operation.GreaterThan, other)
+  ): A1 ~> Boolean = numOp(Numeric.Operation.GreaterThan, other) === Lambda.constant(1)
 
   final def >=[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
-  ): A1 ~> B1 = numOp(Numeric.Operation.GreaterThanEqualTo, other)
+  ): A1 ~> Boolean = numOp(Numeric.Operation.GreaterThanEqualTo, other) === Lambda.constant(1)
 
   final def >>>[C](other: Lambda[B, C]): Lambda[A, C] = self pipe other
 
@@ -38,11 +41,6 @@ sealed trait Lambda[-A, +B] { self =>
 
   final def compose[X](other: Lambda[X, A]): Lambda[X, B] =
     Lambda.Pipe(other, self)
-
-  final def equals[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
-    schema: Schema[B1],
-  ): A1 ~> Boolean =
-    Lambda.Equals(self, other, schema)
 
   final def gt[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
@@ -84,7 +82,7 @@ object Lambda {
   def ifElse[A, B](f: A ~> Boolean)(isTrue: A ~> B, isFalse: A ~> B): A ~> B =
     IfElse(f, isTrue, isFalse)
 
-  final case class Equals[A, B](left: A ~> B, right: A ~> B, schema: Schema[B]) extends Lambda[A, Boolean]
+  final case class Equals[A, B](left: A ~> B, right: A ~> B) extends Lambda[A, Boolean]
 
   final case class FromMap[A, B](input: Schema[A], source: Map[A, B], output: Schema[B]) extends Lambda[A, B]
 

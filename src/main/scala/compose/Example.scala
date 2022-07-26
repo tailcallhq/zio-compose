@@ -18,7 +18,7 @@ object Example extends ZIOAppDefault {
     isFalse = constant("No"),
   )
 
-  def program = constant(1) > constant(2)
+  def program = constant(10) > constant(2)
 
   override def run =
     for {

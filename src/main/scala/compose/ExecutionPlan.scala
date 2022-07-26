@@ -23,7 +23,7 @@ object ExecutionPlan {
     }
 
   def fromLambda[A, B](lmb: Lambda[A, B]): ExecutionPlan = lmb match {
-    case Lambda.Equals(left, right, schema) =>
+    case Lambda.Equals(left, right) =>
       Equals(left.compile, right.compile)
 
     case Lambda.FromMap(input: Schema[A] @unchecked, source, output: Schema[B] @unchecked) =>
