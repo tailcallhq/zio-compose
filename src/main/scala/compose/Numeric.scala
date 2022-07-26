@@ -1,20 +1,22 @@
 package compose
 
+import zio.schema.{DeriveSchema, Schema}
+
 object Numeric {
 
-  sealed trait Is[A]
-  object Is {
-    case object NumericInt    extends Is[Int]
-    case object NumericDouble extends Is[Double]
-    case object NumericLong   extends Is[Long]
+  sealed trait IsNumeric[A]
+
+  object IsNumeric {
+    case object NumericInt extends IsNumeric[Int]
+
+    implicit def schema: Schema[IsNumeric[_]] = DeriveSchema.gen[IsNumeric[_]]
   }
 
   sealed trait Operation
-
   object Operation {
-    case object Addition       extends Operation
-    case object Multiplication extends Operation
-    case object Subtraction    extends Operation
-    case object Division       extends Operation
+    case object Add      extends Operation
+    case object Multiply extends Operation
+    case object Subtract extends Operation
+    case object Divide   extends Operation
   }
 }

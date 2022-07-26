@@ -2,62 +2,69 @@ package compose
 
 import zio.schema.ast.SchemaAst
 import zio.{Task, ZIO}
-import zio.prelude.AssociativeBothOps
-
-import scala.collection.immutable.ListMap
 import zio.schema.{DynamicValue, Schema}
 
 import scala.annotation.tailrec
+import scala.collection.immutable.ListMap
 
 object Interpreter {
+  implicit private[Interpreter] final class ExecutionPlanSyntax(val executionPlan: ExecutionPlan) extends AnyVal {
+    def evalDynamic(value: DynamicValue): Task[DynamicValue] =
+      Interpreter.eval(executionPlan, value)
 
-  def evalAsBoolean[A](input: DynamicValue)(
-    f: (Boolean, Boolean) => A,
-  )(implicit ev: Schema[A]): Either[String, DynamicValue] = {
-    DParse.toBooleanTuple(input).map { case (v1, v2) => encode(f(v1, v2)) }
+    def evalTyped[A](value: DynamicValue)(implicit ev: Schema[A]): Task[A] =
+      evalDynamic(value).flatMap(value => effect(value.toTypedValue(ev)))
   }
 
-  def evalAsInt[A](input: DynamicValue)(
-    f: (Int, Int) => A,
-  )(implicit ev: Schema[A]): Either[String, DynamicValue] = {
-    DParse.toIntTuple(input).map { case (v1, v2) => encode(f(v1, v2)) }
-  }
-
-  def execute(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
+  def eval(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] =
     plan match {
-      case ExecutionPlan.Combine(f1, f2, o1, o2) =>
+      case ExecutionPlan.LogicalOperation(operation, left, right)     =>
         for {
-          d1a <- effect(DExtract.paramIdN(1, input))
-          d2a <- effect(DExtract.paramIdN(2, input))
-          res <- f1.unsafeExecute(d1a).zipPar(f2.unsafeExecute(d2a)) flatMap {
-            case (d1b, d2b) => effect(merge((d1b, o1), (d2b, o2)))
+          left  <- left.evalTyped[Boolean](input)
+          right <- right.evalTyped[Boolean](input)
+        } yield encode {
+          operation match {
+            case Logical.And => left && right
+            case Logical.Or  => left || right
           }
-        } yield res
-
-      case ExecutionPlan.Always(value)           => ZIO.succeed(value)
-      case ExecutionPlan.Sequence(first, second) =>
-        first.unsafeExecute(input).flatMap(second.unsafeExecute)
-      case ExecutionPlan.Identity                => ZIO.succeed(input)
-      case ExecutionPlan.AddInt                  =>
-        effect(evalAsInt(input) { (v1, v2) => v1 + v2 })
-
-      case ExecutionPlan.MulInt =>
-        effect(evalAsInt(input) { (v1, v2) => v1 * v2 })
-
-      case ExecutionPlan.Dictionary(value) =>
-        value.get(input) match {
-          case Some(v) => ZIO.succeed(v)
-          case None    =>
-            ZIO.fail(new Exception("Key lookup failed in dictionary"))
         }
-      case ExecutionPlan.Select(path)      =>
+      case ExecutionPlan.NumericOperation(operation, left, right, is) =>
+        for {
+          isNumeric <- effect(is.toTypedValue(Schema[Numeric.IsNumeric[_]]))
+          params    <-
+            isNumeric match {
+              case Numeric.IsNumeric.NumericInt =>
+                left.evalTyped[Int](input).zip(right.evalTyped[Int](input)).map { case (a, b) =>
+                  operation match {
+                    case Numeric.Operation.Add      => a + b
+                    case Numeric.Operation.Multiply => a * b
+                    case Numeric.Operation.Subtract => a - b
+                    case Numeric.Operation.Divide   => a / b
+                  }
+                }
+            }
+        } yield encode(params)
+
+      case ExecutionPlan.Combine(left, right, o1, o2) =>
+        left.evalDynamic(input).zipPar(right.evalDynamic(input)).map { case (a, b) =>
+          encode(merge(a, b, o1, o2))
+        }
+
+      case ExecutionPlan.IfElse(cond, ifTrue, ifFalse) =>
+        for {
+          cond   <- cond.evalTyped[Boolean](input)
+          result <- if (cond) ifTrue.evalDynamic(input) else ifFalse.evalDynamic(input)
+        } yield result
+      case ExecutionPlan.Pipe(first, second)           =>
+        for {
+          input  <- first.evalDynamic(input)
+          output <- second.evalDynamic(input)
+        } yield output
+      case ExecutionPlan.Select(path)                  =>
         input match {
           case DynamicValue.Record(values) =>
             @tailrec
-            def loop(
-              path: List[String],
-              values: ListMap[String, DynamicValue],
-            ): Either[Exception, DynamicValue] = {
+            def loop(path: List[String], values: ListMap[String, DynamicValue]): Either[Exception, DynamicValue] = {
               path match {
                 case Nil          => Left(new Exception("Path not found"))
                 case head :: tail =>
@@ -70,42 +77,19 @@ object Interpreter {
                   }
               }
             }
-
             ZIO.fromEither(loop(path, values))
-
-          case _ => ZIO.fail(new Exception("Select only works on records"))
+          case _                           => ZIO.fail(new Exception("Select only works on records"))
         }
-
-      case ExecutionPlan.IfElse(cond, isTrue, isFalse) =>
-        for {
-          dBool   <- cond.unsafeExecute(input)
-          bool    <- effect(DParse.toBoolean(dBool))
-          dResult <-
-            if (bool) isTrue.unsafeExecute(input)
-            else isFalse.unsafeExecute(input)
-        } yield dResult
-
-      case ExecutionPlan.LogicalNot =>
-        effect(DParse.toBoolean(input).map(bool => encode(!bool)))
-
-      case ExecutionPlan.EqualTo =>
-        val p1 = DExtract.paramIdN(1, input)
-        val p2 = DExtract.paramIdN(2, input)
-        effect(p1.zip(p2).map(encode(_)))
-
-      case ExecutionPlan.GreaterThanInt =>
-        effect(evalAsInt(input) { (v1, v2) => v1 > v2 })
-
-      case ExecutionPlan.GreaterThanEqualInt =>
-        effect(evalAsInt(input) { (v1, v2) => v1 >= v2 })
-
-      case ExecutionPlan.LogicalAnd =>
-        effect(evalAsBoolean(input) { (v1, v2) => v1 && v2 })
-
-      case ExecutionPlan.LogicalOr =>
-        effect(evalAsBoolean(input) { (v1, v2) => v1 || v2 })
+      case ExecutionPlan.Equals(left, right)           => ZIO.succeed(encode(left == right))
+      case ExecutionPlan.FromMap(value)                =>
+        value.get(input) match {
+          case Some(v) => ZIO.succeed(v)
+          case None    =>
+            ZIO.fail(new Exception("Key lookup failed in dictionary"))
+        }
+      case ExecutionPlan.Constant(value)               => ZIO.succeed(value)
+      case ExecutionPlan.Identity                      => ZIO.succeed(input)
     }
-  }
 
   private def effect[A](e: Either[String, A]): Task[A] =
     e match {
@@ -117,17 +101,16 @@ object Interpreter {
     schema.toDynamic(a)
 
   private def merge(
-    ds1: (DynamicValue, SchemaAst),
-    ds2: (DynamicValue, SchemaAst),
+    d1: DynamicValue,
+    d2: DynamicValue,
+    a1: SchemaAst,
+    a2: SchemaAst,
   ): Either[String, DynamicValue] = {
-    val s1 = ds1._2.toSchema.asInstanceOf[Schema[Any]]
-    val s2 = ds2._2.toSchema.asInstanceOf[Schema[Any]]
-    val d1 = ds1._1
-    val d2 = ds2._1
+    val s1 = a1.toSchema.asInstanceOf[Schema[Any]]
+    val s2 = a2.toSchema.asInstanceOf[Schema[Any]]
     for {
       v1 <- d1.toTypedValue(s1)
       v2 <- d2.toTypedValue(s2)
     } yield (s1 <*> s2).toDynamic((v1, v2))
   }
-
 }

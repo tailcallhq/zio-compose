@@ -17,15 +17,18 @@ sealed trait Lambda[-A, +B] { self =>
     (self: A1 ~> B1) zip other
 
   final def add[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
-    ev: Numeric.Is[B1],
+    num: Numeric.IsNumeric[B1],
+    schema: Schema[Numeric.IsNumeric[B1]],
   ): A1 ~> B1 =
-    ???
+    Lambda.NumericOperation(Numeric.Operation.Add, self, other, num, schema)
 
   final def compose[X](other: Lambda[X, A]): Lambda[X, B] =
     Lambda.Pipe(other, self)
 
-  final def equals[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> B1 =
-    ???
+  final def equals[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
+    schema: Schema[B1],
+  ): A1 ~> Boolean =
+    Lambda.Equals(self, other, schema)
 
   final def pipe[C](other: Lambda[B, C]): Lambda[A, C] =
     Lambda.Pipe(self, other)
@@ -37,13 +40,12 @@ sealed trait Lambda[-A, +B] { self =>
 
   private[compose] final def compile: ExecutionPlan =
     ExecutionPlan.fromLambda(self)
-
 }
 
 object Lambda {
 
   def constant[B](a: B)(implicit schema: Schema[B]): Any ~> B =
-    Always(a, schema)
+    Constant(a, schema)
 
   def fromMap[A, B](
     source: Map[A, B],
@@ -55,36 +57,31 @@ object Lambda {
   def ifElse[A, B](f: A ~> Boolean)(isTrue: A ~> B, isFalse: A ~> B): A ~> B =
     IfElse(f, isTrue, isFalse)
 
-  final case class FromMap[A, B](
-    input: Schema[A],
-    source: Map[A, B],
-    output: Schema[B],
-  ) extends Lambda[A, B]
+  final case class Equals[A, B](left: A ~> B, right: A ~> B, schema: Schema[B]) extends Lambda[A, Boolean]
 
-  final case class Always[B](b: B, schema: Schema[B]) extends Lambda[Any, B]
+  final case class FromMap[A, B](input: Schema[A], source: Map[A, B], output: Schema[B]) extends Lambda[A, B]
+
+  final case class Constant[B](b: B, schema: Schema[B]) extends Lambda[Any, B]
 
   final case class Identity[A]() extends Lambda[A, A]
 
-  final case class Pipe[A, B, C](f: Lambda[A, B], g: Lambda[B, C])
-      extends Lambda[A, C]
+  final case class Pipe[A, B, C](f: Lambda[A, B], g: Lambda[B, C]) extends Lambda[A, C]
 
-  final case class Select[A, B](
-    input: Schema[A],
-    path: NonEmptyList[String],
-    output: Schema[B],
+  final case class Select[A, B](input: Schema[A], path: NonEmptyList[String], output: Schema[B]) extends Lambda[A, B]
+
+  final case class IfElse[A, B](f: A ~> Boolean, ifTrue: A ~> B, ifFalse: A ~> B) extends Lambda[A, B]
+
+  final case class Combine[A, B1, B2](left: A ~> B1, right: A ~> B2, o1: Schema[B1], o2: Schema[B2])
+      extends Lambda[A, (B1, B2)]
+
+  case class NumericOperation[A, B](
+    operation: Numeric.Operation,
+    left: A ~> B,
+    right: A ~> B,
+    num: Numeric.IsNumeric[B],
+    schema: Schema[Numeric.IsNumeric[B]],
   ) extends Lambda[A, B]
 
-  final case class IfElse[A, B](
-    f: A ~> Boolean,
-    isTrue: A ~> B,
-    isFalse: A ~> B,
-  ) extends Lambda[A, B]
-
-  final case class Combine[A, B1, B2](
-    left: A ~> B1,
-    right: A ~> B2,
-    o1: Schema[B1],
-    o2: Schema[B2],
-  ) extends Lambda[A, (B1, B2)]
-
+  case class LogicalOperation[A](operation: Logical.Operation, left: A ~> Boolean, right: A ~> Boolean)
+      extends Lambda[A, Boolean]
 }

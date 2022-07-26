@@ -20,11 +20,11 @@ object Example extends ZIOAppDefault {
       json <- ZIO.succeed(program.compile.json)
 
       // Deserialize the program from JSON
-      exe <- ExecutionPlan.fromJson(json)
+      plan <- ExecutionPlan.fromJson(json)
 
       // Execute the program
       unit = Schema.primitive[Unit].toDynamic(())
-      res <- exe.unsafeExecute(unit)
+      res <- Interpreter.eval(plan, unit)
 
       // Serialize and print the output
       resJson <- ZIO.succeed(
@@ -39,5 +39,4 @@ object Example extends ZIOAppDefault {
       .makeAccessors(LambdaAccessor)
       .asInstanceOf[(User ~> String, User ~> Int)]
   }
-
 }
