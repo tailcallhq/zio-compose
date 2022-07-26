@@ -8,20 +8,19 @@ import scala.annotation.tailrec
 import scala.collection.immutable.ListMap
 
 object Interpreter {
-  implicit private[Interpreter] final class ExecutionPlanSyntax(val executionPlan: ExecutionPlan) extends AnyVal {
-    def evalDynamic(value: DynamicValue): Task[DynamicValue] =
-      Interpreter.eval(executionPlan, value)
 
-    def evalTyped[A](value: DynamicValue)(implicit ev: Schema[A]): Task[A] =
-      evalDynamic(value).flatMap(value => effect(value.toTypedValue(ev)))
-  }
+  def evalDynamic(plan: ExecutionPlan, value: DynamicValue): Task[DynamicValue] =
+    Interpreter.eval(plan, value)
+
+  def evalTyped[A](plan: ExecutionPlan, value: DynamicValue)(implicit ev: Schema[A]): Task[A] =
+    evalDynamic(plan, value).flatMap(value => effect(value.toTypedValue(ev)))
 
   def eval(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] =
     plan match {
       case ExecutionPlan.LogicalOperation(operation, left, right)     =>
         for {
-          left  <- left.evalTyped[Boolean](input)
-          right <- right.evalTyped[Boolean](input)
+          left  <- evalTyped[Boolean](left, input)
+          right <- evalTyped[Boolean](right, input)
         } yield encode {
           operation match {
             case Logical.And => left && right
@@ -30,11 +29,11 @@ object Interpreter {
         }
       case ExecutionPlan.NumericOperation(operation, left, right, is) =>
         for {
-          isNumeric <- effect(is.toTypedValue(Schema[Numeric.IsNumeric[_]]))
+          isNumeric <- effect(is.toTypedValue(Schema[IsNumeric[_]]))
           params    <-
             isNumeric match {
-              case Numeric.IsNumeric.NumericInt =>
-                left.evalTyped[Int](input).zip(right.evalTyped[Int](input)).map { case (a, b) =>
+              case IsNumeric.NumericInt =>
+                evalTyped[Int](left, input).zip(evalTyped[Int](right, input)).map { case (a, b) =>
                   operation match {
                     case Numeric.Operation.Add      => a + b
                     case Numeric.Operation.Multiply => a * b
@@ -46,19 +45,19 @@ object Interpreter {
         } yield encode(params)
 
       case ExecutionPlan.Combine(left, right, o1, o2) =>
-        left.evalDynamic(input).zipPar(right.evalDynamic(input)).map { case (a, b) =>
+        eval(left, input).zipPar(eval(right, input)).map { case (a, b) =>
           encode(merge(a, b, o1, o2))
         }
 
       case ExecutionPlan.IfElse(cond, ifTrue, ifFalse) =>
         for {
-          cond   <- cond.evalTyped[Boolean](input)
-          result <- if (cond) ifTrue.evalDynamic(input) else ifFalse.evalDynamic(input)
+          cond   <- evalTyped[Boolean](cond, input)
+          result <- if (cond) eval(ifTrue, input) else eval(ifFalse, input)
         } yield result
       case ExecutionPlan.Pipe(first, second)           =>
         for {
-          input  <- first.evalDynamic(input)
-          output <- second.evalDynamic(input)
+          input  <- eval(first, input)
+          output <- eval(second, input)
         } yield output
       case ExecutionPlan.Select(path)                  =>
         input match {

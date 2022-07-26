@@ -8,10 +8,11 @@ import zio.schema.DeriveSchema.gen
 object Example extends ZIOAppDefault {
 
   import Lambda._
+  import IsNumeric._
 
-  def program: Unit ~> String = {
-    User.name <<< constant(User("John", 5))
-  }
+  // WAP to sum two numbers
+  def program: Any ~> Int = constant(1) + constant(2)
+
 
   override def run =
     for {

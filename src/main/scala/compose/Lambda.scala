@@ -2,11 +2,17 @@ package compose
 
 import zio.prelude.NonEmptyList
 import zio.schema.Schema
+import zio.Task
 
 sealed trait Lambda[-A, +B] { self =>
   final def >>>[C](other: Lambda[B, C]): Lambda[A, C] = self pipe other
 
   final def <<<[X](other: Lambda[X, A]): Lambda[X, B] = self compose other
+
+  final def +[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
+    num: IsNumeric[B1],
+    schema: Schema[IsNumeric[B1]],
+  ): A1 ~> B1 = self add other
 
   final def ++[A1 <: A, B1 >: B, B2](
     other: Lambda[A1, B2],
@@ -17,10 +23,13 @@ sealed trait Lambda[-A, +B] { self =>
     (self: A1 ~> B1) zip other
 
   final def add[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
-    num: Numeric.IsNumeric[B1],
-    schema: Schema[Numeric.IsNumeric[B1]],
+    num: IsNumeric[B1],
+    schema: Schema[IsNumeric[B1]],
   ): A1 ~> B1 =
     Lambda.NumericOperation(Numeric.Operation.Add, self, other, num, schema)
+
+  def apply[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
+    Interpreter.evalTyped[B1](ExecutionPlan.fromLambda(self), in.toDynamic(a))
 
   final def compose[X](other: Lambda[X, A]): Lambda[X, B] =
     Lambda.Pipe(other, self)
@@ -78,8 +87,8 @@ object Lambda {
     operation: Numeric.Operation,
     left: A ~> B,
     right: A ~> B,
-    num: Numeric.IsNumeric[B],
-    schema: Schema[Numeric.IsNumeric[B]],
+    num: IsNumeric[B],
+    schema: Schema[IsNumeric[B]],
   ) extends Lambda[A, B]
 
   case class LogicalOperation[A](operation: Logical.Operation, left: A ~> Boolean, right: A ~> Boolean)
