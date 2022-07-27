@@ -24,12 +24,16 @@ object Example extends ZIOAppDefault {
     (default[User] zip (constant(Person("Tushar", "Mathur", 100)) >>> Person.age.get)) >>>
       User.age.set
 
-  def program: Any ~> User =
-    constant(Person("Tushar", "Mathur", 100)) >>>
-      transform(
-        Transform(Person.age.get + constant(10), User.age.set),
-        Transform(Person.firstName.get ++ constant(" ") ++ Person.lastName.get, User.name.set),
-      )
+  def isAllowed: Int ~> Boolean = ifElse(identity[Int] > constant(18))(
+    isTrue = constant(true),
+    isFalse = constant(false),
+  )
+
+  def program = constant(Person("Tushar", "Mathur", 50)) >>> transform(
+    Transform(Person.age.get + constant(10), User.age.set),
+    Transform(Person.firstName.get ++ constant(" ") ++ Person.lastName.get, User.name.set),
+    Transform(Person.age.get >>> isAllowed, User.isAllowed.set),
+  )
 
   override def run =
     for {
@@ -37,6 +41,7 @@ object Example extends ZIOAppDefault {
       // Serialize the program to JSON
       json <- ZIO.succeed(program.compile.json)
 
+      _    <- ZIO.succeed(println(json))
       // Deserialize the program from JSON
       plan <- ExecutionPlan.fromJson(json)
 
@@ -58,10 +63,10 @@ object Example extends ZIOAppDefault {
       .asInstanceOf[(LambdaLens[Person, String], LambdaLens[Person, String], LambdaLens[Person, Int])]
   }
 
-  case class User(name: String, age: Int)
+  case class User(name: String, age: Int, isAllowed: Boolean)
   object User {
-    val (name, age) = Schema[User]
+    val (name, age, isAllowed) = Schema[User]
       .makeAccessors(LambdaAccessor)
-      .asInstanceOf[(LambdaLens[User, String], LambdaLens[User, Int])]
+      .asInstanceOf[(LambdaLens[User, String], LambdaLens[User, Int], LambdaLens[User, Boolean])]
   }
 }
