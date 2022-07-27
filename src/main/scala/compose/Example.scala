@@ -27,8 +27,8 @@ object Example extends ZIOAppDefault {
   def program: Any ~> User =
     constant(Person("Tushar", "Mathur", 100)) >>>
       transform(
-        Transform(Person.age.get, User.age.set),
-        Transform(Person.lastName.get, User.name.set),
+        Transform(Person.age.get + constant(10), User.age.set),
+        Transform(Person.firstName.get ++ constant(" ") ++ Person.lastName.get, User.name.set),
       )
 
   override def run =

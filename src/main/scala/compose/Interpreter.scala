@@ -17,6 +17,17 @@ object Interpreter {
 
   def eval(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] =
     plan match {
+      case ExecutionPlan.Concat(self, other, canConcat) =>
+        for {
+          canConcat <- effect(canConcat.toTypedValue(Schema[CanConcat[_]]))
+          result    <- canConcat match {
+            case CanConcat.ConcatString =>
+              evalTyped[String](self, input).zipWithPar(evalTyped[String](other, input)) { case (a, b) =>
+                encode(a + b)
+              }
+          }
+        } yield result
+
       case ExecutionPlan.Default(value) => ZIO.succeed(value)
 
       case ExecutionPlan.Transformation(list, wholeBAst) =>

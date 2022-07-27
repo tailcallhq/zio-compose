@@ -78,7 +78,12 @@ object ExecutionPlan {
         case Left(cause)  => throw new Exception(cause)
         case Right(value) => Default(schema.toDynamic(value))
       }
+
+    case Lambda.Concat(self, other, canConcat) =>
+      Concat(self.compile, other.compile, Schema[CanConcat[_]].toDynamic(canConcat))
   }
+
+  final case class Concat(self: ExecutionPlan, other: ExecutionPlan, canConcat: DynamicValue) extends ExecutionPlan
 
   final case class Default(value: DynamicValue) extends ExecutionPlan
 
