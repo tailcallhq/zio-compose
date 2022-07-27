@@ -77,6 +77,8 @@ object Lambda {
   def constant[B](a: B)(implicit schema: Schema[B]): Any ~> B =
     Constant(a, schema)
 
+  def default[A](implicit schema: Schema[A]): Any ~> A = Default(schema)
+
   def fromMap[A, B](
     source: Map[A, B],
   )(implicit input: Schema[A], output: Schema[B]): Lambda[A, B] =
@@ -89,8 +91,6 @@ object Lambda {
 
   def transform[A, B](transformations: Transform[A, B]*)(implicit b: Schema[B]): A ~> B =
     Transformation(transformations.toList, b)
-
-  def default[A](implicit schema: Schema[A]): Any ~> A = Default(schema)
 
   sealed trait Transform[A, B]
   object Transform {
