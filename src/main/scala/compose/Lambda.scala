@@ -5,9 +5,7 @@ import zio.schema.Schema
 import zio.Task
 
 sealed trait Lambda[-A, +B] { self =>
-  def ++[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit ev: CanConcat[B1]): A1 ~> B1 = Lambda.Concat(self, other, ev)
-
-  def ===[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
+  final def ===[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
     Lambda.Equals(self, other)
 
   final def >[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
@@ -34,6 +32,8 @@ sealed trait Lambda[-A, +B] { self =>
     num: IsNumeric[B1],
   ): A1 ~> B1 = numOp(Numeric.Operation.Add, other)
 
+  final def ++[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit ev: CanConcat[B1]): A1 ~> B1 = Lambda.Concat(self, other, ev)
+
   final def *[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
   ): A1 ~> B1 = numOp(Numeric.Operation.Multiply, other)
@@ -59,6 +59,9 @@ sealed trait Lambda[-A, +B] { self =>
 
   final def pipe[C](other: Lambda[B, C]): Lambda[A, C] =
     Lambda.Pipe(self, other)
+
+  final def repeatUntil[A1 <: A, B1 >: B, X](cond: X ~> Boolean)(implicit a: A1 =:= X, b: B1 =:= X): X ~> X =
+    Lambda.RepeatUntil(self.asInstanceOf[X ~> X], cond)
 
   final def zip[A1 <: A, B1 >: B, B2](other: Lambda[A1, B2])(implicit
     b1: Schema[B1],
@@ -93,6 +96,8 @@ object Lambda {
 
   def transform[A, B](transformations: Transform[A, B]*)(implicit b: Schema[B]): A ~> B =
     Transformation(transformations.toList, b)
+
+  final case class RepeatUntil[A](f: A ~> A, cond: A ~> Boolean) extends Lambda[A, A]
 
   final case class Concat[A, B](self: A ~> B, other: A ~> B, canConcat: CanConcat[B]) extends Lambda[A, B]
 

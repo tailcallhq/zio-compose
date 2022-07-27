@@ -29,11 +29,27 @@ object Example extends ZIOAppDefault {
     isFalse = constant(false),
   )
 
-  def program = constant(Person("Tushar", "Mathur", 50)) >>> transform(
+  def program5 = constant(Person("Tushar", "Mathur", 50)) >>> transform(
     Transform(Person.age.get + constant(10), User.age.set),
     Transform(Person.firstName.get ++ constant(" ") ++ Person.lastName.get, User.name.set),
     Transform(Person.age.get >>> isAllowed, User.isAllowed.set),
   )
+
+  def program = {
+    constant(Fib(0, 1, 0)) >>>
+      transform(
+        Transform(Fib.b.get, Fib.a.set),
+        Transform(Fib.a.get + Fib.b.get, Fib.b.set),
+        Transform(Fib.i.get + constant(1), Fib.i.set),
+      ).repeatUntil(Fib.i.get === constant(20)) >>> Fib.b.get
+  }
+
+  case class Fib(a: Int, b: Int, i: Int)
+  object Fib {
+    val (a, b, i) = Schema[Fib]
+      .makeAccessors(LambdaAccessor)
+      .asInstanceOf[(LambdaLens[Fib, Int], LambdaLens[Fib, Int], LambdaLens[Fib, Int])]
+  }
 
   override def run =
     for {
@@ -41,7 +57,7 @@ object Example extends ZIOAppDefault {
       // Serialize the program to JSON
       json <- ZIO.succeed(program.compile.json)
 
-      _    <- ZIO.succeed(println(json))
+      // _    <- ZIO.succeed(println(json))
       // Deserialize the program from JSON
       plan <- ExecutionPlan.fromJson(json)
 

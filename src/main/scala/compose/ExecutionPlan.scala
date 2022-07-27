@@ -81,7 +81,12 @@ object ExecutionPlan {
 
     case Lambda.Concat(self, other, canConcat) =>
       Concat(self.compile, other.compile, Schema[CanConcat[_]].toDynamic(canConcat))
+
+    case Lambda.RepeatUntil(f, cond) =>
+      RepeatUntil(f.compile, cond.compile)
   }
+
+  final case class RepeatUntil(self: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
 
   final case class Concat(self: ExecutionPlan, other: ExecutionPlan, canConcat: DynamicValue) extends ExecutionPlan
 

@@ -17,6 +17,14 @@ object Interpreter {
 
   def eval(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] =
     plan match {
+      case ExecutionPlan.RepeatUntil(f, cond) =>
+        def loop(input: DynamicValue): Task[DynamicValue] = for {
+          output <- eval(f, input)
+          cond   <- evalTyped[Boolean](cond, output)
+          result <- if (cond) ZIO.succeed(output) else loop(output)
+        } yield result
+        loop(input)
+
       case ExecutionPlan.Concat(self, other, canConcat) =>
         for {
           canConcat <- effect(canConcat.toTypedValue(Schema[CanConcat[_]]))
