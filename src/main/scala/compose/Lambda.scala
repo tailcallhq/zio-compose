@@ -20,17 +20,17 @@ sealed trait Lambda[-A, +B] { self =>
 
   final def <<<[X](other: Lambda[X, A]): Lambda[X, B] = self compose other
 
-  final def +[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
-    num: IsNumeric[B1],
-  ): A1 ~> B1 = numOp(Numeric.Operation.Add, other)
-
-  final def ++[A1 <: A, B1 >: B, B2](
+  final def <*>[A1 <: A, B1 >: B, B2](
     other: Lambda[A1, B2],
   )(implicit
     b1: Schema[B1],
     b2: Schema[B2],
   ): A1 ~> (B1, B2) =
     (self: A1 ~> B1) zip other
+
+  final def +[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
+    num: IsNumeric[B1],
+  ): A1 ~> B1 = numOp(Numeric.Operation.Add, other)
 
   final def *[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
