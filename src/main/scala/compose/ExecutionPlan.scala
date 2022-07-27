@@ -69,7 +69,7 @@ object ExecutionPlan {
 
     case Lambda.Transformation(transformations, output) =>
       Transformation(
-        transformations.map { case Lambda.Transform.Constructor(f, i, g) => (f.compile, i.ast, g.compile) },
+        transformations.map { case Transform.Constructor(f, i, g) => (f.compile, i.ast, g.compile) },
         output.ast,
       )
 
