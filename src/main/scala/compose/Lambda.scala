@@ -22,7 +22,7 @@ sealed trait Lambda[-A, +B] { self =>
 
   final def +[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
-  ): A1 ~> B1 = self add other
+  ): A1 ~> B1 = numOp(Numeric.Operation.Add, other)
 
   final def ++[A1 <: A, B1 >: B, B2](
     other: Lambda[A1, B2],
@@ -32,9 +32,9 @@ sealed trait Lambda[-A, +B] { self =>
   ): A1 ~> (B1, B2) =
     (self: A1 ~> B1) zip other
 
-  final def add[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
+  final def *[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
-  ): A1 ~> B1 = numOp(Numeric.Operation.Add, other)
+  ): A1 ~> B1 = numOp(Numeric.Operation.Multiply, other)
 
   final def apply[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
     Interpreter.evalTyped[B1](ExecutionPlan.fromLambda(self), in.toDynamic(a))
@@ -49,6 +49,11 @@ sealed trait Lambda[-A, +B] { self =>
   final def gte[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
   ): A1 ~> B1 = numOp(Numeric.Operation.GreaterThanEqualTo, other)
+
+  final def negate[B1 >: B](implicit
+    num: IsNumeric[B1],
+    schema: Schema[B1],
+  ): A ~> B1 = Lambda.constant(num.one) * self
 
   final def pipe[C](other: Lambda[B, C]): Lambda[A, C] =
     Lambda.Pipe(self, other)
@@ -82,6 +87,21 @@ object Lambda {
   def ifElse[A, B](f: A ~> Boolean)(isTrue: A ~> B, isFalse: A ~> B): A ~> B =
     IfElse(f, isTrue, isFalse)
 
+  def transform[A, B](transformations: Transform[A, B]*)(implicit b: Schema[B]): A ~> B =
+    Transformation(transformations.toList, b)
+
+  def default[A](implicit schema: Schema[A]): Any ~> A = Default(schema)
+
+  sealed trait Transform[A, B]
+  object Transform {
+    case class Constructor[A, B, I](f: A ~> I, i: Schema[I], g: (B, I) ~> B) extends Transform[A, B]
+    def apply[A, B, I](f: A ~> I, g: (B, I) ~> B)(implicit i: Schema[I]): Transform[A, B] = Constructor(f, i, g)
+  }
+
+  final case class Default[A](value: Schema[A]) extends Lambda[Any, A]
+
+  final case class Transformation[A, B](value: List[Transform[A, B]], output: Schema[B]) extends Lambda[A, B]
+
   final case class Equals[A, B](left: A ~> B, right: A ~> B) extends Lambda[A, Boolean]
 
   final case class FromMap[A, B](input: Schema[A], source: Map[A, B], output: Schema[B]) extends Lambda[A, B]
@@ -92,7 +112,10 @@ object Lambda {
 
   final case class Pipe[A, B, C](f: Lambda[A, B], g: Lambda[B, C]) extends Lambda[A, C]
 
-  final case class Select[A, B](input: Schema[A], path: NonEmptyList[String], output: Schema[B]) extends Lambda[A, B]
+  final case class GetPath[A, B](input: Schema[A], path: NonEmptyList[String], output: Schema[B]) extends Lambda[A, B]
+
+  final case class SetPath[A, B](whole: Schema[A], path: NonEmptyList[String], piece: Schema[B])
+      extends Lambda[(A, B), A]
 
   final case class IfElse[A, B](f: A ~> Boolean, ifTrue: A ~> B, ifFalse: A ~> B) extends Lambda[A, B]
 
@@ -107,6 +130,8 @@ object Lambda {
   ) extends Lambda[A, B]
 
   case class LogicalAnd[A](left: A ~> Boolean, right: A ~> Boolean) extends Lambda[A, Boolean]
-  case class LogicalOr[A](left: A ~> Boolean, right: A ~> Boolean)  extends Lambda[A, Boolean]
-  case class LogicalNot[A](logic: A ~> Boolean)                     extends Lambda[A, Boolean]
+
+  case class LogicalOr[A](left: A ~> Boolean, right: A ~> Boolean) extends Lambda[A, Boolean]
+
+  case class LogicalNot[A](logic: A ~> Boolean) extends Lambda[A, Boolean]
 }

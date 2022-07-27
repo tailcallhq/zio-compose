@@ -18,7 +18,18 @@ object Example extends ZIOAppDefault {
     isFalse = constant("No"),
   )
 
-  def program = constant(10) > constant(2)
+  def program3 = constant(10) > constant(2)
+
+  def program4 =
+    (default[User] zip (constant(Person("Tushar", "Mathur", 100)) >>> Person.age.get)) >>>
+      User.age.set
+
+  def program: Any ~> User =
+    constant(Person("Tushar", "Mathur", 100)) >>>
+      transform(
+        Transform(Person.age.get, User.age.set),
+        Transform(Person.lastName.get, User.name.set),
+      )
 
   override def run =
     for {
@@ -40,10 +51,17 @@ object Example extends ZIOAppDefault {
       _       <- ZIO.succeed(println(resJson))
     } yield ()
 
+  case class Person(firstName: String, lastName: String, age: Int)
+  object Person {
+    val (firstName, lastName, age) = Schema[Person]
+      .makeAccessors(LambdaAccessor)
+      .asInstanceOf[(LambdaLens[Person, String], LambdaLens[Person, String], LambdaLens[Person, Int])]
+  }
+
   case class User(name: String, age: Int)
   object User {
     val (name, age) = Schema[User]
       .makeAccessors(LambdaAccessor)
-      .asInstanceOf[(User ~> String, User ~> Int)]
+      .asInstanceOf[(LambdaLens[User, String], LambdaLens[User, Int])]
   }
 }

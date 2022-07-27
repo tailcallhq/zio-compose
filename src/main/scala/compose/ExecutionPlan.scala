@@ -38,8 +38,11 @@ object ExecutionPlan {
     case Lambda.Pipe(f, g) =>
       Pipe(f.compile, g.compile)
 
-    case Lambda.Select(input, path, output) =>
-      Select(path)
+    case Lambda.GetPath(_, path, _) =>
+      GetPath(path)
+
+    case Lambda.SetPath(_, path, _) =>
+      SetPath(path)
 
     case Lambda.IfElse(f, isTrue, isFalse) =>
       IfElse(f.compile, isTrue.compile, isFalse.compile)
@@ -63,7 +66,26 @@ object ExecutionPlan {
 
     case Lambda.LogicalNot(logic) =>
       LogicalNot(logic.compile)
+
+    case Lambda.Transformation(transformations, output) =>
+      Transformation(
+        transformations.map { case Lambda.Transform.Constructor(f, i, g) => (f.compile, i.ast, g.compile) },
+        output.ast,
+      )
+
+    case Lambda.Default(schema) =>
+      schema.defaultValue match {
+        case Left(cause)  => throw new Exception(cause)
+        case Right(value) => Default(schema.toDynamic(value))
+      }
   }
+
+  final case class Default(value: DynamicValue) extends ExecutionPlan
+
+  final case class Transformation(
+    transformations: List[(ExecutionPlan, SchemaAst, ExecutionPlan)],
+    wholeTargetAst: SchemaAst,
+  ) extends ExecutionPlan
 
   final case class LogicalAnd(left: ExecutionPlan, right: ExecutionPlan) extends ExecutionPlan
 
@@ -85,7 +107,9 @@ object ExecutionPlan {
 
   final case class Pipe(first: ExecutionPlan, second: ExecutionPlan) extends ExecutionPlan
 
-  final case class Select(path: List[String]) extends ExecutionPlan
+  final case class GetPath(path: List[String]) extends ExecutionPlan
+
+  final case class SetPath(path: List[String]) extends ExecutionPlan
 
   final case class Equals(left: ExecutionPlan, right: ExecutionPlan) extends ExecutionPlan
 

@@ -17,6 +17,60 @@ object Interpreter {
 
   def eval(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] =
     plan match {
+      case ExecutionPlan.Default(value) => ZIO.succeed(value)
+
+      case ExecutionPlan.Transformation(list, wholeBAst) =>
+        // WholeA to I to WholeB
+        val wholeA = input
+
+        def loop(
+          transformations: List[(ExecutionPlan, SchemaAst, ExecutionPlan)],
+          wholeB: DynamicValue,
+        ): Task[DynamicValue] = {
+          transformations match {
+            case Nil                            => ZIO.succeed(wholeB)
+            case (getter, iAst, setter) :: tail =>
+              for {
+                i          <- eval(getter, wholeA)
+                wholeBAndI <- effect(merge(wholeB, i, wholeBAst, iAst))
+                wholeB     <- eval(setter, wholeBAndI)
+                result     <- loop(tail, wholeB)
+              } yield result
+          }
+        }
+
+        val wholeBSchema = wholeBAst.toSchema.asInstanceOf[Schema[Any]]
+        wholeBSchema.defaultValue match {
+          case Left(error)  => ZIO.fail(new Exception(error))
+          case Right(value) => loop(list, wholeBSchema.toDynamic(value))
+        }
+
+      case ExecutionPlan.SetPath(path) =>
+        input match {
+          case DynamicValue.Tuple(DynamicValue.Record(values), input) =>
+            def loop(
+              path: List[String],
+              values: ListMap[String, DynamicValue],
+              a: DynamicValue,
+            ): Either[Exception, DynamicValue] = {
+              path match {
+                case Nil          => Left(new Exception("Path not found"))
+                case head :: tail =>
+                  values.get(head) match {
+                    case None    => Left(new Exception("Path not found"))
+                    case Some(v) =>
+                      if (tail.isEmpty) Right(DynamicValue.Record(values + (head -> a)))
+                      else
+                        loop(tail, v.asInstanceOf[DynamicValue.Record].values, a) map { value =>
+                          DynamicValue.Record(values + (head -> value))
+                        }
+                  }
+              }
+            }
+            ZIO.fromEither(loop(path, values, input))
+          case input => ZIO.fail(new Exception(s"Set path doesn't work on: ${input}"))
+        }
+
       case ExecutionPlan.LogicalAnd(left, right) =>
         for {
           left  <- evalTyped[Boolean](left, input)
@@ -53,8 +107,8 @@ object Interpreter {
         } yield encode(params)
 
       case ExecutionPlan.Combine(left, right, o1, o2) =>
-        eval(left, input).zipPar(eval(right, input)).map { case (a, b) =>
-          encode(merge(a, b, o1, o2))
+        eval(left, input).zipPar(eval(right, input)).flatMap { case (a, b) =>
+          effect(merge(a, b, o1, o2))
         }
 
       case ExecutionPlan.IfElse(cond, ifTrue, ifFalse) =>
@@ -67,7 +121,7 @@ object Interpreter {
           input  <- eval(first, input)
           output <- eval(second, input)
         } yield output
-      case ExecutionPlan.Select(path)                  =>
+      case ExecutionPlan.GetPath(path)                 =>
         input match {
           case DynamicValue.Record(values) =>
             @tailrec
