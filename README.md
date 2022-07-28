@@ -1,1 +1,1 @@
-# graphql-compose
+# compose
