@@ -39,7 +39,7 @@ sealed trait Lambda[-A, +B] { self =>
   ): A1 ~> B1 = numOp(Numeric.Operation.Multiply, other)
 
   final def apply[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
-    Interpreter.evalTyped[B1](ExecutionPlan.fromLambda(self), in.toDynamic(a))
+    Interpreter.evalTyped[B1](ExecutionPlan.from(self), in.toDynamic(a))
 
   final def compose[X](other: Lambda[X, A]): Lambda[X, B] =
     Lambda.Pipe(other, self)
@@ -69,7 +69,7 @@ sealed trait Lambda[-A, +B] { self =>
   ): A1 ~> (B1, B2) = Lambda.Combine(self, other, b1, b2)
 
   private[compose] final def compile: ExecutionPlan =
-    ExecutionPlan.fromLambda(self)
+    ExecutionPlan.from(self)
 
   private final def numOp[A1 <: A, B1 >: B](operation: Numeric.Operation, other: A1 ~> B1)(implicit
     num: IsNumeric[B1],

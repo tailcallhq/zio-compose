@@ -14,15 +14,16 @@ object ExecutionPlan {
 
   implicit def schema: Schema[ExecutionPlan] = DeriveSchema.gen[ExecutionPlan]
 
-  def fromJson(json: String): ZIO[Any, Exception, ExecutionPlan] =
-    JsonCodec.decode(ExecutionPlan.schema)(
-      Chunk.fromArray(json.getBytes),
-    ) match {
+  def from(json: String): ZIO[Any, Exception, ExecutionPlan] =
+    from(Chunk.fromArray(json.getBytes))
+
+  def from(chunk: Chunk[Byte]): ZIO[Any, Exception, ExecutionPlan] =
+    JsonCodec.decode(ExecutionPlan.schema)(chunk) match {
       case Left(value)  => ZIO.fail(new Exception(value))
       case Right(value) => ZIO.succeed(value)
     }
 
-  def fromLambda[A, B](lmb: Lambda[A, B]): ExecutionPlan = lmb match {
+  def from[A, B](lmb: Lambda[A, B]): ExecutionPlan = lmb match {
     case Lambda.Equals(left, right) =>
       Equals(left.compile, right.compile)
 

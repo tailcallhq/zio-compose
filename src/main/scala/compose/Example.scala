@@ -53,13 +53,12 @@ object Example extends ZIOAppDefault {
 
   override def run =
     for {
-
       // Serialize the program to JSON
-      json <- ZIO.succeed(program.compile.json)
+      json <- ZIO.succeed(program.compile.binary)
 
       // _    <- ZIO.succeed(println(json))
       // Deserialize the program from JSON
-      plan <- ExecutionPlan.fromJson(json)
+      plan <- ExecutionPlan.from(json)
 
       // Execute the program
       unit = Schema.primitive[Unit].toDynamic(())
