@@ -94,8 +94,8 @@ object Lambda {
   def ifElse[A, B](f: A ~> Boolean)(isTrue: A ~> B, isFalse: A ~> B): A ~> B =
     IfElse(f, isTrue, isFalse)
 
-  def transform[A, B](transformations: Transform[A, B]*)(implicit b: Schema[B]): A ~> B =
-    Transformation(transformations.toList, b)
+  def transform[A, B](transformations: Transformation[A, B]*)(implicit b: Schema[B]): A ~> B =
+    Transform(transformations.toList, b)
 
   final case class RepeatUntil[A](f: A ~> A, cond: A ~> Boolean) extends Lambda[A, A]
 
@@ -103,7 +103,7 @@ object Lambda {
 
   final case class Default[A](value: Schema[A]) extends Lambda[Any, A]
 
-  final case class Transformation[A, B](value: List[Transform[A, B]], output: Schema[B]) extends Lambda[A, B]
+  final case class Transform[A, B](value: List[Transformation[A, B]], output: Schema[B]) extends Lambda[A, B]
 
   final case class Equals[A, B](left: A ~> B, right: A ~> B) extends Lambda[A, Boolean]
 

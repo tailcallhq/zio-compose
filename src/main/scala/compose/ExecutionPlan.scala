@@ -67,9 +67,9 @@ object ExecutionPlan {
     case Lambda.LogicalNot(logic) =>
       LogicalNot(logic.compile)
 
-    case Lambda.Transformation(transformations, output) =>
-      Transformation(
-        transformations.map { case Transform.Constructor(f, i, g) => (f.compile, i.ast, g.compile) },
+    case Lambda.Transform(transformations, output) =>
+      Transform(
+        transformations.map { case Transformation.Constructor(f, i, g) => (f.compile, i.ast, g.compile) },
         output.ast,
       )
 
@@ -92,7 +92,7 @@ object ExecutionPlan {
 
   final case class Default(value: DynamicValue) extends ExecutionPlan
 
-  final case class Transformation(
+  final case class Transform(
     transformations: List[(ExecutionPlan, SchemaAst, ExecutionPlan)],
     wholeTargetAst: SchemaAst,
   ) extends ExecutionPlan

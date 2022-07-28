@@ -38,7 +38,7 @@ object Interpreter {
 
       case ExecutionPlan.Default(value) => ZIO.succeed(value)
 
-      case ExecutionPlan.Transformation(list, wholeBAst) =>
+      case ExecutionPlan.Transform(list, wholeBAst) =>
         // WholeA to I to WholeB
         val wholeA = input
 

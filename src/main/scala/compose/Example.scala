@@ -30,17 +30,17 @@ object Example extends ZIOAppDefault {
   )
 
   def program5 = constant(Person("Tushar", "Mathur", 50)) >>> transform(
-    Transform(Person.age.get + constant(10), User.age.set),
-    Transform(Person.firstName.get ++ constant(" ") ++ Person.lastName.get, User.name.set),
-    Transform(Person.age.get >>> isAllowed, User.isAllowed.set),
+    Transformation(Person.age.get + constant(10), User.age.set),
+    Transformation(Person.firstName.get ++ constant(" ") ++ Person.lastName.get, User.name.set),
+    Transformation(Person.age.get >>> isAllowed, User.isAllowed.set),
   )
 
   def program = {
     constant(Fib(0, 1, 0)) >>>
       transform(
-        Transform(Fib.b.get, Fib.a.set),
-        Transform(Fib.a.get + Fib.b.get, Fib.b.set),
-        Transform(Fib.i.get + constant(1), Fib.i.set),
+        Transformation(Fib.b.get, Fib.a.set),
+        Transformation(Fib.a.get + Fib.b.get, Fib.b.set),
+        Transformation(Fib.i.get + constant(1), Fib.i.set),
       ).repeatUntil(Fib.i.get === constant(20)) >>> Fib.b.get
   }
 
