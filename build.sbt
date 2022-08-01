@@ -16,7 +16,7 @@ lazy val root = project
       ZIOSchemaDerivation,
       ZIOTest % Test,
     ),
-    publish := false
+    publish / skip := true
   )
 
 // Flags

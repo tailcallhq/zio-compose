@@ -28,6 +28,9 @@ sealed trait Lambda[-A, +B] { self =>
   ): A1 ~> (B1, B2) =
     (self: A1 ~> B1) zip other
 
+  final def ->>[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
+    self transform other
+
   final def +[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
   ): A1 ~> B1 = numOp(Numeric.Operation.Add, other)
@@ -52,6 +55,8 @@ sealed trait Lambda[-A, +B] { self =>
     num: IsNumeric[B1],
   ): A1 ~> B1 = numOp(Numeric.Operation.GreaterThanEqualTo, other)
 
+  final def inc[B1 >: B](implicit num: IsNumeric[B1], s: Schema[B1]): A ~> B1 = self + Lambda.constant(num.one)
+
   final def negate[B1 >: B](implicit
     num: IsNumeric[B1],
     schema: Schema[B1],
@@ -62,6 +67,9 @@ sealed trait Lambda[-A, +B] { self =>
 
   final def repeatUntil[A1 <: A, B1 >: B, X](cond: X ~> Boolean)(implicit a: A1 =:= X, b: B1 =:= X): X ~> X =
     Lambda.RepeatUntil(self.asInstanceOf[X ~> X], cond)
+
+  final def transform[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
+    Transformation[A, C, I](self, other)
 
   final def zip[A1 <: A, B1 >: B, B2](other: Lambda[A1, B2])(implicit
     b1: Schema[B1],
@@ -125,16 +133,16 @@ object Lambda {
   final case class Combine[A, B1, B2](left: A ~> B1, right: A ~> B2, o1: Schema[B1], o2: Schema[B2])
       extends Lambda[A, (B1, B2)]
 
-  case class NumericOperation[A, B](
+  final case class NumericOperation[A, B](
     operation: Numeric.Operation,
     left: A ~> B,
     right: A ~> B,
     num: IsNumeric[B],
   ) extends Lambda[A, B]
 
-  case class LogicalAnd[A](left: A ~> Boolean, right: A ~> Boolean) extends Lambda[A, Boolean]
+  final case class LogicalAnd[A](left: A ~> Boolean, right: A ~> Boolean) extends Lambda[A, Boolean]
 
-  case class LogicalOr[A](left: A ~> Boolean, right: A ~> Boolean) extends Lambda[A, Boolean]
+  final case class LogicalOr[A](left: A ~> Boolean, right: A ~> Boolean) extends Lambda[A, Boolean]
 
-  case class LogicalNot[A](logic: A ~> Boolean) extends Lambda[A, Boolean]
+  final case class LogicalNot[A](logic: A ~> Boolean) extends Lambda[A, Boolean]
 }

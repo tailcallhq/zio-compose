@@ -38,9 +38,9 @@ object Example extends ZIOAppDefault {
   def program = {
     constant(Fib(0, 1, 0)) >>>
       transform(
-        Transformation(Fib.b.get, Fib.a.set),
-        Transformation(Fib.a.get + Fib.b.get, Fib.b.set),
-        Transformation(Fib.i.get + constant(1), Fib.i.set),
+        Fib.b.get ->> Fib.a.set,
+        Fib.a.get + Fib.b.get ->> Fib.b.set,
+        Fib.i.get.inc ->> Fib.i.set,
       ).repeatUntil(Fib.i.get === constant(20)) >>> Fib.b.get
   }
 
@@ -48,7 +48,7 @@ object Example extends ZIOAppDefault {
   object Fib {
     val (a, b, i) = Schema[Fib]
       .makeAccessors(LambdaAccessor)
-      .asInstanceOf[(LambdaLens[Fib, Int], LambdaLens[Fib, Int], LambdaLens[Fib, Int])]
+      .asInstanceOf[(Fib >>- Int, Fib >>- Int, Fib >>- Int)]
   }
 
   override def run =
@@ -75,13 +75,13 @@ object Example extends ZIOAppDefault {
   object Person {
     val (firstName, lastName, age) = Schema[Person]
       .makeAccessors(LambdaAccessor)
-      .asInstanceOf[(LambdaLens[Person, String], LambdaLens[Person, String], LambdaLens[Person, Int])]
+      .asInstanceOf[(Person >>- String, Person >>- String, Person >>- Int)]
   }
 
   case class User(name: String, age: Int, isAllowed: Boolean)
   object User {
     val (name, age, isAllowed) = Schema[User]
       .makeAccessors(LambdaAccessor)
-      .asInstanceOf[(LambdaLens[User, String], LambdaLens[User, Int], LambdaLens[User, Boolean])]
+      .asInstanceOf[(User >>- String, User >>- Int, User >>- Boolean)]
   }
 }
