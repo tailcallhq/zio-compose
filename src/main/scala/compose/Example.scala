@@ -38,9 +38,9 @@ object Example extends ZIOAppDefault {
   def program = {
     constant(Fib(0, 1, 0)) >>>
       transform(
-        Fib.b.get ->> Fib.a.set,
+        Fib.b.get             ->> Fib.a.set,
         Fib.a.get + Fib.b.get ->> Fib.b.set,
-        Fib.i.get.inc ->> Fib.i.set,
+        Fib.i.get.inc         ->> Fib.i.set,
       ).repeatUntil(Fib.i.get === constant(20)) >>> Fib.b.get
   }
 
