@@ -19,6 +19,12 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
 
   def eval(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
+      case ExecutionPlan.Debug(name, plan) =>
+        for {
+          result <- eval(plan, input)
+          _      <- ZIO.succeed(println(s"${name}: ${input} ~> ${result}"))
+        } yield result
+
       case ExecutionPlan.Arg(i, a1, a2) =>
         val s1 = a1.toSchema.asInstanceOf[Schema[Any]]
         val s2 = a2.toSchema.asInstanceOf[Schema[Any]]
@@ -51,12 +57,12 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
         } yield encode(())
 
       case ExecutionPlan.RepeatUntil(f, cond) =>
-        def loop(input: DynamicValue): Task[DynamicValue] = for {
+        def loop: Task[DynamicValue] = for {
           output <- eval(f, input)
-          cond   <- evalTyped[Boolean](cond, output)
-          result <- if (cond) ZIO.succeed(output) else loop(output)
+          isTrue <- evalTyped[Boolean](cond, input)
+          result <- if (isTrue) ZIO.succeed(output) else loop
         } yield result
-        loop(input)
+        loop
 
       case ExecutionPlan.Concat(self, other, canConcat) =>
         for {
@@ -252,4 +258,10 @@ object Interpreter                                                             {
 
   def evalTyped[A](plan: ExecutionPlan, value: DynamicValue)(implicit ev: Schema[A]): Task[A] =
     make.flatMap(i => i.evalTyped(plan, value))
+
+  def evalTyped[B](lmb: Any ~> B)(implicit b: Schema[B]): Task[B] =
+    evalTyped[B](lmb.compile, Schema.primitive[Unit].toDynamic(()))
+
+  def evalDynamic[B](lmb: Any ~> B)(implicit b: Schema[B]): Task[DynamicValue] =
+    evalDynamic(lmb.compile, Schema.primitive[Unit].toDynamic(()))
 }

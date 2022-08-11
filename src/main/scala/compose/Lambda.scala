@@ -8,6 +8,8 @@ sealed trait Lambda[-A, +B] { self =>
   final def ===[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
     Lambda.Equals(self, other)
 
+  final def debug(name: String): Lambda[A, B] = Lambda.Debug(name, self)
+
   final def >[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
   ): A1 ~> Boolean = numOp(Numeric.Operation.GreaterThan, other) === Lambda.constant(1)
@@ -73,8 +75,8 @@ sealed trait Lambda[-A, +B] { self =>
   final def pipe[C](other: Lambda[B, C]): Lambda[A, C] =
     Lambda.Pipe(self, other)
 
-  final def repeatUntil[A1 <: A, B1 >: B, X](cond: X ~> Boolean)(implicit a: A1 =:= X, b: B1 =:= X): X ~> X =
-    Lambda.RepeatUntil(self.asInstanceOf[X ~> X], cond)
+  final def repeatUntil[A1 <: A](cond: A1 ~> Boolean): A1 ~> B =
+    Lambda.RepeatUntil(self, cond)
 
   final def transform[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
     Transformation[A, C, I](self, other)
@@ -125,7 +127,7 @@ object Lambda {
 
   case class Arg1[A0, A1](s0: Schema[A0], s1: Schema[A1]) extends Lambda[(A0, A1), A1]
 
-  final case class RepeatUntil[A](f: A ~> A, cond: A ~> Boolean) extends Lambda[A, A]
+  final case class RepeatUntil[A, B](f: A ~> B, cond: A ~> Boolean) extends Lambda[A, B]
 
   final case class Concat[A, B](self: A ~> B, other: A ~> B, canConcat: CanConcat[B]) extends Lambda[A, B]
 
@@ -170,6 +172,8 @@ object Lambda {
 
   final case class GetScope[A](scope: Scope[A], ctx: ScopeContext, value: A, schema: Schema[A]) extends Lambda[Any, A]
 
+  final case class Debug[A, B](name: String, ab: A ~> B) extends Lambda[A, B]
+
   sealed trait ScopeContext
 
   sealed trait Scope[A] {
@@ -179,7 +183,7 @@ object Lambda {
   }
 
   object Scope {
-    def make[A](value: A)(implicit ctx: ScopeContext, schema: Schema[A]): Scope[A] =
+    def apply[A](value: A)(implicit ctx: ScopeContext, schema: Schema[A]): Scope[A] =
       new Scope[A] { self =>
         override def set: A ~> Unit = Lambda.SetScope(self, ctx)
         override def get: Any ~> A  = Lambda.GetScope(self, ctx, value, schema)

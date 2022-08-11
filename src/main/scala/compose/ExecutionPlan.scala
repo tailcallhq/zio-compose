@@ -24,6 +24,9 @@ object ExecutionPlan {
     }
 
   def from[A, B](lmb: Lambda[A, B]): ExecutionPlan = lmb match {
+    case Lambda.Debug(name, f) =>
+      Debug(name, f.compile)
+
     case Lambda.Equals(left, right) =>
       Equals(left.compile, right.compile)
 
@@ -142,6 +145,8 @@ object ExecutionPlan {
   final case class FromMap(value: Map[DynamicValue, DynamicValue]) extends ExecutionPlan
 
   final case class Constant(value: DynamicValue) extends ExecutionPlan
+
+  final case class Debug(name: String, plan: ExecutionPlan) extends ExecutionPlan
 
   case object Identity extends ExecutionPlan
 }

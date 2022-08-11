@@ -3,12 +3,13 @@ package compose
 import zio.{ZIO, ZIOAppDefault}
 import zio.schema.codec.JsonCodec
 import zio.schema.{DynamicValue, Schema}
-import zio.schema.DeriveSchema.gen
+import zio.schema.DeriveSchema
 
 object Example extends ZIOAppDefault {
 
   import Lambda._
   import IsNumeric._
+  import Person._
 
   // WAP to sum two numbers
   def program1: Any ~> Int = constant(1) + constant(2)
@@ -44,38 +45,47 @@ object Example extends ZIOAppDefault {
       ).repeatUntil(Fib.i.get === constant(20)) >>> Fib.b.get
   }
 
-  val program = constant(1) >>> scope { implicit ctx =>
-    val a = Scope.make[Int](0)
-    val b = Scope.make[Int](0)
-    val c = Scope.make[Boolean](false)
+  def program7 = (constant(2) <*> constant(2) <*> constant(3)) >>>
+    scope { implicit ctx =>
+      val a      = Scope(0)
+      val b      = Scope(0)
+      val c      = Scope(0)
+      val result = Scope(false)
+      val input  = identity[((Int, Int), Int)]
+
+      seq(
+        a      := input >>> arg0 >>> arg0,
+        b      := input >>> arg0 >>> arg1,
+        c      := input >>> arg1,
+        result := a.get + b.get > a.get * b.get,
+      ) *> result.get
+    }
+
+  def program = constant(20) >>> scope { implicit ctx =>
+    val a = Scope(0)
+    val b = Scope(1)
+    val n = Scope(0)
+    val i = Scope(1)
 
     seq(
-      a := identity[Int] + identity[Int],
-      b := identity[Int] * identity[Int],
-      c := (a.get > b.get),
-    ) >>> c.get
+      n := a.get + b.get,
+      a := b.get,
+      b := n.get,
+      i := i.get + constant(1),
+    ).repeatUntil((i.get === identity[Int])) *> n.get
   }
 
   case class Fib(a: Int, b: Int, i: Int)
   object Fib {
-    val (a, b, i) = Schema[Fib]
+    implicit val schema: Schema[Fib] = DeriveSchema.gen[Fib]
+    val (a, b, i)                    = schema
       .makeAccessors(LambdaAccessor)
       .asInstanceOf[(Fib >>- Int, Fib >>- Int, Fib >>- Int)]
   }
 
   override def run =
     for {
-      // Serialize the program to JSON
-      json <- ZIO.succeed(program.compile.binary)
-
-      // _    <- ZIO.succeed(println(json))
-      // Deserialize the program from JSON
-      plan <- ExecutionPlan.from(json)
-
-      // Execute the program
-      unit = Schema.primitive[Unit].toDynamic(())
-
-      res <- Interpreter.evalDynamic(plan, unit)
+      res <- Interpreter.evalDynamic(program)
 
       // Serialize and print the output
       resJson <- ZIO.succeed(
@@ -86,14 +96,17 @@ object Example extends ZIOAppDefault {
 
   case class Person(firstName: String, lastName: String, age: Int)
   object Person {
-    val (firstName, lastName, age) = Schema[Person]
+    implicit val schema: Schema[Person] = DeriveSchema.gen[Person]
+    val (firstName, lastName, age)      = schema
       .makeAccessors(LambdaAccessor)
       .asInstanceOf[(Person >>- String, Person >>- String, Person >>- Int)]
   }
 
   case class User(name: String, age: Int, isAllowed: Boolean)
   object User {
-    val (name, age, isAllowed) = Schema[User]
+    implicit val schema: Schema[User] = DeriveSchema.gen[User]
+
+    val (name, age, isAllowed) = schema
       .makeAccessors(LambdaAccessor)
       .asInstanceOf[(User >>- String, User >>- Int, User >>- Boolean)]
   }
