@@ -7,7 +7,10 @@ import zio.schema.ast.SchemaAst
 
 sealed trait ExecutionPlan { self =>
   def binary: Chunk[Byte] = JsonCodec.encode(ExecutionPlan.schema)(self)
-  def json: String        = new String(binary.toArray)
+
+  def decompile: Any ~> Nothing = Lambda(self)
+
+  def json: String = new String(binary.toArray)
 }
 
 object ExecutionPlan {
@@ -22,82 +25,6 @@ object ExecutionPlan {
       case Left(value)  => ZIO.fail(new Exception(value))
       case Right(value) => ZIO.succeed(value)
     }
-
-  def from[A, B](lmb: Lambda[A, B]): ExecutionPlan = lmb match {
-    case Lambda.Debug(name, f) =>
-      Debug(name, f.compile)
-
-    case Lambda.Equals(left, right) =>
-      Equals(left.compile, right.compile)
-
-    case Lambda.FromMap(input: Schema[A] @unchecked, source, output: Schema[B] @unchecked) =>
-      FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) })
-
-    case Lambda.Constant(b: B @unchecked, schema: Schema[B] @unchecked) =>
-      Constant(schema.toDynamic(b))
-
-    case Lambda.Identity() =>
-      Identity
-
-    case Lambda.Pipe(f, g) =>
-      Pipe(f.compile, g.compile)
-
-    case Lambda.GetPath(_, path, _) =>
-      GetPath(path)
-
-    case Lambda.SetPath(_, path, _) =>
-      SetPath(path)
-
-    case Lambda.IfElse(f, isTrue, isFalse) =>
-      IfElse(f.compile, isTrue.compile, isFalse.compile)
-
-    case Lambda.Combine(left, right, o1, o2) =>
-      Combine(left.compile, right.compile, o1.ast, o2.ast)
-
-    case Lambda.NumericOperation(operation, left, right, num) =>
-      NumericOperation(
-        operation,
-        left.compile,
-        right.compile,
-        IsNumeric.schema.toDynamic(num),
-      )
-
-    case Lambda.LogicalAnd(left, right) =>
-      LogicalAnd(left.compile, right.compile)
-
-    case Lambda.LogicalOr(left, right) =>
-      LogicalOr(left.compile, right.compile)
-
-    case Lambda.LogicalNot(logic) =>
-      LogicalNot(logic.compile)
-
-    case Lambda.Transform(transformations, output) =>
-      Transform(
-        transformations.map { case Transformation.Constructor(f, i, g) => (f.compile, i.ast, g.compile) },
-        output.ast,
-      )
-
-    case Lambda.Default(schema) =>
-      schema.defaultValue match {
-        case Left(cause)  => throw new Exception(cause)
-        case Right(value) => Default(schema.toDynamic(value))
-      }
-
-    case Lambda.Concat(self, other, canConcat) =>
-      Concat(self.compile, other.compile, Schema[CanConcat[_]].toDynamic(canConcat))
-
-    case Lambda.RepeatUntil(f, cond) =>
-      RepeatUntil(f.compile, cond.compile)
-
-    case Lambda.SetScope(scope, ctx) => SetScope(scope.hashCode(), ctx.hashCode())
-
-    case Lambda.GetScope(scope, ctx, value: B @unchecked, schema: Schema[B] @unchecked) =>
-      GetScope(scope.hashCode(), ctx.hashCode(), schema.toDynamic(value), schema.ast)
-
-    case Lambda.Arg0(s1, s2) => Arg(0, s1.ast, s2.ast)
-
-    case Lambda.Arg1(s1, s2) => Arg(1, s1.ast, s2.ast)
-  }
 
   final case class SetScope(scope: Int, ctx: Int) extends ExecutionPlan
 

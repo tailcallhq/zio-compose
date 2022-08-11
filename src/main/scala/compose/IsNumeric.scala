@@ -1,9 +1,10 @@
 package compose
 
-import zio.schema.{DeriveSchema, Schema}
+import zio.schema.{DeriveSchema, DynamicValue, Schema}
 
-sealed trait IsNumeric[A] {
+sealed trait IsNumeric[A] { self =>
   def one: A
+  def toDynamic: DynamicValue = IsNumeric.schema.toDynamic(self)
 }
 
 object IsNumeric {

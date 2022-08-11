@@ -1,13 +1,12 @@
 package compose
 
-import zio.prelude.NonEmptyList
 import zio.schema.Schema
 import zio.Task
 
-sealed trait Lambda[-A, +B] { self =>
-  
+trait Lambda[-A, +B] { self =>
+
   final def ===[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
-    Lambda.Equals(self, other)
+    ExecutionPlan.Equals(self.compile, other.compile).decompile
 
   final def >[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
@@ -36,7 +35,8 @@ sealed trait Lambda[-A, +B] { self =>
     num: IsNumeric[B1],
   ): A1 ~> B1 = numOp(Numeric.Operation.Add, other)
 
-  final def ++[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit ev: CanConcat[B1]): A1 ~> B1 = Lambda.Concat(self, other, ev)
+  final def ++[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit ev: CanConcat[B1]): A1 ~> B1 =
+    ExecutionPlan.Concat(self.compile, other.compile, Schema[CanConcat[_]].toDynamic(ev)).decompile
 
   final def *[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
@@ -51,12 +51,14 @@ sealed trait Lambda[-A, +B] { self =>
     ((self: A1 ~> B1) <*> other) >>> Lambda.arg1
 
   final def apply[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
-    Interpreter.evalTyped[B1](ExecutionPlan.from(self), in.toDynamic(a))
+    Interpreter.evalTyped[B1](self.compile, in.toDynamic(a))
+
+  def compile: ExecutionPlan
 
   final def compose[X](other: Lambda[X, A]): Lambda[X, B] =
-    Lambda.Pipe(other, self)
+    other pipe self
 
-  final def debug(name: String): Lambda[A, B] = Lambda.Debug(name, self)
+  final def debug(name: String): Lambda[A, B] = ExecutionPlan.Debug(name, self.compile).decompile
 
   final def gt[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
@@ -74,10 +76,10 @@ sealed trait Lambda[-A, +B] { self =>
   ): A ~> B1 = Lambda.constant(num.one) * self
 
   final def pipe[C](other: Lambda[B, C]): Lambda[A, C] =
-    Lambda.Pipe(self, other)
+    ExecutionPlan.Pipe(self.compile, other.compile).decompile
 
   final def repeatUntil[A1 <: A](cond: A1 ~> Boolean): A1 ~> B =
-    Lambda.RepeatUntil(self, cond)
+    ExecutionPlan.RepeatUntil(self.compile, cond.compile).decompile
 
   final def transform[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
     Transformation[A, C, I](self, other)
@@ -85,44 +87,58 @@ sealed trait Lambda[-A, +B] { self =>
   final def zip[A1 <: A, B1 >: B, B2](other: Lambda[A1, B2])(implicit
     b1: Schema[B1],
     b2: Schema[B2],
-  ): A1 ~> (B1, B2) = Lambda.Combine(self, other, b1, b2)
-
-  private[compose] final def compile: ExecutionPlan =
-    ExecutionPlan.from(self)
+  ): A1 ~> (B1, B2) = ExecutionPlan.Combine(self.compile, other.compile, b1.ast, b2.ast).decompile
 
   private final def numOp[A1 <: A, B1 >: B](operation: Numeric.Operation, other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
   ): A1 ~> B1 =
-    Lambda.NumericOperation(operation, self, other, num)
+    ExecutionPlan.NumericOperation(operation, self.compile, other.compile, num.toDynamic).decompile
+
 }
 
 object Lambda {
 
-  def arg0[A0, A1](implicit s0: Schema[A0], s1: Schema[A1]): (A0, A1) ~> A0 = Arg0(s0, s1)
+  def arg0[A0, A1](implicit s0: Schema[A0], s1: Schema[A1]): (A0, A1) ~> A0 =
+    ExecutionPlan.Arg(0, s0.ast, s1.ast).decompile
 
-  def arg1[A0, A1](implicit s0: Schema[A0], s1: Schema[A1]): (A0, A1) ~> A1 = Arg1(s0, s1)
+  def arg1[A0, A1](implicit s0: Schema[A0], s1: Schema[A1]): (A0, A1) ~> A1 =
+    ExecutionPlan.Arg(1, s0.ast, s1.ast).decompile
 
-  def constant[B](a: B)(implicit schema: Schema[B]): Any ~> B =
-    Constant(a, schema)
+  def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B =
+    ExecutionPlan.Constant(schema.toDynamic(b)).decompile
 
-  def default[A](implicit schema: Schema[A]): Any ~> A = Default(schema)
+  def default[A](implicit schema: Schema[A]): Any ~> A =
+    ExecutionPlan
+      .Default(schema.defaultValue match {
+        case Left(cause)  => throw new Exception(cause)
+        case Right(value) => schema.toDynamic(value)
+      })
+      .decompile
 
   def fromMap[A, B](
     source: Map[A, B],
   )(implicit input: Schema[A], output: Schema[B]): Lambda[A, B] =
-    FromMap(input, source, output)
+    Lambda(ExecutionPlan.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) }))
 
-  def identity[A]: Lambda[A, A] = Identity[A]()
+  def identity[A]: Lambda[A, A] = ExecutionPlan.Identity.decompile
 
   def ifElse[A, B](f: A ~> Boolean)(isTrue: A ~> B, isFalse: A ~> B): A ~> B =
-    IfElse(f, isTrue, isFalse)
+    ExecutionPlan.IfElse(f.compile, isTrue.compile, isFalse.compile).decompile
 
   def scope[A, B](f: ScopeContext => A ~> B): A ~> B = f(new ScopeContext {})
 
   def seq[A](f: A ~> Unit*): A ~> Unit = f.reduceLeft(_ *> _)
 
-  def transform[A, B](transformations: Transformation[A, B]*)(implicit b: Schema[B]): A ~> B =
-    Transform(transformations.toList, b)
+  def transform[A, B](transformations: Transformation[A, B]*)(implicit b: Schema[B]): A ~> B = ExecutionPlan
+    .Transform(
+      transformations.map { case Transformation.Constructor(f, i, g) => (f.compile, i.ast, g.compile) }.toList,
+      b.ast,
+    )
+    .decompile
+
+  private[compose] def apply[A, B](plan: ExecutionPlan): Lambda[A, B] = new ~>[A, B] {
+    override def compile: ExecutionPlan = plan
+  }
 
   sealed trait ScopeContext
 
@@ -134,62 +150,12 @@ object Lambda {
     def set: A ~> Unit
   }
 
-  case class Arg0[A0, A1](s0: Schema[A0], s1: Schema[A1]) extends Lambda[(A0, A1), A0]
-
-  case class Arg1[A0, A1](s0: Schema[A0], s1: Schema[A1]) extends Lambda[(A0, A1), A1]
-
-  final case class RepeatUntil[A, B](f: A ~> B, cond: A ~> Boolean) extends Lambda[A, B]
-
-  final case class Concat[A, B](self: A ~> B, other: A ~> B, canConcat: CanConcat[B]) extends Lambda[A, B]
-
-  final case class Default[A](value: Schema[A]) extends Lambda[Any, A]
-
-  final case class Transform[A, B](value: List[Transformation[A, B]], output: Schema[B]) extends Lambda[A, B]
-
-  final case class Equals[A, B](left: A ~> B, right: A ~> B) extends Lambda[A, Boolean]
-
-  final case class FromMap[A, B](input: Schema[A], source: Map[A, B], output: Schema[B]) extends Lambda[A, B]
-
-  final case class Constant[B](b: B, schema: Schema[B]) extends Lambda[Any, B]
-
-  final case class Identity[A]() extends Lambda[A, A]
-
-  final case class Pipe[A, B, C](f: Lambda[A, B], g: Lambda[B, C]) extends Lambda[A, C]
-
-  final case class GetPath[A, B](input: Schema[A], path: NonEmptyList[String], output: Schema[B]) extends Lambda[A, B]
-
-  final case class SetPath[A, B](whole: Schema[A], path: NonEmptyList[String], piece: Schema[B])
-      extends Lambda[(A, B), A]
-
-  final case class IfElse[A, B](f: A ~> Boolean, ifTrue: A ~> B, ifFalse: A ~> B) extends Lambda[A, B]
-
-  final case class Combine[A, B1, B2](left: A ~> B1, right: A ~> B2, o1: Schema[B1], o2: Schema[B2])
-      extends Lambda[A, (B1, B2)]
-
-  final case class NumericOperation[A, B](
-    operation: Numeric.Operation,
-    left: A ~> B,
-    right: A ~> B,
-    num: IsNumeric[B],
-  ) extends Lambda[A, B]
-
-  final case class LogicalAnd[A](left: A ~> Boolean, right: A ~> Boolean) extends Lambda[A, Boolean]
-
-  final case class LogicalOr[A](left: A ~> Boolean, right: A ~> Boolean) extends Lambda[A, Boolean]
-
-  final case class LogicalNot[A](logic: A ~> Boolean) extends Lambda[A, Boolean]
-
-  final case class SetScope[A](scope: Scope[A], ctx: ScopeContext) extends Lambda[A, Unit]
-
-  final case class GetScope[A](scope: Scope[A], ctx: ScopeContext, value: A, schema: Schema[A]) extends Lambda[Any, A]
-
-  final case class Debug[A, B](name: String, ab: A ~> B) extends Lambda[A, B]
-
   object Scope {
     def apply[A](value: A)(implicit ctx: ScopeContext, schema: Schema[A]): Scope[A] =
       new Scope[A] { self =>
-        override def set: A ~> Unit = Lambda.SetScope(self, ctx)
-        override def get: Any ~> A  = Lambda.GetScope(self, ctx, value, schema)
+        override def set: A ~> Unit = ExecutionPlan.SetScope(self.hashCode(), ctx.hashCode()).decompile
+        override def get: Any ~> A  =
+          ExecutionPlan.GetScope(self.hashCode(), ctx.hashCode(), schema.toDynamic(value), schema.ast).decompile
       }
   }
 }
