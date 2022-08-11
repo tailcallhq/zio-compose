@@ -1,21 +1,14 @@
 package compose
 
 import zio.schema.ast.SchemaAst
-import zio.{Task, ZIO, UIO}
 import zio.schema.{DynamicValue, Schema}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.ListMap
-import zio.Ref
+import zio.{Ref, Task, UIO, ZIO}
 
 final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
   import Interpreter._
-
-  def evalDynamic(plan: ExecutionPlan, value: DynamicValue): Task[DynamicValue] =
-    eval(plan, value)
-
-  def evalTyped[A](plan: ExecutionPlan, value: DynamicValue)(implicit ev: Schema[A]): Task[A] =
-    evalDynamic(plan, value).flatMap(value => effect(value.toTypedValue(ev)))
 
   def eval(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
@@ -215,17 +208,29 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
       case ExecutionPlan.Identity        => ZIO.succeed(input)
     }
   }
+
+  def evalDynamic(plan: ExecutionPlan, value: DynamicValue): Task[DynamicValue] =
+    eval(plan, value)
+
+  def evalTyped[A](plan: ExecutionPlan, value: DynamicValue)(implicit ev: Schema[A]): Task[A] =
+    evalDynamic(plan, value).flatMap(value => effect(value.toTypedValue(ev)))
 }
 object Interpreter                                                             {
 
-  final case class Scope[S, K, V](ref: Ref[Map[(S, K), V]]) {
-    def set(scope: S, key: K, value: V): UIO[Unit] = ref.update { map => map + (((scope, key), value)) }
-    def get(scope: S, key: K): UIO[Option[V]]      = ref.get.map(_.get(scope, key))
-  }
+  def evalDynamic(plan: ExecutionPlan, value: DynamicValue): Task[DynamicValue] =
+    make.flatMap(i => i.evalDynamic(plan, value))
 
-  object Scope {
-    def make[S, K, V]: UIO[Scope[S, K, V]] = Ref.make(Map.empty[(S, K), V]).map(Scope(_))
-  }
+  def evalDynamic[B](lmb: Any ~> B)(implicit b: Schema[B]): Task[DynamicValue] =
+    evalDynamic(lmb.compile, Schema.primitive[Unit].toDynamic(()))
+
+  def evalTyped[B](lmb: Any ~> B)(implicit b: Schema[B]): Task[B] =
+    evalTyped[B](lmb.compile, Schema.primitive[Unit].toDynamic(()))
+
+  def evalTyped[A](plan: ExecutionPlan, value: DynamicValue)(implicit ev: Schema[A]): Task[A] =
+    make.flatMap(i => i.evalTyped(plan, value))
+
+  def make: UIO[Interpreter] =
+    Scope.make[Int, Int, DynamicValue].map(scope => new Interpreter(scope))
 
   private def effect[A](e: Either[String, A]): Task[A] =
     e match {
@@ -250,18 +255,13 @@ object Interpreter                                                             {
     } yield (s1 <*> s2).toDynamic((v1, v2))
   }
 
-  def make: UIO[Interpreter] =
-    Scope.make[Int, Int, DynamicValue].map(scope => new Interpreter(scope))
+  final case class Scope[S, K, V](ref: Ref[Map[(S, K), V]]) {
+    def get(scope: S, key: K): UIO[Option[V]] = ref.get.map(_.get(scope, key))
 
-  def evalDynamic(plan: ExecutionPlan, value: DynamicValue): Task[DynamicValue] =
-    make.flatMap(i => i.evalDynamic(plan, value))
+    def set(scope: S, key: K, value: V): UIO[Unit] = ref.update { map => map + (((scope, key), value)) }
+  }
 
-  def evalTyped[A](plan: ExecutionPlan, value: DynamicValue)(implicit ev: Schema[A]): Task[A] =
-    make.flatMap(i => i.evalTyped(plan, value))
-
-  def evalTyped[B](lmb: Any ~> B)(implicit b: Schema[B]): Task[B] =
-    evalTyped[B](lmb.compile, Schema.primitive[Unit].toDynamic(()))
-
-  def evalDynamic[B](lmb: Any ~> B)(implicit b: Schema[B]): Task[DynamicValue] =
-    evalDynamic(lmb.compile, Schema.primitive[Unit].toDynamic(()))
+  object Scope {
+    def make[S, K, V]: UIO[Scope[S, K, V]] = Ref.make(Map.empty[(S, K), V]).map(Scope(_))
+  }
 }

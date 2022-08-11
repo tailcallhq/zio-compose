@@ -5,10 +5,9 @@ import zio.schema.Schema
 import zio.Task
 
 sealed trait Lambda[-A, +B] { self =>
+  
   final def ===[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
     Lambda.Equals(self, other)
-
-  final def debug(name: String): Lambda[A, B] = Lambda.Debug(name, self)
 
   final def >[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
@@ -30,6 +29,19 @@ sealed trait Lambda[-A, +B] { self =>
   ): A1 ~> (B1, B2) =
     (self: A1 ~> B1) zip other
 
+  final def ->>[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
+    self transform other
+
+  final def +[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
+    num: IsNumeric[B1],
+  ): A1 ~> B1 = numOp(Numeric.Operation.Add, other)
+
+  final def ++[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit ev: CanConcat[B1]): A1 ~> B1 = Lambda.Concat(self, other, ev)
+
+  final def *[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
+    num: IsNumeric[B1],
+  ): A1 ~> B1 = numOp(Numeric.Operation.Multiply, other)
+
   final def *>[A1 <: A, B1 >: B, B2](
     other: Lambda[A1, B2],
   )(implicit
@@ -38,24 +50,13 @@ sealed trait Lambda[-A, +B] { self =>
   ): A1 ~> B2 =
     ((self: A1 ~> B1) <*> other) >>> Lambda.arg1
 
-  final def ->>[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
-    self transform other
-
-  final def +[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
-    num: IsNumeric[B1],
-  ): A1 ~> B1 = numOp(Numeric.Operation.Add, other)
-
-  final def *[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
-    num: IsNumeric[B1],
-  ): A1 ~> B1 = numOp(Numeric.Operation.Multiply, other)
-
-  final def ++[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit ev: CanConcat[B1]): A1 ~> B1 = Lambda.Concat(self, other, ev)
-
   final def apply[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
     Interpreter.evalTyped[B1](ExecutionPlan.from(self), in.toDynamic(a))
 
   final def compose[X](other: Lambda[X, A]): Lambda[X, B] =
     Lambda.Pipe(other, self)
+
+  final def debug(name: String): Lambda[A, B] = Lambda.Debug(name, self)
 
   final def gt[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
@@ -97,6 +98,10 @@ sealed trait Lambda[-A, +B] { self =>
 
 object Lambda {
 
+  def arg0[A0, A1](implicit s0: Schema[A0], s1: Schema[A1]): (A0, A1) ~> A0 = Arg0(s0, s1)
+
+  def arg1[A0, A1](implicit s0: Schema[A0], s1: Schema[A1]): (A0, A1) ~> A1 = Arg1(s0, s1)
+
   def constant[B](a: B)(implicit schema: Schema[B]): Any ~> B =
     Constant(a, schema)
 
@@ -112,16 +117,22 @@ object Lambda {
   def ifElse[A, B](f: A ~> Boolean)(isTrue: A ~> B, isFalse: A ~> B): A ~> B =
     IfElse(f, isTrue, isFalse)
 
-  def transform[A, B](transformations: Transformation[A, B]*)(implicit b: Schema[B]): A ~> B =
-    Transform(transformations.toList, b)
+  def scope[A, B](f: ScopeContext => A ~> B): A ~> B = f(new ScopeContext {})
 
   def seq[A](f: A ~> Unit*): A ~> Unit = f.reduceLeft(_ *> _)
 
-  def scope[A, B](f: ScopeContext => A ~> B): A ~> B = f(new ScopeContext {})
+  def transform[A, B](transformations: Transformation[A, B]*)(implicit b: Schema[B]): A ~> B =
+    Transform(transformations.toList, b)
 
-  def arg0[A0, A1](implicit s0: Schema[A0], s1: Schema[A1]): (A0, A1) ~> A0 = Arg0(s0, s1)
+  sealed trait ScopeContext
 
-  def arg1[A0, A1](implicit s0: Schema[A0], s1: Schema[A1]): (A0, A1) ~> A1 = Arg1(s0, s1)
+  sealed trait Scope[A] {
+    def :=[X](f: X ~> A): X ~> Unit = set <<< f
+
+    def get: Any ~> A
+
+    def set: A ~> Unit
+  }
 
   case class Arg0[A0, A1](s0: Schema[A0], s1: Schema[A1]) extends Lambda[(A0, A1), A0]
 
@@ -173,14 +184,6 @@ object Lambda {
   final case class GetScope[A](scope: Scope[A], ctx: ScopeContext, value: A, schema: Schema[A]) extends Lambda[Any, A]
 
   final case class Debug[A, B](name: String, ab: A ~> B) extends Lambda[A, B]
-
-  sealed trait ScopeContext
-
-  sealed trait Scope[A] {
-    def set: A ~> Unit
-    def get: Any ~> A
-    def :=[X](f: X ~> A): X ~> Unit = set <<< f
-  }
 
   object Scope {
     def apply[A](value: A)(implicit ctx: ScopeContext, schema: Schema[A]): Scope[A] =
