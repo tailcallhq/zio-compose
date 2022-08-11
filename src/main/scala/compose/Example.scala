@@ -45,21 +45,20 @@ object Example extends ZIOAppDefault {
       ).repeatUntil(Fib.i.get === constant(20)) >>> Fib.b.get
   }
 
-  def program7 = (constant(2) <*> constant(2) <*> constant(3)) >>>
-    scope { implicit ctx =>
-      val a      = Scope(0)
-      val b      = Scope(0)
-      val c      = Scope(0)
-      val result = Scope(false)
-      val input  = identity[((Int, Int), Int)]
+  def program7 = (constant(2) <*> constant(2) <*> constant(3)) >>> scope { implicit ctx =>
+    val a      = Scope(0)
+    val b      = Scope(0)
+    val c      = Scope(0)
+    val result = Scope(false)
+    val input  = identity[((Int, Int), Int)]
 
-      seq(
-        a      := input >>> arg0 >>> arg0,
-        b      := input >>> arg0 >>> arg1,
-        c      := input >>> arg1,
-        result := a.get + b.get > a.get * b.get,
-      ) *> result.get
-    }
+    seq(
+      a      := input >>> arg0 >>> arg0,
+      b      := input >>> arg0 >>> arg1,
+      c      := input >>> arg1,
+      result := a.get + b.get > a.get * b.get,
+    ) *> result.get
+  }
 
   def program = constant(20) >>> scope { implicit ctx =>
     val a = Scope(0)
@@ -71,8 +70,8 @@ object Example extends ZIOAppDefault {
       n := a.get + b.get,
       a := b.get,
       b := n.get,
-      i := i.get + constant(1),
-    ).repeatUntil((i.get === identity[Int])) *> n.get
+      i := i.get.debug("i") + constant(1),
+    ).repeatUntil((i.get === identity[Int]).debug("Condition")) *> n.get
   }
 
   case class Fib(a: Int, b: Int, i: Int)
