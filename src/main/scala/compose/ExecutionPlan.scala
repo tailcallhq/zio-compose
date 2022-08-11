@@ -85,7 +85,22 @@ object ExecutionPlan {
 
     case Lambda.RepeatUntil(f, cond) =>
       RepeatUntil(f.compile, cond.compile)
+
+    case Lambda.SetScope(scope, ctx) => SetScope(scope.hashCode(), ctx.hashCode())
+
+    case Lambda.GetScope(scope, ctx, value: B @unchecked, schema: Schema[B] @unchecked) =>
+      GetScope(scope.hashCode(), ctx.hashCode(), schema.toDynamic(value), schema.ast)
+
+    case Lambda.Arg0(s1, s2) => Arg(0, s1.ast, s2.ast)
+
+    case Lambda.Arg1(s1, s2) => Arg(1, s1.ast, s2.ast)
   }
+
+  final case class SetScope(scope: Int, ctx: Int) extends ExecutionPlan
+
+  final case class GetScope(scope: Int, ctx: Int, value: DynamicValue, ast: SchemaAst) extends ExecutionPlan
+
+  final case class Arg(n: Int, ast0: SchemaAst, ast1: SchemaAst) extends ExecutionPlan
 
   final case class RepeatUntil(self: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
 

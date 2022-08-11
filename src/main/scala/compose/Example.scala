@@ -35,13 +35,25 @@ object Example extends ZIOAppDefault {
     Transformation(Person.age.get >>> isAllowed, User.isAllowed.set),
   )
 
-  def program = {
+  def program6 = {
     constant(Fib(0, 1, 0)) >>>
       transform(
         Fib.b.get             ->> Fib.a.set,
         Fib.a.get + Fib.b.get ->> Fib.b.set,
         Fib.i.get.inc         ->> Fib.i.set,
       ).repeatUntil(Fib.i.get === constant(20)) >>> Fib.b.get
+  }
+
+  val program = constant(1) >>> scope { implicit ctx =>
+    val a = Scope.make[Int](0)
+    val b = Scope.make[Int](0)
+    val c = Scope.make[Boolean](false)
+
+    seq(
+      a := identity[Int] + identity[Int],
+      b := identity[Int] * identity[Int],
+      c := (a.get > b.get),
+    ) >>> c.get
   }
 
   case class Fib(a: Int, b: Int, i: Int)
@@ -62,7 +74,8 @@ object Example extends ZIOAppDefault {
 
       // Execute the program
       unit = Schema.primitive[Unit].toDynamic(())
-      res <- Interpreter.eval(plan, unit)
+
+      res <- Interpreter.evalDynamic(plan, unit)
 
       // Serialize and print the output
       resJson <- ZIO.succeed(

@@ -28,6 +28,14 @@ sealed trait Lambda[-A, +B] { self =>
   ): A1 ~> (B1, B2) =
     (self: A1 ~> B1) zip other
 
+  final def *>[A1 <: A, B1 >: B, B2](
+    other: Lambda[A1, B2],
+  )(implicit
+    b1: Schema[B1],
+    b2: Schema[B2],
+  ): A1 ~> B2 =
+    ((self: A1 ~> B1) <*> other) >>> Lambda.arg1
+
   final def ->>[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
     self transform other
 
@@ -35,11 +43,11 @@ sealed trait Lambda[-A, +B] { self =>
     num: IsNumeric[B1],
   ): A1 ~> B1 = numOp(Numeric.Operation.Add, other)
 
-  final def ++[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit ev: CanConcat[B1]): A1 ~> B1 = Lambda.Concat(self, other, ev)
-
   final def *[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
   ): A1 ~> B1 = numOp(Numeric.Operation.Multiply, other)
+
+  final def ++[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit ev: CanConcat[B1]): A1 ~> B1 = Lambda.Concat(self, other, ev)
 
   final def apply[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
     Interpreter.evalTyped[B1](ExecutionPlan.from(self), in.toDynamic(a))
@@ -105,6 +113,18 @@ object Lambda {
   def transform[A, B](transformations: Transformation[A, B]*)(implicit b: Schema[B]): A ~> B =
     Transform(transformations.toList, b)
 
+  def seq[A](f: A ~> Unit*): A ~> Unit = f.reduceLeft(_ *> _)
+
+  def scope[A, B](f: ScopeContext => A ~> B): A ~> B = f(new ScopeContext {})
+
+  def arg0[A0, A1](implicit s0: Schema[A0], s1: Schema[A1]): (A0, A1) ~> A0 = Arg0(s0, s1)
+
+  def arg1[A0, A1](implicit s0: Schema[A0], s1: Schema[A1]): (A0, A1) ~> A1 = Arg1(s0, s1)
+
+  case class Arg0[A0, A1](s0: Schema[A0], s1: Schema[A1]) extends Lambda[(A0, A1), A0]
+
+  case class Arg1[A0, A1](s0: Schema[A0], s1: Schema[A1]) extends Lambda[(A0, A1), A1]
+
   final case class RepeatUntil[A](f: A ~> A, cond: A ~> Boolean) extends Lambda[A, A]
 
   final case class Concat[A, B](self: A ~> B, other: A ~> B, canConcat: CanConcat[B]) extends Lambda[A, B]
@@ -145,4 +165,24 @@ object Lambda {
   final case class LogicalOr[A](left: A ~> Boolean, right: A ~> Boolean) extends Lambda[A, Boolean]
 
   final case class LogicalNot[A](logic: A ~> Boolean) extends Lambda[A, Boolean]
+
+  final case class SetScope[A](scope: Scope[A], ctx: ScopeContext) extends Lambda[A, Unit]
+
+  final case class GetScope[A](scope: Scope[A], ctx: ScopeContext, value: A, schema: Schema[A]) extends Lambda[Any, A]
+
+  sealed trait ScopeContext
+
+  sealed trait Scope[A] {
+    def set: A ~> Unit
+    def get: Any ~> A
+    def :=[X](f: X ~> A): X ~> Unit = set <<< f
+  }
+
+  object Scope {
+    def make[A](value: A)(implicit ctx: ScopeContext, schema: Schema[A]): Scope[A] =
+      new Scope[A] { self =>
+        override def set: A ~> Unit = Lambda.SetScope(self, ctx)
+        override def get: Any ~> A  = Lambda.GetScope(self, ctx, value, schema)
+      }
+  }
 }
