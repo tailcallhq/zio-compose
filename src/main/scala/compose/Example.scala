@@ -2,8 +2,7 @@ package compose
 
 import zio.{ZIO, ZIOAppDefault}
 import zio.schema.codec.JsonCodec
-import zio.schema.{DynamicValue, Schema}
-import zio.schema.DeriveSchema
+import zio.schema.{DeriveSchema, DynamicValue, Schema}
 
 object Example extends ZIOAppDefault {
 
@@ -11,10 +10,24 @@ object Example extends ZIOAppDefault {
   import IsNumeric._
   import Person._
 
+  def program = constant(20) >>> scope { implicit ctx =>
+    val a = Scope(0)
+    val b = Scope(1)
+    val n = Scope(0)
+    val i = Scope(1)
+
+    seq(
+      n := a.get + b.get,
+      a := b.get,
+      b := n.get,
+      i := i.get.debug("i") + constant(1),
+    ).repeatUntil((i.get === identity[Int]).debug("Condition")) *> n.get
+  }
+
   // WAP to sum two numbers
   def program1: Any ~> Int = constant(1) + constant(2)
 
-  def program2 = ifElse(constant(true))(
+  def program2 = constant(true).diverge(
     isTrue = constant("Yes"),
     isFalse = constant("No"),
   )
@@ -25,15 +38,10 @@ object Example extends ZIOAppDefault {
     (default[User] zip (constant(Person("Tushar", "Mathur", 100)) >>> Person.age.get)) >>>
       User.age.set
 
-  def isAllowed: Int ~> Boolean = ifElse(identity[Int] > constant(18))(
-    isTrue = constant(true),
-    isFalse = constant(false),
-  )
-
   def program5 = constant(Person("Tushar", "Mathur", 50)) >>> transform(
-    Transformation(Person.age.get + constant(10), User.age.set),
-    Transformation(Person.firstName.get ++ constant(" ") ++ Person.lastName.get, User.name.set),
-    Transformation(Person.age.get >>> isAllowed, User.isAllowed.set),
+    (Person.age.get + constant(10))                                ->> User.age.set,
+    (Person.firstName.get ++ constant(" ") ++ Person.lastName.get) ->> User.name.set,
+    (Person.age.get > constant(18))                                ->> User.isAllowed.set,
   )
 
   def program6 = {
@@ -53,33 +61,11 @@ object Example extends ZIOAppDefault {
     val input  = identity[((Int, Int), Int)]
 
     seq(
-      a      := input >>> arg0 >>> arg0,
-      b      := input >>> arg0 >>> arg1,
-      c      := input >>> arg1,
+      a      := input._1._1,
+      b      := input._1._2,
+      c      := input._2,
       result := a.get + b.get > a.get * b.get,
     ) *> result.get
-  }
-
-  def program = constant(20) >>> scope { implicit ctx =>
-    val a = Scope(0)
-    val b = Scope(1)
-    val n = Scope(0)
-    val i = Scope(1)
-
-    seq(
-      n := a.get + b.get,
-      a := b.get,
-      b := n.get,
-      i := i.get.debug("i") + constant(1),
-    ).repeatUntil((i.get === identity[Int]).debug("Condition")) *> n.get
-  }
-
-  case class Fib(a: Int, b: Int, i: Int)
-  object Fib {
-    implicit val schema: Schema[Fib] = DeriveSchema.gen[Fib]
-    val (a, b, i)                    = schema
-      .makeAccessors(LambdaAccessor)
-      .asInstanceOf[(Fib >>- Int, Fib >>- Int, Fib >>- Int)]
   }
 
   override def run =
@@ -93,7 +79,19 @@ object Example extends ZIOAppDefault {
       _       <- ZIO.succeed(println(resJson))
     } yield ()
 
+  case class Fib(a: Int, b: Int, i: Int)
+
   case class Person(firstName: String, lastName: String, age: Int)
+
+  case class User(name: String, age: Int, isAllowed: Boolean)
+
+  object Fib {
+    implicit val schema: Schema[Fib] = DeriveSchema.gen[Fib]
+    val (a, b, i)                    = schema
+      .makeAccessors(LambdaAccessor)
+      .asInstanceOf[(Fib >>- Int, Fib >>- Int, Fib >>- Int)]
+  }
+
   object Person {
     implicit val schema: Schema[Person] = DeriveSchema.gen[Person]
     val (firstName, lastName, age)      = schema
@@ -101,7 +99,6 @@ object Example extends ZIOAppDefault {
       .asInstanceOf[(Person >>- String, Person >>- String, Person >>- Int)]
   }
 
-  case class User(name: String, age: Int, isAllowed: Boolean)
   object User {
     implicit val schema: Schema[User] = DeriveSchema.gen[User]
 

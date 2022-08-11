@@ -1,11 +1,10 @@
 package compose
 
-import compose.dsl.{ArrowDSL, NumericDSL}
+import compose.dsl.{ArrowDSL, NumericDSL, TupleDSL}
 import zio.schema.Schema
 import zio.Task
 
-trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] { self =>
-
+trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] with TupleDSL[A, B] { self =>
   final def ->>[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
     self transform other
 
@@ -21,16 +20,9 @@ trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] { self =>
 
   final def transform[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
     Transformation[A, C, I](self, other)
-
 }
 
 object Lambda {
-
-  def arg0[A0, A1](implicit s0: Schema[A0], s1: Schema[A1]): (A0, A1) ~> A0 =
-    ExecutionPlan.Arg(0, s0.ast, s1.ast).decompile
-
-  def arg1[A0, A1](implicit s0: Schema[A0], s1: Schema[A1]): (A0, A1) ~> A1 =
-    ExecutionPlan.Arg(1, s0.ast, s1.ast).decompile
 
   def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B =
     ExecutionPlan.Constant(schema.toDynamic(b)).decompile
@@ -49,9 +41,6 @@ object Lambda {
     Lambda(ExecutionPlan.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) }))
 
   def identity[A]: Lambda[A, A] = ExecutionPlan.Identity.decompile
-
-  def ifElse[A, B](f: A ~> Boolean)(isTrue: A ~> B, isFalse: A ~> B): A ~> B =
-    ExecutionPlan.IfElse(f.compile, isTrue.compile, isFalse.compile).decompile
 
   def scope[A, B](f: ScopeContext => A ~> B): A ~> B = f(new ScopeContext {})
 
@@ -72,9 +61,7 @@ object Lambda {
 
   sealed trait Scope[A] {
     def :=[X](f: X ~> A): X ~> Unit = set <<< f
-
     def get: Any ~> A
-
     def set: A ~> Unit
   }
 

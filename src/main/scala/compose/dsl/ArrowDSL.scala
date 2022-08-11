@@ -11,6 +11,9 @@ trait ArrowDSL[-A, +B] { self: Lambda[A, B] =>
 
   final def <<<[X](other: Lambda[X, A]): Lambda[X, B] = self compose other
 
+  final def <*[A1 <: A, B1 >: B, B2](other: Lambda[A1, B2])(implicit b1: Schema[B1], b2: Schema[B2]): A1 ~> B1 =
+    ((self: A1 ~> B1) <*> other)._1
+
   final def <*>[A1 <: A, B1 >: B, B2](other: Lambda[A1, B2])(implicit b1: Schema[B1], b2: Schema[B2]): A1 ~> (B1, B2) =
     (self: A1 ~> B1) zip other
 
@@ -18,12 +21,15 @@ trait ArrowDSL[-A, +B] { self: Lambda[A, B] =>
     ExecutionPlan.Concat(self.compile, other.compile, Schema[CanConcat[_]].toDynamic(ev)).decompile
 
   final def *>[A1 <: A, B1 >: B, B2](other: Lambda[A1, B2])(implicit b1: Schema[B1], b2: Schema[B2]): A1 ~> B2 =
-    ((self: A1 ~> B1) <*> other) >>> Lambda.arg1
+    ((self: A1 ~> B1) <*> other)._2
 
   final def bind[A1 <: A](a: A1)(implicit ev: Schema[A1]): Any ~> B = Lambda.constant(a) >>> self
 
   final def compose[X](other: Lambda[X, A]): Lambda[X, B] =
     other pipe self
+
+  final def diverge[C](isTrue: B ~> C, isFalse: B ~> C)(implicit ev: B <:< Boolean): A ~> C =
+    ExecutionPlan.IfElse(self.compile, isTrue.compile, isFalse.compile).decompile
 
   final def pipe[C](other: Lambda[B, C]): Lambda[A, C] =
     ExecutionPlan.Pipe(self.compile, other.compile).decompile
