@@ -10,12 +10,6 @@ object Example extends ZIOAppDefault {
   import IsNumeric._
   import Person._
 
-  def program = constant(Person("Tushar", "Mathur", 50)) >>> transform(
-    (Person.age.get + constant(10))                                ->> User.age.set,
-    (Person.firstName.get ++ constant(" ") ++ Person.lastName.get) ->> User.name.set,
-    (Person.age.get > constant(18))                                ->> User.isAllowed.set,
-  )
-
   // WAP to sum two numbers
   def program1: Any ~> Int = constant(1) + constant(2)
 
@@ -29,6 +23,12 @@ object Example extends ZIOAppDefault {
   def program4 =
     (default[User] zip (constant(Person("Tushar", "Mathur", 100)) >>> Person.age.get)) >>>
       User.age.set
+
+  def program5 = constant(Person("Tushar", "Mathur", 50)) >>> transform(
+    (Person.age.get + constant(10))                                ->> User.age.set,
+    (Person.firstName.get ++ constant(" ") ++ Person.lastName.get) ->> User.name.set,
+    (Person.age.get > constant(18))                                ->> User.isAllowed.set,
+  )
 
   def program6 = {
     constant(Fib(0, 1, 0)) >>>
@@ -70,7 +70,7 @@ object Example extends ZIOAppDefault {
 
   override def run =
     for {
-      res <- Interpreter.evalDynamic(program)
+      res <- Interpreter.evalDynamic(program8)
 
       // Serialize and print the output
       resJson <- ZIO.succeed(
