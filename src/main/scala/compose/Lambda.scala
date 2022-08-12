@@ -9,15 +9,15 @@ trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] with TupleDSL[
   final def ->>[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
     self transform other
 
-  final def apply[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
-    Interpreter.evalTyped[B1](self.compile, in.toDynamic(a))
-
   def compile: ExecutionPlan
 
   final def debug(name: String): Lambda[A, B] = ExecutionPlan.Debug(name, self.compile).decompile
 
   final def endContext(ctx: ScopeContext): A ~> B =
     ExecutionPlan.EndScope(ctx.hashCode()).decompile
+
+  final def execute[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
+    Interpreter.evalTyped[B1](self.compile, in.toDynamic(a))
 
   final def repeatUntil[A1 <: A](cond: A1 ~> Boolean): A1 ~> B =
     ExecutionPlan.RepeatUntil(self.compile, cond.compile).decompile
@@ -41,8 +41,8 @@ object Lambda {
 
   def fromMap[A, B](
     source: Map[A, B],
-  )(implicit input: Schema[A], output: Schema[B]): Lambda[A, B] =
-    Lambda(ExecutionPlan.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) }))
+  )(implicit input: Schema[A], output: Schema[B]): Lambda[A, Option[B]] =
+    Lambda(ExecutionPlan.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) }, output.ast))
 
   def identity[A]: Lambda[A, A] = ExecutionPlan.Identity.decompile
 
@@ -67,14 +67,15 @@ object Lambda {
   }
 
   sealed trait ScopeContext
-  object ScopeContext {
-    private[compose] def apply(): ScopeContext = new ScopeContext {}
-  }
 
   sealed trait Scope[A] {
     def :=[X](f: X ~> A): X ~> Unit = set <<< f
     def get: Any ~> A
     def set: A ~> Unit
+  }
+
+  object ScopeContext {
+    private[compose] def apply(): ScopeContext = new ScopeContext {}
   }
 
   object Scope {

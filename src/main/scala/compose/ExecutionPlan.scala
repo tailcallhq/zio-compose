@@ -65,7 +65,7 @@ object ExecutionPlan {
 
   final case class Equals(left: ExecutionPlan, right: ExecutionPlan) extends ExecutionPlan
 
-  final case class FromMap(value: Map[DynamicValue, DynamicValue]) extends ExecutionPlan
+  final case class FromMap(value: Map[DynamicValue, DynamicValue], ast: SchemaAst) extends ExecutionPlan
 
   final case class Constant(value: DynamicValue) extends ExecutionPlan
 

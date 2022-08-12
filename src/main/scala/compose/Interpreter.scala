@@ -175,14 +175,10 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
           right <- eval(right, input)
         } yield encode(left == right)
 
-      case ExecutionPlan.FromMap(value)  =>
-        value.get(input) match {
-          case Some(v) => ZIO.succeed(v)
-          case None    =>
-            ZIO.fail(new Exception("Key lookup failed in dictionary"))
-        }
-      case ExecutionPlan.Constant(value) => ZIO.succeed(value)
-      case ExecutionPlan.Identity        => ZIO.succeed(input)
+      case ExecutionPlan.FromMap(value, ast) =>
+        ZIO.succeed(Schema.option(ast.toSchema.asInstanceOf[Schema[Any]]).toDynamic(value.get(input)))
+      case ExecutionPlan.Constant(value)     => ZIO.succeed(value)
+      case ExecutionPlan.Identity            => ZIO.succeed(input)
     }
   }
 
