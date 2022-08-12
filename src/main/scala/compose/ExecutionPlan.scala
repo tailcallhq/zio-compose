@@ -38,11 +38,6 @@ object ExecutionPlan {
 
   final case class Default(value: DynamicValue) extends ExecutionPlan
 
-  final case class Transform(
-    transformations: List[(ExecutionPlan, SchemaAst, ExecutionPlan)],
-    wholeTargetAst: SchemaAst,
-  ) extends ExecutionPlan
-
   final case class LogicalAnd(left: ExecutionPlan, right: ExecutionPlan) extends ExecutionPlan
 
   final case class LogicalOr(left: ExecutionPlan, right: ExecutionPlan) extends ExecutionPlan

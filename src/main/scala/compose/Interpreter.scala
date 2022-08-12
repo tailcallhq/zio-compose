@@ -70,32 +70,6 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
 
       case ExecutionPlan.Default(value) => ZIO.succeed(value)
 
-      case ExecutionPlan.Transform(list, wholeBAst) =>
-        // WholeA to I to WholeB
-        val wholeA = input
-
-        def loop(
-          transformations: List[(ExecutionPlan, SchemaAst, ExecutionPlan)],
-          wholeB: DynamicValue,
-        ): Task[DynamicValue] = {
-          transformations match {
-            case Nil                            => ZIO.succeed(wholeB)
-            case (getter, iAst, setter) :: tail =>
-              for {
-                i          <- eval(getter, wholeA)
-                wholeBAndI <- effect(merge(wholeB, i, wholeBAst, iAst))
-                wholeB     <- eval(setter, wholeBAndI)
-                result     <- loop(tail, wholeB)
-              } yield result
-          }
-        }
-
-        val wholeBSchema = wholeBAst.toSchema.asInstanceOf[Schema[Any]]
-        wholeBSchema.defaultValue match {
-          case Left(error)  => ZIO.fail(new Exception(error))
-          case Right(value) => loop(list, wholeBSchema.toDynamic(value))
-        }
-
       case ExecutionPlan.SetPath(path) =>
         input match {
           case DynamicValue.Tuple(DynamicValue.Record(values), input) =>

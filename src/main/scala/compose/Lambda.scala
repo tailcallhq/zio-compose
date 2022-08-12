@@ -44,14 +44,13 @@ object Lambda {
 
   def scope[A, B](f: ScopeContext => A ~> B): A ~> B = f(new ScopeContext {})
 
-  def seq[A](f: A ~> Unit*): A ~> Unit = f.reduceLeft(_ *> _)
+  def stats[A](f: A ~> Unit*): A ~> Unit = f.reduceLeft(_ *> _)
 
-  def transform[A, B](transformations: Transformation[A, B]*)(implicit b: Schema[B]): A ~> B = ExecutionPlan
-    .Transform(
-      transformations.map { case Transformation.Constructor(f, i, g) => (f.compile, i.ast, g.compile) }.toList,
-      b.ast,
-    )
-    .decompile
+  def transform[A, B](transformations: Transformation[A, B]*)(implicit s: Schema[B]): A ~> B =
+    transformations.foldLeft[A ~> B](default[B]) {
+      case (ab, transformation: Transformation.Constructor[A @unchecked, B @unchecked, Any @unchecked]) =>
+        transformation(ab)
+    }
 
   private[compose] def apply[A, B](plan: ExecutionPlan): Lambda[A, B] = new ~>[A, B] {
     override def compile: ExecutionPlan = plan

@@ -10,19 +10,11 @@ object Example extends ZIOAppDefault {
   import IsNumeric._
   import Person._
 
-  def program = constant(20) >>> scope { implicit ctx =>
-    val a = Scope(0)
-    val b = Scope(1)
-    val n = Scope(0)
-    val i = Scope(1)
-
-    seq(
-      n := a.get + b.get,
-      a := b.get,
-      b := n.get,
-      i := i.get.debug("i") + constant(1),
-    ).repeatUntil((i.get === identity[Int]).debug("Condition")) *> n.get
-  }
+  def program = constant(Person("Tushar", "Mathur", 50)) >>> transform(
+    (Person.age.get + constant(10))                                ->> User.age.set,
+    (Person.firstName.get ++ constant(" ") ++ Person.lastName.get) ->> User.name.set,
+    (Person.age.get > constant(18))                                ->> User.isAllowed.set,
+  )
 
   // WAP to sum two numbers
   def program1: Any ~> Int = constant(1) + constant(2)
@@ -37,12 +29,6 @@ object Example extends ZIOAppDefault {
   def program4 =
     (default[User] zip (constant(Person("Tushar", "Mathur", 100)) >>> Person.age.get)) >>>
       User.age.set
-
-  def program5 = constant(Person("Tushar", "Mathur", 50)) >>> transform(
-    (Person.age.get + constant(10))                                ->> User.age.set,
-    (Person.firstName.get ++ constant(" ") ++ Person.lastName.get) ->> User.name.set,
-    (Person.age.get > constant(18))                                ->> User.isAllowed.set,
-  )
 
   def program6 = {
     constant(Fib(0, 1, 0)) >>>
@@ -60,12 +46,26 @@ object Example extends ZIOAppDefault {
     val result = Scope(false)
     val input  = identity[((Int, Int), Int)]
 
-    seq(
+    stats(
       a      := input._1._1,
       b      := input._1._2,
       c      := input._2,
       result := a.get + b.get > a.get * b.get,
     ) *> result.get
+  }
+
+  def program8 = constant(20) >>> scope { implicit ctx =>
+    val a = Scope(0)
+    val b = Scope(1)
+    val n = Scope(0)
+    val i = Scope(1)
+
+    stats(
+      n := a.get + b.get,
+      a := b.get,
+      b := n.get,
+      i := i.get.debug("i") + constant(1),
+    ).repeatUntil((i.get === identity[Int]).debug("Condition")) *> n.get
   }
 
   override def run =
