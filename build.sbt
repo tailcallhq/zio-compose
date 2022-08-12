@@ -6,7 +6,7 @@ ThisBuild / scalaVersion := "2.13.8"
 lazy val root = project
   .in(file("."))
   .settings(
-    name                := "GraphQLCompose",
+    name                := "ZIOCompose",
     version             := "0.1.0-SNAPSHOT",
     fork                := true,
     libraryDependencies := Seq(
