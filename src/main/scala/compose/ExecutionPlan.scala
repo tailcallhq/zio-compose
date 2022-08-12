@@ -26,11 +26,11 @@ object ExecutionPlan {
 
   final case class SetScope(scope: Int, ctx: Int) extends ExecutionPlan
 
-  final case class GetScope(scope: Int, ctx: Int, value: DynamicValue, ast: SchemaAst) extends ExecutionPlan
+  final case class GetScope(scope: Int, ctx: Int, value: DynamicValue) extends ExecutionPlan
 
   final case class Arg(n: Int, ast0: SchemaAst, ast1: SchemaAst) extends ExecutionPlan
 
-  final case class RepeatUntil(self: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
+  final case class RepeatWhile(self: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
 
   final case class Concat(self: ExecutionPlan, other: ExecutionPlan, canConcat: DynamicValue) extends ExecutionPlan
 
@@ -49,8 +49,7 @@ object ExecutionPlan {
     numeric: DynamicValue,
   ) extends ExecutionPlan
 
-  final case class Zip(left: ExecutionPlan, right: ExecutionPlan, o1: SchemaAst, o2: SchemaAst)
-      extends ExecutionPlan
+  final case class Zip(left: ExecutionPlan, right: ExecutionPlan, o1: SchemaAst, o2: SchemaAst) extends ExecutionPlan
 
   final case class IfElse(cond: ExecutionPlan, ifTrue: ExecutionPlan, ifFalse: ExecutionPlan) extends ExecutionPlan
 

@@ -37,8 +37,7 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
           }
         } yield result
 
-      case ExecutionPlan.GetScope(scopeId, ctxId, initial, ast) =>
-        val schema = ast.toSchema.asInstanceOf[Schema[Any]]
+      case ExecutionPlan.GetScope(scopeId, ctxId, initial) =>
         for {
           option <- scope.get(scopeId, ctxId)
           value  <- option match {
@@ -52,13 +51,16 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
           _ <- scope.set(scopeId, ctxId, input)
         } yield encode(())
 
-      case ExecutionPlan.RepeatUntil(f, cond) =>
-        def loop: Task[DynamicValue] = for {
-          output <- eval(f, input)
-          isTrue <- evalTyped[Boolean](cond, input)
-          result <- if (isTrue) ZIO.succeed(output) else loop
-        } yield result
-        loop
+      case ExecutionPlan.RepeatWhile(f, cond) =>
+        def loop(input: DynamicValue): Task[DynamicValue] = {
+          for {
+            output <- eval(f, input)
+            isTrue <- evalTyped[Boolean](cond, output)
+            result <- if (isTrue) loop(output) else ZIO.succeed(output)
+          } yield result
+        }
+
+        loop(input)
 
       case ExecutionPlan.Concat(self, other, canConcat) =>
         for {

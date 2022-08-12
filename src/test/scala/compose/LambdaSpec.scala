@@ -2,8 +2,8 @@ package compose
 
 import zio.schema.{DeriveSchema, Schema}
 import zio.schema.Schema._
-import zio.test.{assertZIO, ZIOSpecDefault}
-import zio.test.Assertion.equalTo
+import zio.test.{assertZIO, checkAll, Gen, ZIOSpecDefault}
+import zio.test.Assertion.{equalTo, isTrue}
 
 object LambdaSpec extends ZIOSpecDefault {
   import Lambda._
@@ -58,6 +58,28 @@ object LambdaSpec extends ZIOSpecDefault {
         FooBar.bar.get + constant(2) ->> FooBar.bar.set,
       )
       assertZIO(res.eval {})(equalTo(FooBar(2, 3)))
+    },
+    test("bind") {
+      val res = identity[Int].bind(100)
+      assertZIO(res.eval {})(equalTo(100))
+    },
+    test("repeatWhile") {
+      val res = constant(1) >>> (constant(2) * identity[Int]).repeatWhile {
+        identity[Int] < constant(1024)
+      }
+      assertZIO(res.eval {})(equalTo(1024))
+    },
+    test("comparisons") {
+      val gen = Gen.fromIterable(
+        Seq(
+          constant(1) < constant(2),
+          constant(2) <= constant(2),
+          constant(2) > constant(1),
+          constant(2) >= constant(2),
+        ),
+      )
+
+      checkAll(gen) { res => assertZIO(res.eval {})(isTrue) }
     },
   )
 

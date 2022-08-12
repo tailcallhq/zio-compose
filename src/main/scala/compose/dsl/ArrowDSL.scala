@@ -5,8 +5,11 @@ import compose.Lambda.unsafeMake
 import zio.schema.Schema
 
 trait ArrowDSL[-A, +B] { self: Lambda[A, B] =>
-  final def ===[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
-    unsafeMake { ExecutionPlan.Equals(self.compile, other.compile) }
+  final def =!=[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
+    self notEq other
+
+  final def =:=[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
+    self eq other
 
   final def >>>[C](other: Lambda[B, C]): Lambda[A, C] = self pipe other
 
@@ -31,6 +34,12 @@ trait ArrowDSL[-A, +B] { self: Lambda[A, B] =>
 
   final def diverge[C](isTrue: B ~> C, isFalse: B ~> C)(implicit ev: B <:< Boolean): A ~> C =
     unsafeMake { ExecutionPlan.IfElse(self.compile, isTrue.compile, isFalse.compile) }
+
+  final def eq[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
+    unsafeMake { ExecutionPlan.Equals(self.compile, other.compile) }
+
+  final def notEq[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
+    (self =:= other).not
 
   final def pipe[C](other: Lambda[B, C]): Lambda[A, C] =
     unsafeMake { ExecutionPlan.Pipe(self.compile, other.compile) }

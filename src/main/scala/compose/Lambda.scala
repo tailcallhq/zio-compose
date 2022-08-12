@@ -1,11 +1,11 @@
 package compose
 
-import compose.dsl.{ArrowDSL, NumericDSL, TupleDSL}
+import compose.dsl.{ArrowDSL, BooleanDSL, NumericDSL, TupleDSL}
 import compose.Lambda.{unsafeMake, ScopeContext}
 import zio.schema.Schema
 import zio.Task
 
-trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] with TupleDSL[A, B] { self =>
+trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] with TupleDSL[A, B] with BooleanDSL[A, B] { self =>
   final def ->>[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
     self transform other
 
@@ -23,8 +23,8 @@ trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] with TupleDSL[
   final def eval[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
     Interpreter.evalTyped[B1](self.compile, in.toDynamic(a))
 
-  final def repeatUntil[A1 <: A](cond: A1 ~> Boolean): A1 ~> B = unsafeMake {
-    ExecutionPlan.RepeatUntil(self.compile, cond.compile)
+  final def repeatWhile[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 = unsafeMake {
+    ExecutionPlan.RepeatWhile(self.compile, cond.compile)
   }
 
   final def transform[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
@@ -93,7 +93,7 @@ object Lambda {
         }
 
         override def get: Any ~> A = unsafeMake {
-          ExecutionPlan.GetScope(self.hashCode(), ctx.hashCode(), schema.toDynamic(value), schema.ast)
+          ExecutionPlan.GetScope(self.hashCode(), ctx.hashCode(), schema.toDynamic(value))
         }
       }
   }
