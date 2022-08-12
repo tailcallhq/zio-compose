@@ -6,7 +6,7 @@ ThisBuild / scalaVersion := "2.13.8"
 lazy val root = project
   .in(file("."))
   .settings(
-    name                := "ZIOCompose",
+    name                := "compose",
     version             := "0.1.0-SNAPSHOT",
     fork                := true,
     libraryDependencies := Seq(
@@ -14,9 +14,11 @@ lazy val root = project
       ZIOSchema,
       ZIOSchemaJson,
       ZIOSchemaDerivation,
-      ZIOTest % Test,
+      ZIOTest,
+      ZIOTestSbt,
     ),
-    publish / skip := true
+    publish / skip      := true,
+    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
   )
 
 // Flags
