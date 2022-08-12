@@ -116,6 +116,16 @@ object LambdaSpec extends ZIOSpecDefault {
         assertZIO(res.eval {})(equalTo(1))
       },
     ),
+    suite("tuple")(
+      test("_1") {
+        val res = (constant(1) <*> constant(2))._1
+        assertZIO(res.eval {})(equalTo(1))
+      },
+      test("_2") {
+        val res = (constant(1) <*> constant(2))._2
+        assertZIO(res.eval {})(equalTo(2))
+      },
+    ),
   )
 
   case class FooBar(foo: Int, bar: Int)

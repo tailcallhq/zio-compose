@@ -20,13 +20,12 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
           _      <- ZIO.succeed(println(s"${name}: ${input} ~> ${result}"))
         } yield result
 
-      case ExecutionPlan.Arg(plan, i, a1, a2) =>
+      case ExecutionPlan.Arg(i, a1, a2) =>
         val s1 = a1.toSchema.asInstanceOf[Schema[Any]]
         val s2 = a2.toSchema.asInstanceOf[Schema[Any]]
 
         for {
-          output <- evalDynamic(plan, input)
-          value  <- effect(output.toTypedValue(Schema.tuple2(s1, s2)))
+          value  <- effect(input.toTypedValue(Schema.tuple2(s1, s2)))
           result <- i match {
             case 0 => ZIO.succeed(encode(value._1)(s1))
             case 1 => ZIO.succeed(encode(value._2)(s2))

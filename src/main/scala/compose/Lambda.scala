@@ -34,6 +34,12 @@ trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] with TupleDSL[
 
 object Lambda {
 
+  final def _1[B1, B2](implicit s0: Schema[B1], s1: Schema[B2]): (B1, B2) ~> B1 =
+    unsafeMake { ExecutionPlan.Arg(0, s0.ast, s1.ast) }
+
+  final def _2[B1, B2](implicit s0: Schema[B1], s1: Schema[B2]): (B1, B2) ~> B2 =
+    unsafeMake { ExecutionPlan.Arg(1, s0.ast, s1.ast) }
+
   def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B = unsafeMake {
     ExecutionPlan.Constant(schema.toDynamic(b))
   }

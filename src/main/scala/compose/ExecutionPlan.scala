@@ -28,7 +28,7 @@ object ExecutionPlan {
 
   final case class GetScope(scope: Int, ctx: Int, value: DynamicValue) extends ExecutionPlan
 
-  final case class Arg(plan: ExecutionPlan, n: Int, ast0: SchemaAst, ast1: SchemaAst) extends ExecutionPlan
+  final case class Arg(n: Int, ast0: SchemaAst, ast1: SchemaAst) extends ExecutionPlan
 
   final case class RepeatWhile(self: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
 
