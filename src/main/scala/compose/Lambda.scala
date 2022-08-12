@@ -11,9 +11,14 @@ trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] with TupleDSL[
 
   def compile: ExecutionPlan
 
-  final def debug(name: String): Lambda[A, B] = unsafeMake {
-    ExecutionPlan.Debug(name, self.compile)
-  }
+  final def debug(name: String): Lambda[A, B] =
+    unsafeMake { ExecutionPlan.Debug(name, self.compile) }
+
+  final def doUntil[C](cond: C ~> Boolean): A ~> B =
+    doWhile(cond.not)
+
+  final def doWhile[C](cond: C ~> Boolean): A ~> B =
+    unsafeMake(ExecutionPlan.DoWhile(self.compile, cond.compile))
 
   final def endContext[B1 >: B](ctx: ScopeContext)(implicit s: Schema[B1]): A ~> B1 =
     (self: A ~> B1) <* Lambda.endContext(ctx)
@@ -85,7 +90,7 @@ object Lambda {
 
   sealed trait ScopeContext
 
-  sealed trait ScopeRef[A] {
+  sealed trait Scope[A] {
     def :=[X](f: X ~> A): X ~> Unit = set <<< f
     def get: Any ~> A
     def set: A ~> Unit
@@ -95,9 +100,9 @@ object Lambda {
     private[compose] def apply(): ScopeContext = new ScopeContext {}
   }
 
-  object ScopeRef {
-    def make[A](value: A)(implicit ctx: ScopeContext, schema: Schema[A]): ScopeRef[A] =
-      new ScopeRef[A] { self =>
+  object Scope {
+    def make[A](value: A)(implicit ctx: ScopeContext, schema: Schema[A]): Scope[A] =
+      new Scope[A] { self =>
         override def set: A ~> Unit = unsafeMake {
           ExecutionPlan.SetScope(self.hashCode(), ctx.hashCode())
         }

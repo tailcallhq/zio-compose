@@ -36,14 +36,14 @@ object Example extends ZIOAppDefault {
         Fib.b.get             ->> Fib.a.set,
         Fib.a.get + Fib.b.get ->> Fib.b.set,
         Fib.i.get.inc         ->> Fib.i.set,
-      ).repeatUntil(Fib.i.get === constant(20)) >>> Fib.b.get
+      ).repeatWhile(Fib.i.get =!= constant(20)) >>> Fib.b.get
   }
 
   def program7 = (constant(2) <*> constant(2) <*> constant(3)) >>> scope { implicit ctx =>
-    val a      = Scope(0)
-    val b      = Scope(0)
-    val c      = Scope(0)
-    val result = Scope(false)
+    val a      = Scope.make(0)
+    val b      = Scope.make(0)
+    val c      = Scope.make(0)
+    val result = Scope.make(false)
     val input  = identity[((Int, Int), Int)]
 
     stats(
@@ -54,18 +54,18 @@ object Example extends ZIOAppDefault {
     ) *> result.get
   }
 
-  def program8 = constant(20) >>> scope { implicit ctx =>
-    val a = Scope(0)
-    val b = Scope(1)
-    val n = Scope(0)
-    val i = Scope(1)
+  def program8 = constant(10) >>> scope { implicit ctx =>
+    val a = Scope.make(0)
+    val b = Scope.make(1)
+    val n = Scope.make(0)
+    val i = Scope.make(1)
 
     stats(
       n := a.get + b.get,
       a := b.get,
       b := n.get,
-      i := i.get.debug("i") + constant(1),
-    ).repeatUntil((i.get === identity[Int]).debug("Condition")) *> n.get
+      i := i.get.inc,
+    ).doWhile { i.get < identity[Int] } *> n.get
   }
 
   override def run =

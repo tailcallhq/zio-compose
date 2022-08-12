@@ -61,6 +61,17 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
 
         loop(input)
 
+      case ExecutionPlan.DoWhile(f, cond) =>
+        def loop: Task[DynamicValue] = {
+          for {
+            output <- eval(f, input)
+            isTrue <- evalTyped[Boolean](cond, input)
+            result <- if (isTrue) loop else ZIO.succeed(output)
+          } yield result
+        }
+
+        loop
+
       case ExecutionPlan.Concat(self, other, canConcat) =>
         for {
           canConcat <- effect(canConcat.toTypedValue(Schema[CanConcat[_]]))

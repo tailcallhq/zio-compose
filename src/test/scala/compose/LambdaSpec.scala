@@ -1,9 +1,13 @@
 package compose
 
+import zio.durationInt
 import zio.schema.{DeriveSchema, Schema}
 import zio.schema.Schema._
 import zio.test.{assertZIO, checkAll, Gen, ZIOSpecDefault}
 import zio.test.Assertion.{equalTo, isTrue}
+import zio.test.TestAspect.timeout
+
+import scala.language.postfixOps
 
 object LambdaSpec extends ZIOSpecDefault {
   import Lambda._
@@ -104,12 +108,12 @@ object LambdaSpec extends ZIOSpecDefault {
     },
     suite("scope")(
       test("get") {
-        val res = scope { implicit ctx => ScopeRef.make(1000).get }
+        val res = scope { implicit ctx => Scope.make(1000).get }
         assertZIO(res.eval("OK!"))(equalTo(1000))
       },
       test("set") {
         val res = scope { implicit ctx =>
-          val a = ScopeRef.make(1000)
+          val a = Scope.make(1000)
 
           (a := constant(1)) *> a.get
         }
@@ -126,7 +130,14 @@ object LambdaSpec extends ZIOSpecDefault {
         assertZIO(res.eval {})(equalTo(2))
       },
     ),
-  )
+    test("doWhile") {
+      val res = scope { implicit ctx =>
+        val a = Scope.make(1)
+        (a := a.get * constant(2)).doWhile(a.get < constant(1000)) *> a.get
+      }
+      assertZIO(res.eval {})(equalTo(1024))
+    },
+  ) @@ timeout(5 second)
 
   case class FooBar(foo: Int, bar: Int)
 

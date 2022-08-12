@@ -70,4 +70,6 @@ object ExecutionPlan {
   final case class EndScope(ctx: Int) extends ExecutionPlan
 
   case object Identity extends ExecutionPlan
+
+  case class DoWhile(plan: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
 }
