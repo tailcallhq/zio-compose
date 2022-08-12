@@ -12,7 +12,7 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
   def eval(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
       case ExecutionPlan.EndScope(id) =>
-        scope.deleteScope(id).as(input)
+        scope.deleteScope(id).as(Schema[Unit].toDynamic {})
 
       case ExecutionPlan.Debug(name, plan) =>
         for {
@@ -214,7 +214,7 @@ object Interpreter                                                             {
   def make: UIO[Interpreter] =
     Scope.make[Int, Int, DynamicValue].map(scope => new Interpreter(scope))
 
-  private def effect[A](e: Either[String, A]): Task[A] =
+  private def effect[A](e: Either[String, A])(implicit trace: zio.Trace): Task[A] =
     e match {
       case Left(error) => ZIO.fail(new Exception(error))
       case Right(a)    => ZIO.succeed(a)
@@ -224,11 +224,11 @@ object Interpreter                                                             {
     schema.toDynamic(a)
 
   final case class Scope[S, K, V](ref: Ref[Map[(S, K), V]]) {
+    def deleteScope(scope: S): UIO[Unit] = ref.update { map => map.filter { case s -> _ -> _ => s != scope } }
+
     def get(scope: S, key: K): UIO[Option[V]] = ref.get.map(_.get(scope, key))
 
     def set(scope: S, key: K, value: V): UIO[Unit] = ref.update { map => map + (((scope, key), value)) }
-
-    def deleteScope(scope: S): UIO[Unit] = ref.update { map => map.filter { case s -> _ -> _ => s != scope } }
   }
 
   object Scope {

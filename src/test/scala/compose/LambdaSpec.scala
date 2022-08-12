@@ -102,6 +102,20 @@ object LambdaSpec extends ZIOSpecDefault {
       val res = constant(1) <* constant(2)
       assertZIO(res.eval {})(equalTo(1))
     },
+    suite("scope")(
+      test("get") {
+        val res = scope { implicit ctx => ScopeRef.make(1000).get }
+        assertZIO(res.eval("OK!"))(equalTo(1000))
+      },
+      test("set") {
+        val res = scope { implicit ctx =>
+          val a = ScopeRef.make(1000)
+
+          (a := constant(1)) *> a.get
+        }
+        assertZIO(res.eval {})(equalTo(1))
+      },
+    ),
   )
 
   case class FooBar(foo: Int, bar: Int)

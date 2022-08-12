@@ -15,10 +15,8 @@ trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] with TupleDSL[
     ExecutionPlan.Debug(name, self.compile)
   }
 
-  final def endContext(ctx: ScopeContext): A ~> B =
-    unsafeMake {
-      ExecutionPlan.EndScope(ctx.hashCode())
-    }
+  final def endContext[B1 >: B](ctx: ScopeContext)(implicit s: Schema[B1]): A ~> B1 =
+    (self: A ~> B1) <* Lambda.endContext(ctx)
 
   final def eval[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
     Interpreter.evalTyped[B1](self.compile, in.toDynamic(a))
@@ -48,6 +46,9 @@ object Lambda {
       })
   }
 
+  def endContext(ctx: ScopeContext): Any ~> Unit =
+    unsafeMake { ExecutionPlan.EndScope(ctx.hashCode()) }
+
   def fromMap[A, B](
     source: Map[A, B],
   )(implicit input: Schema[A], output: Schema[B]): Lambda[A, Option[B]] =
@@ -59,7 +60,7 @@ object Lambda {
     ExecutionPlan.Identity
   }
 
-  def scope[A, B](f: ScopeContext => A ~> B): A ~> B = Lambda.unsafeMake {
+  def scope[A, B](f: ScopeContext => A ~> B)(implicit s: Schema[B]): A ~> B = Lambda.unsafeMake {
     val context = ScopeContext()
     f(context).endContext(context).compile
   }
@@ -78,7 +79,7 @@ object Lambda {
 
   sealed trait ScopeContext
 
-  sealed trait Scope[A] {
+  sealed trait ScopeRef[A] {
     def :=[X](f: X ~> A): X ~> Unit = set <<< f
     def get: Any ~> A
     def set: A ~> Unit
@@ -88,9 +89,9 @@ object Lambda {
     private[compose] def apply(): ScopeContext = new ScopeContext {}
   }
 
-  object Scope {
-    def apply[A](value: A)(implicit ctx: ScopeContext, schema: Schema[A]): Scope[A] =
-      new Scope[A] { self =>
+  object ScopeRef {
+    def make[A](value: A)(implicit ctx: ScopeContext, schema: Schema[A]): ScopeRef[A] =
+      new ScopeRef[A] { self =>
         override def set: A ~> Unit = unsafeMake {
           ExecutionPlan.SetScope(self.hashCode(), ctx.hashCode())
         }
