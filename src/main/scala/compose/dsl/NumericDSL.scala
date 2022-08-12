@@ -4,7 +4,7 @@ import compose.{~>, ExecutionPlan, IsNumeric, Lambda, Numeric}
 import compose.Lambda.{constant, unsafeMake}
 import zio.schema.Schema
 
-trait NumericDSL[-A, +B] { self: Lambda[A, B] =>
+trait NumericDSL[-A, +B] { self: A ~> B =>
   final def >[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> Boolean =
     self gt other
 
