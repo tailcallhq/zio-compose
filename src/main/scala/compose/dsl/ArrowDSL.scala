@@ -1,11 +1,12 @@
 package compose.dsl
 
 import compose.{~>, CanConcat, ExecutionPlan, Lambda}
+import compose.Lambda.unsafeMake
 import zio.schema.Schema
 
 trait ArrowDSL[-A, +B] { self: Lambda[A, B] =>
   final def ===[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
-    ExecutionPlan.Equals(self.compile, other.compile).decompile
+    unsafeMake { ExecutionPlan.Equals(self.compile, other.compile) }
 
   final def >>>[C](other: Lambda[B, C]): Lambda[A, C] = self pipe other
 
@@ -18,7 +19,7 @@ trait ArrowDSL[-A, +B] { self: Lambda[A, B] =>
     (self: A1 ~> B1) zip other
 
   final def ++[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit ev: CanConcat[B1]): A1 ~> B1 =
-    ExecutionPlan.Concat(self.compile, other.compile, Schema[CanConcat[_]].toDynamic(ev)).decompile
+    unsafeMake { ExecutionPlan.Concat(self.compile, other.compile, Schema[CanConcat[_]].toDynamic(ev)) }
 
   final def *>[A1 <: A, B1 >: B, B2](other: Lambda[A1, B2])(implicit b1: Schema[B1], b2: Schema[B2]): A1 ~> B2 =
     ((self: A1 ~> B1) <*> other)._2
@@ -29,13 +30,14 @@ trait ArrowDSL[-A, +B] { self: Lambda[A, B] =>
     other pipe self
 
   final def diverge[C](isTrue: B ~> C, isFalse: B ~> C)(implicit ev: B <:< Boolean): A ~> C =
-    ExecutionPlan.IfElse(self.compile, isTrue.compile, isFalse.compile).decompile
+    unsafeMake { ExecutionPlan.IfElse(self.compile, isTrue.compile, isFalse.compile) }
 
   final def pipe[C](other: Lambda[B, C]): Lambda[A, C] =
-    ExecutionPlan.Pipe(self.compile, other.compile).decompile
+    unsafeMake { ExecutionPlan.Pipe(self.compile, other.compile) }
 
   final def zip[A1 <: A, B1 >: B, B2](other: Lambda[A1, B2])(implicit
     b1: Schema[B1],
     b2: Schema[B2],
-  ): A1 ~> (B1, B2) = ExecutionPlan.Combine(self.compile, other.compile, b1.ast, b2.ast).decompile
+  ): A1 ~> (B1, B2) =
+    unsafeMake { ExecutionPlan.Combine(self.compile, other.compile, b1.ast, b2.ast) }
 }

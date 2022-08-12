@@ -1,6 +1,7 @@
 package compose.dsl
 
 import compose.{~>, ExecutionPlan, IsNumeric, Lambda, Numeric}
+import compose.Lambda.unsafeMake
 import zio.schema.Schema
 
 trait NumericDSL[-A, +B] { self: Lambda[A, B] =>
@@ -33,8 +34,9 @@ trait NumericDSL[-A, +B] { self: Lambda[A, B] =>
 
   private final def numOp[A1 <: A, B1 >: B](operation: Numeric.Operation, other: A1 ~> B1)(implicit
     num: IsNumeric[B1],
-  ): A1 ~> B1 =
-    ExecutionPlan.NumericOperation(operation, self.compile, other.compile, num.toDynamic).decompile
+  ): A1 ~> B1 = unsafeMake {
+    ExecutionPlan.NumericOperation(operation, self.compile, other.compile, num.toDynamic)
+  }
 
   final def *[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit
     num: IsNumeric[B1],

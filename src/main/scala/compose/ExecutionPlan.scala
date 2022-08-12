@@ -8,9 +8,6 @@ import zio.schema.ast.SchemaAst
 sealed trait ExecutionPlan { self =>
   def binary: Chunk[Byte] = JsonCodec.encode(ExecutionPlan.schema)(self)
 
-  // TODO: drop this method
-  def decompile: Any ~> Nothing = Lambda(self)
-
   def json: String = new String(binary.toArray)
 }
 
