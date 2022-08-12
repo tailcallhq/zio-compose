@@ -29,5 +29,13 @@ object LambdaSpec extends ZIOSpecDefault {
         assertZIO(res.execute {})(equalTo(None))
       },
     ),
+    test("pipe") {
+      val res = constant(1) >>> identity[Int]
+      assertZIO(res.execute {})(equalTo(1))
+    },
+    test("zip") {
+      val res = constant(1) <*> constant(2)
+      assertZIO(res.execute {})(equalTo((1, 2)))
+    },
   )
 }

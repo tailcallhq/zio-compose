@@ -134,10 +134,12 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
             }
         } yield encode(params)
 
-      case ExecutionPlan.Combine(left, right, o1, o2) =>
-        eval(left, input).zip(eval(right, input)).flatMap { case (a, b) =>
-          effect(merge(a, b, o1, o2))
-        }
+      case ExecutionPlan.Zip(left, right, o1, o2) =>
+        for {
+          a <- eval(left, input)
+          b <- eval(right, input)
+          c <- effect(merge(a, b, o1, o2))
+        } yield c
 
       case ExecutionPlan.IfElse(cond, ifTrue, ifFalse) =>
         for {
@@ -176,7 +178,13 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
         } yield encode(left == right)
 
       case ExecutionPlan.FromMap(value, ast) =>
-        ZIO.succeed(Schema.option(ast.toSchema.asInstanceOf[Schema[Any]]).toDynamic(value.get(input)))
+        val schema = ast.toSchema.asInstanceOf[Schema[Any]]
+        for {
+          result <- value.get(input) match {
+            case Some(value) => effect(value.toTypedValue(schema)).map(Option(_))
+            case None        => ZIO.succeed(None)
+          }
+        } yield Schema.option(schema).toDynamic(result)
       case ExecutionPlan.Constant(value)     => ZIO.succeed(value)
       case ExecutionPlan.Identity            => ZIO.succeed(input)
     }

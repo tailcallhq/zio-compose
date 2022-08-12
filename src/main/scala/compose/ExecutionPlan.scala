@@ -49,7 +49,7 @@ object ExecutionPlan {
     numeric: DynamicValue,
   ) extends ExecutionPlan
 
-  final case class Combine(left: ExecutionPlan, right: ExecutionPlan, o1: SchemaAst, o2: SchemaAst)
+  final case class Zip(left: ExecutionPlan, right: ExecutionPlan, o1: SchemaAst, o2: SchemaAst)
       extends ExecutionPlan
 
   final case class IfElse(cond: ExecutionPlan, ifTrue: ExecutionPlan, ifFalse: ExecutionPlan) extends ExecutionPlan

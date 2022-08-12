@@ -39,5 +39,5 @@ trait ArrowDSL[-A, +B] { self: Lambda[A, B] =>
     b1: Schema[B1],
     b2: Schema[B2],
   ): A1 ~> (B1, B2) =
-    unsafeMake { ExecutionPlan.Combine(self.compile, other.compile, b1.ast, b2.ast) }
+    unsafeMake { ExecutionPlan.Zip(self.compile, other.compile, b1.ast, b2.ast) }
 }
