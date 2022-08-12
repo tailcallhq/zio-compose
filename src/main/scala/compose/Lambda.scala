@@ -20,7 +20,7 @@ trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] with TupleDSL[
       ExecutionPlan.EndScope(ctx.hashCode())
     }
 
-  final def execute[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
+  final def eval[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
     Interpreter.evalTyped[B1](self.compile, in.toDynamic(a))
 
   final def repeatUntil[A1 <: A](cond: A1 ~> Boolean): A1 ~> B = unsafeMake {
