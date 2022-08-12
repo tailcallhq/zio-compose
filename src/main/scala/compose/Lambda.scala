@@ -1,6 +1,7 @@
 package compose
 
 import compose.dsl.{ArrowDSL, NumericDSL, TupleDSL}
+import compose.Lambda.ScopeContext
 import zio.schema.Schema
 import zio.Task
 
@@ -14,6 +15,9 @@ trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] with TupleDSL[
   def compile: ExecutionPlan
 
   final def debug(name: String): Lambda[A, B] = ExecutionPlan.Debug(name, self.compile).decompile
+
+  final def endContext(ctx: ScopeContext): A ~> B =
+    ExecutionPlan.EndScope(ctx.hashCode()).decompile
 
   final def repeatUntil[A1 <: A](cond: A1 ~> Boolean): A1 ~> B =
     ExecutionPlan.RepeatUntil(self.compile, cond.compile).decompile
@@ -42,7 +46,12 @@ object Lambda {
 
   def identity[A]: Lambda[A, A] = ExecutionPlan.Identity.decompile
 
-  def scope[A, B](f: ScopeContext => A ~> B): A ~> B = f(new ScopeContext {})
+  def scope[A, B](f: ScopeContext => A ~> B): A ~> B = new ~>[A, B] {
+    override def compile: ExecutionPlan = {
+      val context = ScopeContext()
+      f(context).endContext(context).compile
+    }
+  }
 
   def stats[A](f: A ~> Unit*): A ~> Unit = f.reduceLeft(_ *> _)
 
@@ -52,11 +61,15 @@ object Lambda {
         transformation(ab)
     }
 
-  private[compose] def apply[A, B](plan: ExecutionPlan): Lambda[A, B] = new ~>[A, B] {
+  // TODO: rename to `unsafeMake`
+  private[compose] def apply[A, B](plan: => ExecutionPlan): Lambda[A, B] = new ~>[A, B] {
     override def compile: ExecutionPlan = plan
   }
 
   sealed trait ScopeContext
+  object ScopeContext {
+    private[compose] def apply(): ScopeContext = new ScopeContext {}
+  }
 
   sealed trait Scope[A] {
     def :=[X](f: X ~> A): X ~> Unit = set <<< f

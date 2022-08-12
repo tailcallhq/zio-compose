@@ -12,6 +12,9 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
 
   def eval(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
+      case ExecutionPlan.EndScope(id) =>
+        scope.deleteScope(id).as(input)
+
       case ExecutionPlan.Debug(name, plan) =>
         for {
           result <- eval(plan, input)
@@ -233,6 +236,8 @@ object Interpreter                                                             {
     def get(scope: S, key: K): UIO[Option[V]] = ref.get.map(_.get(scope, key))
 
     def set(scope: S, key: K, value: V): UIO[Unit] = ref.update { map => map + (((scope, key), value)) }
+
+    def deleteScope(scope: S): UIO[Unit] = ref.update { map => map.filter { case s -> _ -> _ => s != scope } }
   }
 
   object Scope {

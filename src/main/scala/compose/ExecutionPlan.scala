@@ -8,6 +8,7 @@ import zio.schema.ast.SchemaAst
 sealed trait ExecutionPlan { self =>
   def binary: Chunk[Byte] = JsonCodec.encode(ExecutionPlan.schema)(self)
 
+  // TODO: drop this method
   def decompile: Any ~> Nothing = Lambda(self)
 
   def json: String = new String(binary.toArray)
@@ -69,6 +70,8 @@ object ExecutionPlan {
   final case class Constant(value: DynamicValue) extends ExecutionPlan
 
   final case class Debug(name: String, plan: ExecutionPlan) extends ExecutionPlan
+
+  final case class EndScope(ctx: Int) extends ExecutionPlan
 
   case object Identity extends ExecutionPlan
 }
