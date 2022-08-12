@@ -1,6 +1,5 @@
 package compose
 
-import zio.schema.ast.SchemaAst
 import zio.schema.{DynamicValue, Schema}
 
 import scala.annotation.tailrec
@@ -21,18 +20,19 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
           _      <- ZIO.succeed(println(s"${name}: ${input} ~> ${result}"))
         } yield result
 
-      case ExecutionPlan.Arg(i, a1, a2) =>
+      case ExecutionPlan.Arg(plan, i, a1, a2) =>
         val s1 = a1.toSchema.asInstanceOf[Schema[Any]]
         val s2 = a2.toSchema.asInstanceOf[Schema[Any]]
 
         for {
-          value  <- effect(input.toTypedValue(Schema.tuple2(s1, s2)))
+          output <- evalDynamic(plan, input)
+          value  <- effect(output.toTypedValue(Schema.tuple2(s1, s2)))
           result <- i match {
             case 0 => ZIO.succeed(encode(value._1)(s1))
             case 1 => ZIO.succeed(encode(value._2)(s2))
             case n =>
               ZIO.fail(
-                new RuntimeException(s"Can not extract element at index ${i} from ${value.getClass().getName()}"),
+                new RuntimeException(s"Can not extract element at index ${n} from ${value.getClass().getName()}"),
               )
           }
         } yield result
@@ -136,12 +136,11 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
             }
         } yield encode(params)
 
-      case ExecutionPlan.Zip(left, right, o1, o2) =>
+      case ExecutionPlan.Zip(left, right) =>
         for {
           a <- eval(left, input)
           b <- eval(right, input)
-          c <- effect(merge(a, b, o1, o2))
-        } yield c
+        } yield DynamicValue.Tuple(a, b)
 
       case ExecutionPlan.IfElse(cond, ifTrue, ifFalse) =>
         for {
@@ -223,20 +222,6 @@ object Interpreter                                                             {
 
   private def encode[A](a: A)(implicit schema: Schema[A]): DynamicValue =
     schema.toDynamic(a)
-
-  private def merge(
-    d1: DynamicValue,
-    d2: DynamicValue,
-    a1: SchemaAst,
-    a2: SchemaAst,
-  ): Either[String, DynamicValue] = {
-    val s1 = a1.toSchema.asInstanceOf[Schema[Any]]
-    val s2 = a2.toSchema.asInstanceOf[Schema[Any]]
-    for {
-      v1 <- d1.toTypedValue(s1)
-      v2 <- d2.toTypedValue(s2)
-    } yield (s1 <*> s2).toDynamic((v1, v2))
-  }
 
   final case class Scope[S, K, V](ref: Ref[Map[(S, K), V]]) {
     def get(scope: S, key: K): UIO[Option[V]] = ref.get.map(_.get(scope, key))

@@ -81,6 +81,27 @@ object LambdaSpec extends ZIOSpecDefault {
 
       checkAll(gen) { res => assertZIO(res.eval {})(isTrue) }
     },
+    test("stats") {
+      val res = constant(100) >>> stats(
+        identity[Int] + constant(1),
+        identity[Int] + constant(2),
+        identity[Int] + constant(3),
+      )
+
+      assertZIO(res.eval {})(equalTo(103))
+    },
+    test("zip") {
+      val res = constant(1) <*> constant(2)
+      assertZIO(res.eval {})(equalTo((1, 2)))
+    },
+    test("zipRight") {
+      val res = constant(1) *> constant(2)
+      assertZIO(res.eval {})(equalTo(2))
+    },
+    test("zipLeft") {
+      val res = constant(1) <* constant(2)
+      assertZIO(res.eval {})(equalTo(1))
+    },
   )
 
   case class FooBar(foo: Int, bar: Int)

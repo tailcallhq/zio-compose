@@ -61,7 +61,7 @@ object Lambda {
     f(context).endContext(context).compile
   }
 
-  def stats[A](f: A ~> Unit*): A ~> Unit = f.reduceLeft(_ *> _)
+  def stats[A, B](f: A ~> B*)(implicit ev: Schema[B]): A ~> B = f.reduce(_ *> _)
 
   def transform[A, B](transformations: Transformation[A, B]*)(implicit s: Schema[B]): A ~> B =
     transformations.foldLeft[A ~> B](default[B]) {
