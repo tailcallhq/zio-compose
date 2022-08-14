@@ -1,6 +1,6 @@
 package compose
 
-import compose.dsl.{ArrowDSL, BooleanDSL, NumericDSL, StringDSL, TupleDSL}
+import compose.dsl._
 import compose.Lambda.{unsafeMake, ScopeContext}
 import compose.interpreter.Interpreter
 import compose.lens.Transformation
@@ -28,7 +28,7 @@ trait Lambda[-A, +B]
     unsafeMake(ExecutionPlan.DoWhile(self.compile, cond.compile))
 
   final def endContext[B1 >: B](ctx: ScopeContext)(implicit s: Schema[B1]): A ~> B1 =
-    (self: A ~> B1) <* Lambda.endContext(ctx)
+    (self: A ~> B1) <* unsafeMake { ExecutionPlan.EndScope(ctx.hashCode()) }
 
   final def eval[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
     Interpreter.inMemory.flatMap(_.eval[B1](self.compile, in.toDynamic(a)))
@@ -63,9 +63,6 @@ object Lambda {
         case Right(value) => schema.toDynamic(value)
       })
   }
-
-  def endContext(ctx: ScopeContext): Any ~> Unit =
-    unsafeMake { ExecutionPlan.EndScope(ctx.hashCode()) }
 
   def fromMap[A, B](
     source: Map[A, B],

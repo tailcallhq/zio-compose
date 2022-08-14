@@ -45,7 +45,7 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
 
       case ExecutionPlan.Debug(name) =>
         val json = new String(JsonCodec.encode(Schema[DynamicValue])(input).toArray)
-        ZIO.succeed(println(s"${name}: $json")).as(input)
+        zio.Console.printLine(s"${name}: $json").as(input)
 
       case ExecutionPlan.Arg(i, a1, a2) =>
         val s1 = a1.toSchema.asInstanceOf[Schema[Any]]
