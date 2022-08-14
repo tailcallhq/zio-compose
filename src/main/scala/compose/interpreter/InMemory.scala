@@ -21,11 +21,24 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
       case operation: ExecutionPlan.StringOperation =>
         for {
           string <- effect(input.toTypedValue(Schema[String]))
-        } yield operation match {
-          case StringOperation.Length    => Schema[Int].toDynamic(string.length)
-          case StringOperation.UpperCase => Schema[String].toDynamic(string.toUpperCase)
-          case StringOperation.LowerCase => Schema[String].toDynamic(string.toLowerCase)
-        }
+          result <- operation match {
+            case StringOperation.Length            => ZIO.succeed(Schema[Int].toDynamic(string.length))
+            case StringOperation.UpperCase         => ZIO.succeed(Schema[String].toDynamic(string.toUpperCase))
+            case StringOperation.LowerCase         => ZIO.succeed(Schema[String].toDynamic(string.toLowerCase))
+            case StringOperation.StartsWith(other) =>
+              for {
+                str2 <- eval[String](other, input)
+              } yield Schema[Boolean].toDynamic(string.startsWith(str2))
+            case StringOperation.EndsWith(other)   =>
+              for {
+                str2 <- eval[String](other, input)
+              } yield Schema[Boolean].toDynamic(string.endsWith(str2))
+            case StringOperation.Contains(other)   =>
+              for {
+                str2 <- eval[String](other, input)
+              } yield Schema[Boolean].toDynamic(string.contains(str2))
+          }
+        } yield result
 
       case ExecutionPlan.EndScope(id) =>
         scope.delete(id).as(Schema[Unit].toDynamic {})

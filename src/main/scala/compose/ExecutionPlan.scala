@@ -77,8 +77,14 @@ object ExecutionPlan {
   sealed trait StringOperation extends ExecutionPlan
 
   object StringOperation {
-    case object Length    extends StringOperation
+    case class StartsWith(plan: ExecutionPlan) extends StringOperation
+    case class EndsWith(plan: ExecutionPlan)   extends StringOperation
+    case class Contains(plan: ExecutionPlan)   extends StringOperation
+
+    case object Length extends StringOperation
+
     case object UpperCase extends StringOperation
+
     case object LowerCase extends StringOperation
   }
 }

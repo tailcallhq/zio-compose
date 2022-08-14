@@ -11,7 +11,9 @@ import zio.test.TestAspect.timeout
 import scala.language.postfixOps
 
 object LambdaSpec extends ZIOSpecDefault {
+
   import Lambda._
+
   override def spec = suite("Lambda")(
     test("constant") {
       val res = constant(100)
@@ -150,6 +152,27 @@ object LambdaSpec extends ZIOSpecDefault {
       test("lowerCase") {
         val res = constant("ABC").lowerCase
         assertZIO(res.eval {})(equalTo("abc"))
+      },
+      test("startsWith") {
+        val gen = Gen.fromIterable(Seq("A" -> true, "a" -> false))
+        checkAll(gen) { case (str, expected) =>
+          val res = constant("ABC").startsWith(constant(str))
+          assertZIO(res.eval {})(equalTo(expected))
+        }
+      },
+      test("endsWith") {
+        val gen = Gen.fromIterable(Seq("C" -> true, "c" -> false))
+        checkAll(gen) { case (str, expected) =>
+          val res = constant("ABC").endsWith(constant(str))
+          assertZIO(res.eval {})(equalTo(expected))
+        }
+      },
+      test("contains") {
+        val gen = Gen.fromIterable(Seq("A" -> true, "B" -> true, "c" -> false))
+        checkAll(gen) { case (str, expected) =>
+          val res = constant("ABC").contains(constant(str))
+          assertZIO(res.eval {})(equalTo(expected))
+        }
       },
     ),
   ) @@ timeout(5 second)
