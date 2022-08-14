@@ -3,8 +3,7 @@ package compose
 import compose.interpreter.Interpreter
 import compose.lens.LambdaAccessor
 import zio.{ZIO, ZIOAppDefault}
-import zio.schema.codec.JsonCodec
-import zio.schema.{DeriveSchema, DynamicValue, Schema}
+import zio.schema.{DeriveSchema, Schema}
 
 object Example extends ZIOAppDefault {
 
@@ -72,15 +71,8 @@ object Example extends ZIOAppDefault {
 
   override def run =
     for {
-      int <- Interpreter.inMemory
-
-      res <- int.evalDynamic(program8)
-
-      // Serialize and print the output
-      resJson <- ZIO.succeed(
-        new String(JsonCodec.encode(Schema[DynamicValue])(res).toArray),
-      )
-      _       <- ZIO.succeed(println(resJson))
+      int <- Interpreter.eval(program8)
+      _   <- ZIO.succeed(println(int))
     } yield ()
 
   case class Fib(a: Int, b: Int, i: Int)

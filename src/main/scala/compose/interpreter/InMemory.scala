@@ -16,7 +16,7 @@ import zio.schema.codec.JsonCodec
 final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpreter {
   import InMemory._
 
-  def eval(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
+  def evalDynamic(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
       case operation: ExecutionPlan.StringOperation =>
         for {
@@ -67,8 +67,8 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
       case ExecutionPlan.RepeatWhile(f, cond) =>
         def loop(input: DynamicValue): Task[DynamicValue] = {
           for {
-            output <- eval(f, input)
-            isTrue <- evalTyped[Boolean](cond, output)
+            output <- evalDynamic(f, input)
+            isTrue <- eval[Boolean](cond, output)
             result <- if (isTrue) loop(output) else ZIO.succeed(output)
           } yield result
         }
@@ -78,8 +78,8 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
       case ExecutionPlan.DoWhile(f, cond) =>
         def loop: Task[DynamicValue] = {
           for {
-            output <- eval(f, input)
-            isTrue <- evalTyped[Boolean](cond, input)
+            output <- evalDynamic(f, input)
+            isTrue <- eval[Boolean](cond, input)
             result <- if (isTrue) loop else ZIO.succeed(output)
           } yield result
         }
@@ -91,7 +91,7 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
           canConcat <- effect(canConcat.toTypedValue(Schema[CanConcat[_]]))
           result    <- canConcat match {
             case CanConcat.ConcatString =>
-              evalTyped[String](self, input).zipWithPar(evalTyped[String](other, input)) { case (a, b) =>
+              eval[String](self, input).zipWithPar(eval[String](other, input)) { case (a, b) =>
                 toDynamic(a + b)
               }
           }
@@ -127,19 +127,19 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
 
       case ExecutionPlan.LogicalAnd(left, right) =>
         for {
-          left  <- evalTyped[Boolean](left, input)
-          right <- evalTyped[Boolean](right, input)
+          left  <- eval[Boolean](left, input)
+          right <- eval[Boolean](right, input)
         } yield toDynamic { left && right }
 
       case ExecutionPlan.LogicalOr(left, right) =>
         for {
-          left  <- evalTyped[Boolean](left, input)
-          right <- evalTyped[Boolean](right, input)
+          left  <- eval[Boolean](left, input)
+          right <- eval[Boolean](right, input)
         } yield toDynamic { left || right }
 
       case ExecutionPlan.LogicalNot(plan)                             =>
         for {
-          bool <- evalTyped[Boolean](plan, input)
+          bool <- eval[Boolean](plan, input)
         } yield toDynamic { !bool }
       case ExecutionPlan.NumericOperation(operation, left, right, is) =>
         for {
@@ -147,7 +147,7 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
           params    <-
             isNumeric match {
               case IsNumeric.NumericInt =>
-                evalTyped[Int](left, input).zip(evalTyped[Int](right, input)).map { case (a, b) =>
+                eval[Int](left, input).zip(eval[Int](right, input)).map { case (a, b) =>
                   operation match {
                     case NumericDSL.Operation.Add                => a + b
                     case NumericDSL.Operation.Multiply           => a * b
@@ -162,19 +162,19 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
 
       case ExecutionPlan.Zip(left, right) =>
         for {
-          a <- eval(left, input)
-          b <- eval(right, input)
+          a <- evalDynamic(left, input)
+          b <- evalDynamic(right, input)
         } yield DynamicValue.Tuple(a, b)
 
       case ExecutionPlan.IfElse(cond, ifTrue, ifFalse) =>
         for {
-          cond   <- evalTyped[Boolean](cond, input)
-          result <- if (cond) eval(ifTrue, input) else eval(ifFalse, input)
+          cond   <- eval[Boolean](cond, input)
+          result <- if (cond) evalDynamic(ifTrue, input) else evalDynamic(ifFalse, input)
         } yield result
       case ExecutionPlan.Pipe(first, second)           =>
         for {
-          input  <- eval(first, input)
-          output <- eval(second, input)
+          input  <- evalDynamic(first, input)
+          output <- evalDynamic(second, input)
         } yield output
       case ExecutionPlan.GetPath(path)                 =>
         input match {
@@ -198,8 +198,8 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
         }
       case ExecutionPlan.Equals(left, right)           =>
         for {
-          left  <- eval(left, input)
-          right <- eval(right, input)
+          left  <- evalDynamic(left, input)
+          right <- evalDynamic(right, input)
         } yield toDynamic(left == right)
 
       case ExecutionPlan.FromMap(value, ast) =>

@@ -7,7 +7,12 @@ import compose.lens.Transformation
 import zio.schema.Schema
 import zio.Task
 
-trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] with TupleDSL[A, B] with BooleanDSL[A, B] with StringDSL[A, B] { self =>
+trait Lambda[-A, +B]
+    extends ArrowDSL[A, B]
+    with NumericDSL[A, B]
+    with TupleDSL[A, B]
+    with BooleanDSL[A, B]
+    with StringDSL[A, B] { self =>
   final def ->>[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
     self transform other
 
@@ -26,7 +31,7 @@ trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] with TupleDSL[
     (self: A ~> B1) <* Lambda.endContext(ctx)
 
   final def eval[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
-    Interpreter.inMemory.flatMap(_.evalTyped[B1](self.compile, in.toDynamic(a)))
+    Interpreter.inMemory.flatMap(_.eval[B1](self.compile, in.toDynamic(a)))
 
   final def repeatUntil[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 =
     repeatWhile(cond.not)
