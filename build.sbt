@@ -1,13 +1,15 @@
 import Dependencies._
 
-ThisBuild / scalaVersion := "2.13.8"
+Global / scalaVersion := "2.13.8"
+val libVersion = "0.1.0-SNAPSHOT"
 
 // Projects
-lazy val root = project
+lazy val root = (project in file(".")).aggregate(zioCompose, zioComposeMacros)
+
+lazy val zioCompose = project
   .in(file("./compose"))
   .settings(
-    name                := "compose",
-    version             := "0.1.0-SNAPSHOT",
+    name                := "zio-compose",
     fork                := true,
     libraryDependencies := Seq(
       ZIOCore,
@@ -19,6 +21,15 @@ lazy val root = project
     ),
     publish / skip      := true,
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+  )
+  .dependsOn(zioComposeMacros)
+
+lazy val zioComposeMacros = project
+  .in(file("./compose-macros"))
+  .settings(
+    name                := "zio-compose-macros",
+    fork                := true,
+    publish / skip      := true,
   )
 
 // Flags
