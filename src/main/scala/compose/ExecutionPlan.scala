@@ -65,7 +65,7 @@ object ExecutionPlan {
 
   final case class Constant(value: DynamicValue) extends ExecutionPlan
 
-  final case class Debug(name: String, plan: ExecutionPlan) extends ExecutionPlan
+  final case class Debug(name: String) extends ExecutionPlan
 
   final case class EndScope(ctx: Int) extends ExecutionPlan
 

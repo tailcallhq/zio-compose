@@ -12,7 +12,7 @@ trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] with TupleDSL[
   def compile: ExecutionPlan
 
   final def debug(name: String): Lambda[A, B] =
-    unsafeMake { ExecutionPlan.Debug(name, self.compile) }
+    self >>> unsafeMake { ExecutionPlan.Debug(name) }
 
   final def doUntil[C](cond: C ~> Boolean): A ~> B =
     doWhile(cond.not)
@@ -39,10 +39,10 @@ trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] with TupleDSL[
 
 object Lambda {
 
-  final def _1[B1, B2](implicit s0: Schema[B1], s1: Schema[B2]): (B1, B2) ~> B1 =
+  def _1[B1, B2](implicit s0: Schema[B1], s1: Schema[B2]): (B1, B2) ~> B1 =
     unsafeMake { ExecutionPlan.Arg(0, s0.ast, s1.ast) }
 
-  final def _2[B1, B2](implicit s0: Schema[B1], s1: Schema[B2]): (B1, B2) ~> B2 =
+  def _2[B1, B2](implicit s0: Schema[B1], s1: Schema[B2]): (B1, B2) ~> B2 =
     unsafeMake { ExecutionPlan.Arg(1, s0.ast, s1.ast) }
 
   def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B = unsafeMake {

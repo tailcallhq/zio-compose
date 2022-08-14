@@ -5,6 +5,7 @@ import zio.schema.{DynamicValue, Schema}
 import scala.annotation.tailrec
 import scala.collection.immutable.ListMap
 import zio.{Ref, Task, UIO, ZIO}
+import zio.schema.codec.JsonCodec
 
 final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
   import Interpreter._
@@ -14,11 +15,9 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
       case ExecutionPlan.EndScope(id) =>
         scope.deleteScope(id).as(Schema[Unit].toDynamic {})
 
-      case ExecutionPlan.Debug(name, plan) =>
-        for {
-          result <- eval(plan, input)
-          _      <- ZIO.succeed(println(s"${name}: ${input} ~> ${result}"))
-        } yield result
+      case ExecutionPlan.Debug(name) =>
+        val json = new String(JsonCodec.encode(Schema[DynamicValue])(input).toArray)
+        ZIO.succeed(println(s"${name}: $json")).as(input)
 
       case ExecutionPlan.Arg(i, a1, a2) =>
         val s1 = a1.toSchema.asInstanceOf[Schema[Any]]
