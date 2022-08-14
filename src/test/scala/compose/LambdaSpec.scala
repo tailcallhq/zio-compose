@@ -138,6 +138,20 @@ object LambdaSpec extends ZIOSpecDefault {
       }
       assertZIO(res.eval {})(equalTo(1024))
     },
+    suite("StringOperations")(
+      test("length") {
+        val res = constant("ABC").length
+        assertZIO(res.eval {})(equalTo(3))
+      },
+      test("upperCase") {
+        val res = constant("abc").upperCase
+        assertZIO(res.eval {})(equalTo("ABC"))
+      },
+      test("lowerCase") {
+        val res = constant("ABC").lowerCase
+        assertZIO(res.eval {})(equalTo("abc"))
+      },
+    ),
   ) @@ timeout(5 second)
 
   case class FooBar(foo: Int, bar: Int)

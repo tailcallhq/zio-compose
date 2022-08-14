@@ -72,5 +72,13 @@ object ExecutionPlan {
 
   case object Identity extends ExecutionPlan
 
-  case class DoWhile(plan: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
+  final case class DoWhile(plan: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
+
+  sealed trait StringOperation extends ExecutionPlan
+
+  object StringOperation {
+    case object Length    extends StringOperation
+    case object UpperCase extends StringOperation
+    case object LowerCase extends StringOperation
+  }
 }

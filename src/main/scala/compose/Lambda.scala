@@ -1,13 +1,13 @@
 package compose
 
-import compose.dsl.{ArrowDSL, BooleanDSL, NumericDSL, TupleDSL}
+import compose.dsl.{ArrowDSL, BooleanDSL, NumericDSL, StringDSL, TupleDSL}
 import compose.Lambda.{unsafeMake, ScopeContext}
 import compose.interpreter.Interpreter
 import compose.lens.Transformation
 import zio.schema.Schema
 import zio.Task
 
-trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] with TupleDSL[A, B] with BooleanDSL[A, B] { self =>
+trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] with TupleDSL[A, B] with BooleanDSL[A, B] with StringDSL[A, B] { self =>
   final def ->>[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
     self transform other
 

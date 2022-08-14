@@ -4,6 +4,8 @@ import compose.ExecutionPlan
 import compose.dsl.ArrowDSL.CanConcat
 import compose.dsl.NumericDSL
 import compose.dsl.NumericDSL.IsNumeric
+import compose.interpreter.Interpreter.effect
+import compose.ExecutionPlan.StringOperation
 import zio.schema.{DynamicValue, Schema}
 
 import scala.annotation.tailrec
@@ -16,6 +18,15 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
 
   def eval(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
+      case operation: ExecutionPlan.StringOperation =>
+        for {
+          string <- effect(input.toTypedValue(Schema[String]))
+        } yield operation match {
+          case StringOperation.Length    => Schema[Int].toDynamic(string.length)
+          case StringOperation.UpperCase => Schema[String].toDynamic(string.toUpperCase)
+          case StringOperation.LowerCase => Schema[String].toDynamic(string.toLowerCase)
+        }
+
       case ExecutionPlan.EndScope(id) =>
         scope.delete(id).as(Schema[Unit].toDynamic {})
 
@@ -28,7 +39,7 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
         val s2 = a2.toSchema.asInstanceOf[Schema[Any]]
 
         for {
-          value  <- Interpreter.effect(input.toTypedValue(Schema.tuple2(s1, s2)))
+          value  <- effect(input.toTypedValue(Schema.tuple2(s1, s2)))
           result <- i match {
             case 0 => ZIO.succeed(toDynamic(value._1)(s1))
             case 1 => ZIO.succeed(toDynamic(value._2)(s2))
@@ -77,7 +88,7 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
 
       case ExecutionPlan.Concat(self, other, canConcat) =>
         for {
-          canConcat <- Interpreter.effect(canConcat.toTypedValue(Schema[CanConcat[_]]))
+          canConcat <- effect(canConcat.toTypedValue(Schema[CanConcat[_]]))
           result    <- canConcat match {
             case CanConcat.ConcatString =>
               evalTyped[String](self, input).zipWithPar(evalTyped[String](other, input)) { case (a, b) =>
@@ -132,7 +143,7 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
         } yield toDynamic { !bool }
       case ExecutionPlan.NumericOperation(operation, left, right, is) =>
         for {
-          isNumeric <- Interpreter.effect(is.toTypedValue(Schema[IsNumeric[_]]))
+          isNumeric <- effect(is.toTypedValue(Schema[IsNumeric[_]]))
           params    <-
             isNumeric match {
               case IsNumeric.NumericInt =>
@@ -195,7 +206,7 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
         val schema = ast.toSchema.asInstanceOf[Schema[Any]]
         for {
           result <- value.get(input) match {
-            case Some(value) => Interpreter.effect(value.toTypedValue(schema)).map(Option(_))
+            case Some(value) => effect(value.toTypedValue(schema)).map(Option(_))
             case None        => ZIO.succeed(None)
           }
         } yield Schema.option(schema).toDynamic(result)
