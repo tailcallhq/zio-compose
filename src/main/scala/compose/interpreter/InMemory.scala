@@ -1,6 +1,9 @@
 package compose.interpreter
 
-import compose.{CanConcat, ExecutionPlan, IsNumeric, Numeric}
+import compose.ExecutionPlan
+import compose.dsl.ArrowDSL.CanConcat
+import compose.dsl.NumericDSL
+import compose.dsl.NumericDSL.IsNumeric
 import zio.schema.{DynamicValue, Schema}
 
 import scala.annotation.tailrec
@@ -135,12 +138,12 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
               case IsNumeric.NumericInt =>
                 evalTyped[Int](left, input).zip(evalTyped[Int](right, input)).map { case (a, b) =>
                   operation match {
-                    case Numeric.Operation.Add                => a + b
-                    case Numeric.Operation.Multiply           => a * b
-                    case Numeric.Operation.Subtract           => a - b
-                    case Numeric.Operation.Divide             => a / b
-                    case Numeric.Operation.GreaterThan        => if (a > b) 1 else 0
-                    case Numeric.Operation.GreaterThanEqualTo => if (a >= b) 1 else 0
+                    case NumericDSL.Operation.Add                => a + b
+                    case NumericDSL.Operation.Multiply           => a * b
+                    case NumericDSL.Operation.Subtract           => a - b
+                    case NumericDSL.Operation.Divide             => a / b
+                    case NumericDSL.Operation.GreaterThan        => if (a > b) 1 else 0
+                    case NumericDSL.Operation.GreaterThanEqualTo => if (a >= b) 1 else 0
                   }
                 }
             }

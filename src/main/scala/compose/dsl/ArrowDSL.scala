@@ -1,8 +1,9 @@
 package compose.dsl
 
-import compose.{~>, CanConcat, ExecutionPlan, Lambda}
+import compose.{~>, ExecutionPlan, Lambda}
 import compose.Lambda.unsafeMake
-import zio.schema.Schema
+import compose.dsl.ArrowDSL.CanConcat
+import zio.schema.{DeriveSchema, Schema}
 
 trait ArrowDSL[-A, +B] { self: A ~> B =>
   final def =!=[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
@@ -52,4 +53,15 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
 
   final def zipRight[A1 <: A, B1 >: B, B2](other: A1 ~> B2)(implicit b1: Schema[B1], b2: Schema[B2]): A1 ~> B2 =
     ((self: A1 ~> B1) <*> other)._2
+}
+
+object ArrowDSL {
+  sealed trait CanConcat[A] {}
+
+  object CanConcat {
+    implicit case object ConcatString extends CanConcat[String]
+
+    implicit val schema: Schema[CanConcat[_]] = DeriveSchema.gen[CanConcat[_]]
+  }
+
 }

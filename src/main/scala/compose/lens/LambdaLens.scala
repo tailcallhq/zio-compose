@@ -1,5 +1,6 @@
-package compose
+package compose.lens
 
+import compose.{~>, ExecutionPlan}
 import compose.Lambda.unsafeMake
 import zio.schema.Schema
 import zio.prelude.NonEmptyList

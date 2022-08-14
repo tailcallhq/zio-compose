@@ -1,4 +1,4 @@
-package compose
+package compose.lens
 
 import zio.schema.{AccessorBuilder, Schema}
 

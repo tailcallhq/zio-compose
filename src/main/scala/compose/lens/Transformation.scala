@@ -1,4 +1,6 @@
-package compose
+package compose.lens
+
+import compose.~>
 
 sealed trait Transformation[-A, +B] { self => }
 

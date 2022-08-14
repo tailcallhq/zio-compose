@@ -1,5 +1,6 @@
 package compose
 
+import compose.dsl.NumericDSL
 import zio.schema.{DeriveSchema, DynamicValue, Schema}
 import zio.schema.codec.JsonCodec
 import zio.{Chunk, ZIO}
@@ -43,7 +44,7 @@ object ExecutionPlan {
   final case class LogicalNot(plan: ExecutionPlan) extends ExecutionPlan
 
   final case class NumericOperation(
-    operation: Numeric.Operation,
+    operation: NumericDSL.Operation,
     left: ExecutionPlan,
     right: ExecutionPlan,
     numeric: DynamicValue,

@@ -3,6 +3,7 @@ package compose
 import compose.dsl.{ArrowDSL, BooleanDSL, NumericDSL, TupleDSL}
 import compose.Lambda.{unsafeMake, ScopeContext}
 import compose.interpreter.Interpreter
+import compose.lens.Transformation
 import zio.schema.Schema
 import zio.Task
 
@@ -35,7 +36,7 @@ trait Lambda[-A, +B] extends ArrowDSL[A, B] with NumericDSL[A, B] with TupleDSL[
   }
 
   final def transform[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
-    Transformation[A, C, I](self, other)
+    lens.Transformation[A, C, I](self, other)
 }
 
 object Lambda {

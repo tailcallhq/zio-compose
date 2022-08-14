@@ -1,6 +1,7 @@
 package compose
 
 import compose.interpreter.Interpreter
+import compose.lens.LambdaAccessor
 import zio.{ZIO, ZIOAppDefault}
 import zio.schema.codec.JsonCodec
 import zio.schema.{DeriveSchema, DynamicValue, Schema}
@@ -8,7 +9,7 @@ import zio.schema.{DeriveSchema, DynamicValue, Schema}
 object Example extends ZIOAppDefault {
 
   import Lambda._
-  import IsNumeric._
+  import compose.dsl.NumericDSL.IsNumeric._
   import Person._
 
   // WAP to sum two numbers

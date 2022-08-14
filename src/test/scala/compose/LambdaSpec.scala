@@ -1,5 +1,6 @@
 package compose
 
+import compose.lens.LambdaAccessor
 import zio.durationInt
 import zio.schema.{DeriveSchema, Schema}
 import zio.schema.Schema._
