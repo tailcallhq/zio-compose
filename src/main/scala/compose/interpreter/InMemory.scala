@@ -1,19 +1,20 @@
-package compose
+package compose.interpreter
 
+import compose.{CanConcat, ExecutionPlan, IsNumeric, Numeric}
 import zio.schema.{DynamicValue, Schema}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.ListMap
-import zio.{Ref, Task, UIO, ZIO}
+import zio.{Task, UIO, ZIO}
 import zio.schema.codec.JsonCodec
 
-final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
-  import Interpreter._
+final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpreter {
+  import InMemory._
 
   def eval(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
       case ExecutionPlan.EndScope(id) =>
-        scope.deleteScope(id).as(Schema[Unit].toDynamic {})
+        scope.delete(id).as(Schema[Unit].toDynamic {})
 
       case ExecutionPlan.Debug(name) =>
         val json = new String(JsonCodec.encode(Schema[DynamicValue])(input).toArray)
@@ -24,10 +25,10 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
         val s2 = a2.toSchema.asInstanceOf[Schema[Any]]
 
         for {
-          value  <- effect(input.toTypedValue(Schema.tuple2(s1, s2)))
+          value  <- Interpreter.effect(input.toTypedValue(Schema.tuple2(s1, s2)))
           result <- i match {
-            case 0 => ZIO.succeed(encode(value._1)(s1))
-            case 1 => ZIO.succeed(encode(value._2)(s2))
+            case 0 => ZIO.succeed(toDynamic(value._1)(s1))
+            case 1 => ZIO.succeed(toDynamic(value._2)(s2))
             case n =>
               ZIO.fail(
                 new RuntimeException(s"Can not extract element at index ${n} from ${value.getClass().getName()}"),
@@ -47,7 +48,7 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
       case ExecutionPlan.SetScope(scopeId, ctxId) =>
         for {
           _ <- scope.set(scopeId, ctxId, input)
-        } yield encode(())
+        } yield toDynamic(())
 
       case ExecutionPlan.RepeatWhile(f, cond) =>
         def loop(input: DynamicValue): Task[DynamicValue] = {
@@ -73,11 +74,11 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
 
       case ExecutionPlan.Concat(self, other, canConcat) =>
         for {
-          canConcat <- effect(canConcat.toTypedValue(Schema[CanConcat[_]]))
+          canConcat <- Interpreter.effect(canConcat.toTypedValue(Schema[CanConcat[_]]))
           result    <- canConcat match {
             case CanConcat.ConcatString =>
               evalTyped[String](self, input).zipWithPar(evalTyped[String](other, input)) { case (a, b) =>
-                encode(a + b)
+                toDynamic(a + b)
               }
           }
         } yield result
@@ -114,21 +115,21 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
         for {
           left  <- evalTyped[Boolean](left, input)
           right <- evalTyped[Boolean](right, input)
-        } yield encode { left && right }
+        } yield toDynamic { left && right }
 
       case ExecutionPlan.LogicalOr(left, right) =>
         for {
           left  <- evalTyped[Boolean](left, input)
           right <- evalTyped[Boolean](right, input)
-        } yield encode { left || right }
+        } yield toDynamic { left || right }
 
       case ExecutionPlan.LogicalNot(plan)                             =>
         for {
           bool <- evalTyped[Boolean](plan, input)
-        } yield encode { !bool }
+        } yield toDynamic { !bool }
       case ExecutionPlan.NumericOperation(operation, left, right, is) =>
         for {
-          isNumeric <- effect(is.toTypedValue(Schema[IsNumeric[_]]))
+          isNumeric <- Interpreter.effect(is.toTypedValue(Schema[IsNumeric[_]]))
           params    <-
             isNumeric match {
               case IsNumeric.NumericInt =>
@@ -143,7 +144,7 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
                   }
                 }
             }
-        } yield encode(params)
+        } yield toDynamic(params)
 
       case ExecutionPlan.Zip(left, right) =>
         for {
@@ -185,13 +186,13 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
         for {
           left  <- eval(left, input)
           right <- eval(right, input)
-        } yield encode(left == right)
+        } yield toDynamic(left == right)
 
       case ExecutionPlan.FromMap(value, ast) =>
         val schema = ast.toSchema.asInstanceOf[Schema[Any]]
         for {
           result <- value.get(input) match {
-            case Some(value) => effect(value.toTypedValue(schema)).map(Option(_))
+            case Some(value) => Interpreter.effect(value.toTypedValue(schema)).map(Option(_))
             case None        => ZIO.succeed(None)
           }
         } yield Schema.option(schema).toDynamic(result)
@@ -199,48 +200,12 @@ final case class Interpreter(scope: Interpreter.Scope[Int, Int, DynamicValue]) {
       case ExecutionPlan.Identity            => ZIO.succeed(input)
     }
   }
-
-  def evalDynamic(plan: ExecutionPlan, value: DynamicValue): Task[DynamicValue] =
-    eval(plan, value)
-
-  def evalTyped[A](plan: ExecutionPlan, value: DynamicValue)(implicit ev: Schema[A]): Task[A] =
-    evalDynamic(plan, value).flatMap(value => effect(value.toTypedValue(ev)))
 }
-object Interpreter                                                             {
 
-  def evalDynamic(plan: ExecutionPlan, value: DynamicValue): Task[DynamicValue] =
-    make.flatMap(i => i.evalDynamic(plan, value))
+object InMemory {
+  def make: UIO[InMemory] =
+    Scope.inMemory[Int, Int, DynamicValue].map(scope => new InMemory(scope))
 
-  def evalDynamic[B](lmb: Any ~> B)(implicit b: Schema[B]): Task[DynamicValue] =
-    evalDynamic(lmb.compile, Schema.primitive[Unit].toDynamic(()))
-
-  def evalTyped[B](lmb: Any ~> B)(implicit b: Schema[B]): Task[B] =
-    evalTyped[B](lmb.compile, Schema.primitive[Unit].toDynamic(()))
-
-  def evalTyped[A](plan: ExecutionPlan, value: DynamicValue)(implicit ev: Schema[A]): Task[A] =
-    make.flatMap(i => i.evalTyped(plan, value))
-
-  def make: UIO[Interpreter] =
-    Scope.make[Int, Int, DynamicValue].map(scope => new Interpreter(scope))
-
-  private def effect[A](e: Either[String, A])(implicit trace: zio.Trace): Task[A] =
-    e match {
-      case Left(error) => ZIO.fail(new Exception(error))
-      case Right(a)    => ZIO.succeed(a)
-    }
-
-  private def encode[A](a: A)(implicit schema: Schema[A]): DynamicValue =
+  private def toDynamic[A](a: A)(implicit schema: Schema[A]): DynamicValue =
     schema.toDynamic(a)
-
-  final case class Scope[S, K, V](ref: Ref[Map[(S, K), V]]) {
-    def deleteScope(scope: S): UIO[Unit] = ref.update { map => map.filter { case s -> _ -> _ => s != scope } }
-
-    def get(scope: S, key: K): UIO[Option[V]] = ref.get.map(_.get(scope, key))
-
-    def set(scope: S, key: K, value: V): UIO[Unit] = ref.update { map => map + (((scope, key), value)) }
-  }
-
-  object Scope {
-    def make[S, K, V]: UIO[Scope[S, K, V]] = Ref.make(Map.empty[(S, K), V]).map(Scope(_))
-  }
 }

@@ -1,5 +1,6 @@
 package compose
 
+import compose.interpreter.Interpreter
 import zio.{ZIO, ZIOAppDefault}
 import zio.schema.codec.JsonCodec
 import zio.schema.{DeriveSchema, DynamicValue, Schema}
@@ -70,7 +71,9 @@ object Example extends ZIOAppDefault {
 
   override def run =
     for {
-      res <- Interpreter.evalDynamic(program8)
+      int <- Interpreter.inMemory
+
+      res <- int.evalDynamic(program8)
 
       // Serialize and print the output
       resJson <- ZIO.succeed(
