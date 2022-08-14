@@ -18,6 +18,10 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
 
   def evalDynamic(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
+      case ExecutionPlan.Show(name, plan) =>
+        val json = plan.json
+        zio.Console.printLine(s"${name}: $json").as(input)
+
       case operation: ExecutionPlan.StringOperation =>
         for {
           string <- effect(input.toTypedValue(Schema[String]))

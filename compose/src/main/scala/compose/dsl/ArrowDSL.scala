@@ -63,6 +63,8 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
     ExecutionPlan.RepeatWhile(self.compile, cond.compile)
   }
 
+  final def show(name: String): A ~> B = unsafeMake(ExecutionPlan.Show(name, self.compile))
+
   final def transform[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
     lens.Transformation[A, C, I](self, other)
 
