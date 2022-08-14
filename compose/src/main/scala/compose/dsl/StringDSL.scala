@@ -5,12 +5,12 @@ import compose.ExecutionPlan.StringOperation
 
 trait StringDSL[-A, +B] { self: A ~> B =>
   final def contains[A1 <: A](other: A1 ~> String)(implicit ev: B <:< String): A1 ~> Boolean =
-    stringOp(StringOperation.Contains(other.compile))
+    stringOp[Boolean](StringOperation.Contains(other.compile))
 
   final def endsWith[A1 <: A](other: A1 ~> String)(implicit ev: B <:< String): A1 ~> Boolean =
-    stringOp(StringOperation.EndsWith(other.compile))
+    stringOp[Boolean](StringOperation.EndsWith(other.compile))
 
-  final def length(implicit ev: B <:< String): A ~> Int = stringOp(StringOperation.Length)
+  final def length(implicit ev: B <:< String): A ~> Int = stringOp[Int](StringOperation.Length)
 
   final def lowerCase(implicit ev: B <:< String): A ~> String = stringOp(StringOperation.LowerCase)
 
@@ -19,5 +19,6 @@ trait StringDSL[-A, +B] { self: A ~> B =>
 
   final def upperCase(implicit ev: B <:< String): A ~> String = stringOp(StringOperation.UpperCase)
 
-  private final def stringOp(operation: StringOperation): A ~> Nothing = self >>> Lambda.unsafeMake { operation }
+  private final def stringOp[C](operation: StringOperation): A ~> C =
+    self >>> Lambda.make[B, C] { operation }
 }

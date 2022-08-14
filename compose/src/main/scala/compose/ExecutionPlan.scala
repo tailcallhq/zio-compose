@@ -29,7 +29,7 @@ object ExecutionPlan {
 
   final case class GetScope(scope: Int, ctx: Int, value: DynamicValue) extends ExecutionPlan
 
-  final case class Arg(n: Int, ast0: SchemaAst, ast1: SchemaAst) extends ExecutionPlan
+  final case class Arg(n: Int) extends ExecutionPlan
 
   final case class RepeatWhile(self: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
 
@@ -70,7 +70,7 @@ object ExecutionPlan {
 
   final case class EndScope(ctx: Int) extends ExecutionPlan
 
-  final case class Show(name: String, plan: ExecutionPlan) extends ExecutionPlan
+  final case class Show(name: String) extends ExecutionPlan
 
   case object Identity extends ExecutionPlan
 

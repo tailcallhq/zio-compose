@@ -94,7 +94,6 @@ object LambdaSpec extends ZIOSpecDefault {
         identity[Int] + constant(2),
         identity[Int] + constant(3),
       )
-
       assertZIO(res.eval {})(equalTo(103))
     },
     test("zip") {

@@ -18,7 +18,7 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
 
   def evalDynamic(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
-      case ExecutionPlan.Show(name, plan) =>
+      case ExecutionPlan.Show(name) =>
         val json = plan.json
         zio.Console.printLine(s"${name}: $json").as(input)
 
@@ -51,21 +51,19 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
         val json = new String(JsonCodec.encode(Schema[DynamicValue])(input).toArray)
         zio.Console.printLine(s"${name}: $json").as(input)
 
-      case ExecutionPlan.Arg(i, a1, a2) =>
-        val s1 = a1.toSchema.asInstanceOf[Schema[Any]]
-        val s2 = a2.toSchema.asInstanceOf[Schema[Any]]
-
-        for {
-          value  <- effect(input.toTypedValue(Schema.tuple2(s1, s2)))
-          result <- i match {
-            case 0 => ZIO.succeed(toDynamic(value._1)(s1))
-            case 1 => ZIO.succeed(toDynamic(value._2)(s2))
-            case n =>
-              ZIO.fail(
-                new RuntimeException(s"Can not extract element at index ${n} from ${value.getClass().getName()}"),
-              )
-          }
-        } yield result
+      case ExecutionPlan.Arg(i) =>
+        input match {
+          case DynamicValue.Tuple(left, right) =>
+            i match {
+              case 0 => ZIO.succeed(left)
+              case 1 => ZIO.succeed(right)
+              case n =>
+                ZIO.fail(
+                  new RuntimeException(s"Can not extract element at index ${n} from ${input}"),
+                )
+            }
+          case _                               => ZIO.fail(new RuntimeException(s"Can not extract args from ${input}"))
+        }
 
       case ExecutionPlan.GetScope(scopeId, ctxId, initial) =>
         for {
