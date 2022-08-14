@@ -4,7 +4,7 @@ ThisBuild / scalaVersion := "2.13.8"
 
 // Projects
 lazy val root = project
-  .in(file("."))
+  .in(file("./compose"))
   .settings(
     name                := "compose",
     version             := "0.1.0-SNAPSHOT",
