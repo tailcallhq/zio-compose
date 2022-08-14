@@ -6,12 +6,16 @@ ZIO Compose is a library that helps you write programs that can be serialized an
 
 ## Introduction
 
-The basic idea behind having serializable programs is if code and data are on different machines, one of them must be moved to the other before the code can be executed on the data.
+The basic idea behind having serializable programs is if code and data are on different machines, one of them **must be
+moved** to the other before the code can be executed on the data.
 Typically, in big-data applications it's much more efficient to move code than the other way around.
 
-There are other use-cases that don't involve big-data where you would want a serializable program. For eg: Instead a writing a json or yaml configuration to decide which control flow to execute, you encode the control flow itself, send it over the wire and execute it directly on the service.
+There are other use-cases that don't involve big-data where you would want a serializable program. For eg: Instead of
+reading a json or yaml configuration in your application, to decide which control flow to execute, you encode the
+control flow itself, send it over the wire to your application and execute that directly.
 
-ZIO Compose is a library that provides a type-safe DSL for writing programs that are serializable. It's built on top of [ZIO Schema].
+ZIO Compose intends to take care of such use cases. It intends to provide a complete DSL to write any kind of
+distributed computation using Scala in a type-safe manner. It's built on top of [ZIO Schema].
 
 [zio schema]: https://github.com/zio/zio-schema/pulls
 
@@ -20,10 +24,10 @@ ZIO Compose is a library that provides a type-safe DSL for writing programs that
 Update your `build.sbt` by adding `zio-compose` as a dependency.
 
 ```scala
-libraryDependencies += "io.tusharmath.github" % "zio-compose" %% version
+libraryDependencies += "com.tusharmath" % "zio-compose" %% version
 ```
 
-## Getting started
+# Getting started
 
 1. Here is a simple program that adds two numbers -
 
@@ -48,7 +52,8 @@ libraryDependencies += "io.tusharmath.github" % "zio-compose" %% version
 
 ## Lambda
 
-The core data type in ZIO Compose is `Lambda`. It is also type aliased by `~>` (tilde, greater than). A lambda `A ~> B` represents a serializable unary function that takes in an input of type `A` and produces and output of type `B`. For eg:
+The core data type in ZIO Compose is `Lambda`. It is also type aliased by `~>` (tilde, greater than). A lambda `A ~> B`
+represents a serializable unary function that takes in an input of type `A` and produces and output of type `B`. For eg:
 
 ```scala
 val c1: Any ~> Int = Lambda.constant(100)
@@ -56,7 +61,8 @@ val c1: Any ~> Int = Lambda.constant(100)
 
 The above lambda `c1` is a function that takes in any input and produces an `Int` value.
 
-Another example of lambda is `identity[A]` which like the scala's `identity` function, takes in a type `A` and returns itself as output. The only difference is that zio-compose's `identity` is serializable.
+Another example of lambda is `identity[A]` which like the scala's `identity` function, takes in a type `A` and returns
+itself as output. The only difference is that zio-compose's `identity` is serializable.
 
 ## Serialization
 
@@ -64,7 +70,7 @@ Any lambda from `A ~> B` can be serialized into JSON by performing a few steps.
 
 ```scala
 // A program that adds two numbers
-val program: Any ~> Int  = constant(1) + constant(2)
+val program: Any ~> Int = constant(1) + constant(2)
 
 // Call the `compile` method to create an execution plan
 val compilation: ExecutionPlan = program.compile
@@ -73,6 +79,27 @@ val compilation: ExecutionPlan = program.compile
 val json: String = compilation.compile.json
 ```
 
+## Performing Conditional
+
+Conditional operations can be implemented using the `diverge` operator on `Lambda`.
+The following program returns `"Yes"` if the condition is true and `"No"` if the condition is false.
+
+```scala
+import Lambda._
+
+val program = (constant(1) > constant(2)).diverge(
+  isTrue = constant("Yes"),
+  isFalse = constant("No")
+)
+```
+
+Since `1 < 2` the condition is false and the output thus become no.
+
+## Piping lambdas
+
+Two lambdas can be composed using the `pipe` or `compose` operator. For eg: if there exists a lambda `l1: A ~> B` and a
+lambda `l2: B ~> C` then they can be composed using the pipe operator as — `l1.pipe(l2)` or `l1 >>> l2`. This is the
+semantic equivalent of `l2(l1(a))` , where `a` is of type `A`.
 ## Advanced Example
 
 Here is an advanced example of a program that calculates fibonacci numbers and is completely serializable.
@@ -84,15 +111,15 @@ import zio.schema._
 case class Fib(a: Int, b: Int, i: Int)
 object Fib {
   implicit val schema: Schema[Fib] = DeriveSchema.gen[Fib]
-  val (a, b, i)                    = schema
+  val (a, b, i) = schema
     .makeAccessors(LambdaAccessor)
     .asInstanceOf[(Fib >>- Int, Fib >>- Int, Fib >>- Int)]
 }
 
 def fib = constant(Fib(0, 1, 0)) >>>
   transform(
-    Fib.b.get             ->> Fib.a.set,
+    Fib.b.get ->> Fib.a.set,
     Fib.a.get + Fib.b.get ->> Fib.b.set,
-    Fib.i.get.inc         ->> Fib.i.set,
+    Fib.i.get.inc ->> Fib.i.set,
   ).repeatWhile(Fib.i.get =!= constant(20)) >>> Fib.b.get
 ```
