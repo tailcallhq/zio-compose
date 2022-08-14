@@ -1,11 +1,9 @@
 package compose
 
 import compose.dsl._
-import compose.Lambda.{unsafeMake, ScopeContext}
-import compose.interpreter.Interpreter
+import compose.Lambda.unsafeMake
 import compose.lens.Transformation
 import zio.schema.Schema
-import zio.Task
 
 trait Lambda[-A, +B]
     extends ArrowDSL[A, B]
@@ -24,24 +22,6 @@ trait Lambda[-A, +B]
   final def doUntil[C](cond: C ~> Boolean): A ~> B =
     doWhile(cond.not)
 
-  final def doWhile[C](cond: C ~> Boolean): A ~> B =
-    unsafeMake(ExecutionPlan.DoWhile(self.compile, cond.compile))
-
-  final def endContext[B1 >: B](ctx: ScopeContext)(implicit s: Schema[B1]): A ~> B1 =
-    (self: A ~> B1) <* unsafeMake { ExecutionPlan.EndScope(ctx.hashCode()) }
-
-  final def eval[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
-    Interpreter.inMemory.flatMap(_.eval[B1](self.compile, in.toDynamic(a)))
-
-  final def repeatUntil[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 =
-    repeatWhile(cond.not)
-
-  final def repeatWhile[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 = unsafeMake {
-    ExecutionPlan.RepeatWhile(self.compile, cond.compile)
-  }
-
-  final def transform[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
-    lens.Transformation[A, C, I](self, other)
 }
 
 object Lambda {

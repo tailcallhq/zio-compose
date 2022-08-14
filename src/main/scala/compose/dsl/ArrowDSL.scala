@@ -1,9 +1,12 @@
 package compose.dsl
 
-import compose.{~>, ExecutionPlan, Lambda}
-import compose.Lambda.unsafeMake
+import compose.{lens, ~>, ExecutionPlan, Lambda}
+import compose.Lambda.{unsafeMake, ScopeContext}
 import compose.dsl.ArrowDSL.CanConcat
+import compose.interpreter.Interpreter
+import compose.lens.Transformation
 import zio.schema.{DeriveSchema, Schema}
+import zio.Task
 
 trait ArrowDSL[-A, +B] { self: A ~> B =>
   final def =!=[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
@@ -33,17 +36,35 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
   final def compose[X](other: X ~> A): X ~> B =
     other pipe self
 
-  final def diverge[C](isTrue: B ~> C, isFalse: B ~> C)(implicit ev: B <:< Boolean): A ~> C =
-    unsafeMake { ExecutionPlan.IfElse(self.compile, isTrue.compile, isFalse.compile) }
+  final def doWhile[C](cond: C ~> Boolean): A ~> B =
+    unsafeMake(ExecutionPlan.DoWhile(self.compile, cond.compile))
+
+  final def endContext[B1 >: B](ctx: ScopeContext)(implicit s: Schema[B1]): A ~> B1 =
+    (self: A ~> B1) <* unsafeMake {
+      ExecutionPlan.EndScope(ctx.hashCode())
+    }
 
   final def eq[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
     unsafeMake { ExecutionPlan.Equals(self.compile, other.compile) }
+
+  final def eval[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
+    Interpreter.inMemory.flatMap(_.eval[B1](self.compile, in.toDynamic(a)))
 
   final def notEq[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
     (self =:= other).not
 
   final def pipe[C](other: B ~> C): A ~> C =
     unsafeMake { ExecutionPlan.Pipe(self.compile, other.compile) }
+
+  final def repeatUntil[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 =
+    repeatWhile(cond.not)
+
+  final def repeatWhile[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 = unsafeMake {
+    ExecutionPlan.RepeatWhile(self.compile, cond.compile)
+  }
+
+  final def transform[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
+    lens.Transformation[A, C, I](self, other)
 
   final def zip[A1 <: A, B1 >: B, B2](other: A1 ~> B2): A1 ~> (B1, B2) =
     unsafeMake { ExecutionPlan.Zip(self.compile, other.compile) }
@@ -60,8 +81,6 @@ object ArrowDSL {
 
   object CanConcat {
     implicit case object ConcatString extends CanConcat[String]
-
     implicit val schema: Schema[CanConcat[_]] = DeriveSchema.gen[CanConcat[_]]
   }
-
 }
