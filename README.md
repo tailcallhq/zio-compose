@@ -93,7 +93,7 @@ val program = (constant(1) > constant(2)).diverge(
 )
 ```
 
-Since `1 < 2` the condition is `false` and the output thus become `"no"`.
+Since `1 < 2` the condition is `false` and the output thus becomes `"no"`.
 
 ## Piping Lambdas
 
@@ -129,7 +129,7 @@ object User {
 ```
 
 The `schema` field inside of `User` provides access to the meta-data and structure of the type `User`.
-Where as `lens` internally uses `schema` to navigate through an instance to lookup or update it's fields in a type-safe manner. Let's see that in action —
+Whereas `lens` internally uses `schema` to navigate through an instance to lookup or update it's fields in a type-safe manner. Let's see that in action —
 
 ```scala
 val user: Any ~> User = constant(User("John", "Doe", 23))
@@ -137,9 +137,9 @@ val age: User ~> Int  = User.lens.age.get
 val program: Any ~> Int = user >>> age
 ```
 
-Here above we create a user using `constant` and then using the derived lens we create a Lambda from `User ~> Int`.
+Here we create a user using `constant` and then using the derived lens we create a Lambda from `User ~> Int`.
 We compose the two lambdas together using the `>>>` operator (alias to `pipe`).
-The final program is a type-safe, serializable function that can take in anything and produce an integer.
+The final program is a type-safe, serializable function that can take anything and produce an integer.
 
 Now let's look at an example where we are updating a field using lenses in the User type -
 
@@ -153,7 +153,7 @@ The `set` methods on lens is a binary function, so it needs two arguments - 1. T
 ## Transformations
 
 Transformations from one type to another are easily possible using the lens API, however it can become a bit verbose and boilerplate sometimes.
-ZIO Compose provides a DSL to simplify transformations. Here is an example of converting `User` to `Customer`, we start by by defining the types, schema and it's lens.
+ZIO Compose provides a DSL to simplify transformations. Here is an example of converting `User` to `Customer`, we start by defining the types, schema and it's lens.
 
 ```scala
 case class Customer(name: String, age: Int, allowed: Boolean)
@@ -163,24 +163,28 @@ object Customer {
 }
 ```
 
-We then take each field of the user, perform some transformations on the field themselves and then set it in a customer.
-The `transform` function allows combining multiple transformations together.
+We then take each field of the user, perform some transformations on the field themselves and then set it in a customer. A transformation can be defined using the `->>` operator.
+
+```scala
+val t1: User ~> Customer = (User.lens.age.get + constant(10)) ->> Customer.lens.age.set,
+```
+
+A `Transformation`, is nothing but a pair of a getter and setter. We can combine multiple transformations using the `transform` operator -
 
 ```scala
 import Lambda._
 
-val transformation: User ~> Customer = transform(
+val user2Customer: User ~> Customer = transform(
   (User.lens.age.get + constant(10))                                     ->> Customer.lens.age.set,
   (User.lens.firstName.get ++ constant(" ") ++ Person.lens.lastName.get) ->> Customer.lens.name.set,
   (User.lens.age.get > constant(18))                                     ->> Customer.lens.isAllowed.set,
 )
 ```
 
-The `->>` operator creates a `Transformation`, which is nothing but a pair of a getter on it's left side and a setter on it's right side.
 The final output of the transformation is a function from `User ~> Customer`. We can then pipe in an actual user instance to produce a customer as follows —
 
 ```scala
-val program: Any ~> Customer = constant(User("John", "Doe", 20)) >>> transformation
+val program: Any ~> Customer = constant(User("John", "Doe", 20)) >>> user2Customer
 ```
 
 ## Advanced Example
