@@ -19,6 +19,7 @@ lazy val root = (project in file("."))
 
 lazy val zioCompose = project
   .in(file("./compose"))
+  .settings(publishSettings)
   .settings(
     name                := "zio-compose",
     fork                := true,
