@@ -187,6 +187,32 @@ The final output of the transformation is a function from `User ~> Customer`. We
 val program: Any ~> Customer = constant(User("John", "Doe", 20)) >>> user2Customer
 ```
 
+## Looping
+
+With ZIO Compose one can loop over a lambda in multiple ways. For eg:
+Let's say I want to add all numbers between 0 to 10. We can do this by creating a type `Sum` which maintains intermediary state of our program something like this —
+
+```scala
+import compose.macros.DeriveSchema
+
+case class Sum(count: Int, result: Int)
+object Sum {
+  implicit val schema = DeriveSchema.gen[Sum]
+  val lens = DeriveAccessor.gen[Sum]
+}
+```
+
+Then we write a recursive function using `repeatWhile` operator updating intermediary state `Sum` in each iteration.
+
+```scala
+import Lambda._
+
+val sum: Any ~> Int = transform(
+  Sum.lens.count.get.inc                   ->>  Sum.lens.count.set,
+  Sum.lens.result.get + Sum.lens.count.get ->> Sum.lens.result.set
+).repeatWhile(Sum.lens.count.get < constant(10))
+```
+
 ## Advanced Example
 
 Here is an advanced example of a program that calculates fibonacci numbers and is completely serializable.
