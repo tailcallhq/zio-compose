@@ -3,11 +3,12 @@ import Dependencies._
 Global / scalaVersion := "2.13.8"
 
 def publishSettings(projectName: String) = Seq(
-  publish / skip   := false,
-  name             := projectName,
-  versionScheme    := Some("early-semver"),
-  githubOwner      := "tusharmath",
-  githubRepository := "zio-compose",
+  publish / skip    := false,
+  name              := projectName,
+  versionScheme     := Some("early-semver"),
+  githubOwner       := "tusharmath",
+  githubRepository  := "zio-compose",
+  organizationName := "com.tusharmath",
 )
 
 // Projects
