@@ -79,9 +79,9 @@ val compilation: ExecutionPlan = program.compile
 val json: String = compilation.compile.json
 ```
 
-## Performing Conditional
+## Conditional Operations
 
-Conditional operations can be implemented using the `diverge` operator on `Lambda`.
+Conditional operations can be implemented on `Lambda`s that return a `Boolean` using the `diverge` operator.
 The following program returns `"Yes"` if the condition is true and `"No"` if the condition is false.
 
 ```scala
@@ -93,13 +93,96 @@ val program = (constant(1) > constant(2)).diverge(
 )
 ```
 
-Since `1 < 2` the condition is false and the output thus become no.
+Since `1 < 2` the condition is `false` and the output thus become `"no"`.
 
-## Piping lambdas
+## Piping Lambdas
 
 Two lambdas can be composed using the `pipe` or `compose` operator. For eg: if there exists a lambda `l1: A ~> B` and a
-lambda `l2: B ~> C` then they can be composed using the pipe operator as — `l1.pipe(l2)` or `l1 >>> l2`. This is the
-semantic equivalent of `l2(l1(a))` , where `a` is of type `A`.
+lambda `l2: B ~> C` then they can be composed using the pipe operator as —
+
+```scala
+val l1: A ~> B  = ???
+val l2: B ~> C  = ???
+val l12: A ~> C = A >>> B
+```
+
+This is the semantic equivalent of `l2(l1(a))` , where `a` is of type `A`.
+
+## Lenses
+
+ZIO Compose has support for lenses which allows very precise control over getting and setting values over record types.
+For eg: Let's say there is a type `User` and we want to get the `age` of that user. We could do something like this —
+
+```scala
+import zio.schema._
+import compose.macros.DeriveAccessors
+
+case class User(firstName: String, lastName: String, age: Int)
+object User {
+
+  // Derive the Schema
+  implicit val schema: Schema[User] = DeriveSchema.gen[User]
+
+  // Derive accessors
+  val lens = DeriveAccessors.gen[User]
+}
+```
+
+The `schema` field inside of `User` provides access to the meta-data and structure of the type `User`.
+Where as `lens` internally uses `schema` to navigate through an instance to lookup or update it's fields in a type-safe manner. Let's see that in action —
+
+```scala
+val user: Any ~> User = constant(User("John", "Doe", 23))
+val age: User ~> Int  = User.lens.age.get
+val program: Any ~> Int = user >>> age
+```
+
+Here above we create a user using `constant` and then using the derived lens we create a Lambda from `User ~> Int`.
+We compose the two lambdas together using the `>>>` operator (alias to `pipe`).
+The final program is a type-safe, serializable function that can take in anything and produce an integer.
+
+Now let's look at an example where we are updating a field using lenses in the User type -
+
+```scala
+val user: Any ~> User = constant(User("John", "Doe", 23))
+val program: Any ~> User = (user <*> constant(12)) >>> User.lens.age.set
+```
+
+The `set` methods on lens is a binary function, so it needs two arguments - 1. The whole object which needs to be updated and 2. the value it needs to set. In our case `age.set` would have a type like this - `(User, Int) ~> User`. That's why we use the `<*>` operator (alias to `zip`) to combine the two inputs and send it to the `set` function.
+
+## Transformations
+
+Transformations from one type to another are easily possible using the lens API, however it can become a bit verbose and boilerplate sometimes.
+ZIO Compose provides a DSL to simplify transformations. Here is an example of converting `User` to `Customer`, we start by by defining the types, schema and it's lens.
+
+```scala
+case class Customer(name: String, age: Int, allowed: Boolean)
+object Customer {
+  implicit val schema = DeriveSchema.gen[Customer]
+  val lens = DeriveAccessors.gen[Customer]
+}
+```
+
+We then take each field of the user, perform some transformations on the field themselves and then set it in a customer.
+The `transform` function allows combining multiple transformations together.
+
+```scala
+import Lambda._
+
+val transformation: User ~> Customer = transform(
+  (User.lens.age.get + constant(10))                                     ->> Customer.lens.age.set,
+  (User.lens.firstName.get ++ constant(" ") ++ Person.lens.lastName.get) ->> Customer.lens.name.set,
+  (User.lens.age.get > constant(18))                                     ->> Customer.lens.isAllowed.set,
+)
+```
+
+The `->>` operator creates a `Transformation`, which is nothing but a pair of a getter on it's left side and a setter on it's right side.
+The final output of the transformation is a function from `User ~> Customer`. We can then pipe in an actual user instance to produce a customer as follows —
+
+```scala
+val program: Any ~> Customer = constant(User("John", "Doe", 20)) >>> transformation
+```
+
 ## Advanced Example
 
 Here is an advanced example of a program that calculates fibonacci numbers and is completely serializable.
@@ -111,15 +194,13 @@ import zio.schema._
 case class Fib(a: Int, b: Int, i: Int)
 object Fib {
   implicit val schema: Schema[Fib] = DeriveSchema.gen[Fib]
-  val (a, b, i) = schema
-    .makeAccessors(LambdaAccessor)
-    .asInstanceOf[(Fib >>- Int, Fib >>- Int, Fib >>- Int)]
+  val lens = DeriveAccessor.gen[Fib]
 }
 
 def fib = constant(Fib(0, 1, 0)) >>>
   transform(
-    Fib.b.get ->> Fib.a.set,
-    Fib.a.get + Fib.b.get ->> Fib.b.set,
-    Fib.i.get.inc ->> Fib.i.set,
-  ).repeatWhile(Fib.i.get =!= constant(20)) >>> Fib.b.get
+    Fib.lens.b.get                  ->> Fib.lens.a.set,
+    Fib.lens.a.get + Fib.lens.b.get ->> Fib.lens.b.set,
+    Fib.lens.i.get.inc              ->> Fib.lens.i.set,
+  ).repeatWhile(Fib.lens.i.get =!= constant(20)) >>> Fib.lens.b.get
 ```
