@@ -4,11 +4,11 @@ Global / scalaVersion := "2.13.8"
 
 val libVersion = "0.1.0-SNAPSHOT"
 
-lazy val publishSettings = Seq(
-  publish / skip    := false,
-  publishTo         := Some("Github Package Registry" at "https://maven.pkg.github.com/tusharmath/zio-compose"),
-  versionScheme     := Some("early-semver"),
-  githubWorkflowEnv := Map("GITHUB_TOKEN" -> "${{ secrets.GITHUB_TOKEN }}"),
+def publishSettings(projectName: String) = Seq(
+  publish / skip := false,
+  name           := projectName,
+  publishTo      := Some("Github Package Registry" at s"https://maven.pkg.github.com/tusharmath/${projectName}"),
+  versionScheme  := Some("early-semver"),
 )
 
 // Projects
@@ -20,9 +20,8 @@ lazy val root = (project in file("."))
 
 lazy val zioCompose = project
   .in(file("./compose"))
-  .settings(publishSettings)
+  .settings(publishSettings("zio-compose"))
   .settings(
-    name                := "zio-compose",
     fork                := true,
     libraryDependencies := Seq(
       ZIOCore,
@@ -38,9 +37,8 @@ lazy val zioCompose = project
 
 lazy val zioComposeMacros = project
   .in(file("./compose-macros"))
-  .settings(publishSettings)
+  .settings(publishSettings("zio-compose-macros"))
   .settings(
-    name                := "zio-compose-macros",
     fork                := true,
     libraryDependencies := Seq(
       ZIOSchema,
