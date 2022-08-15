@@ -3,12 +3,11 @@ import Dependencies._
 Global / scalaVersion := "2.13.8"
 
 def publishSettings(projectName: String) = Seq(
-  publish / skip := false,
-  name           := projectName,
-  versionScheme  := Some("early-semver"),
-  publishTo      := Some("GitHub Package Registry" at s"https://maven.pkg.github.com/tusharmath/zio-compose"),
-  credentials += Credentials("GitHub Package Registry", "maven.pkg.github.com", "tusharmath", sys.env("GITHUB_TOKEN")),
-  organization   := "com.tusharmath",
+  publish / skip   := false,
+  name             := projectName,
+  versionScheme    := Some("early-semver"),
+  githubOwner      := "tusharmath",
+  githubRepository := "zio-compose",
 )
 
 // Projects
