@@ -1,5 +1,3 @@
-# ZIO Compose
-
 ![workflow](https://github.com/tusharmath/graphql-compose/actions/workflows/ci.yml/badge.svg)
 
 ZIO Compose is a library that helps you write programs that can be serialized and sent over the wire.
@@ -28,6 +26,17 @@ libraryDependencies += "com.tusharmath" % "zio-compose" %% version
 ```
 
 # Getting started
+
+- [Getting started](#getting-started)
+  - [Lambda](#lambda)
+  - [Serialization](#serialization)
+  - [Conditional](#conditional)
+  - [Piping](#piping)
+  - [Lenses](#lenses)
+  - [Transformations](#transformations)
+  - [Looping](#looping)
+  - [Scopes](#scopes)
+  - [Fibonacci](#fibonacci)
 
 1. Here is a simple program that adds two numbers -
 
@@ -79,7 +88,7 @@ val compilation: ExecutionPlan = program.compile
 val json: String = compilation.compile.json
 ```
 
-## Conditional Operations
+## Conditional
 
 Conditional operations can be implemented on `Lambda`s that return a `Boolean` using the `diverge` operator.
 The following program returns `"Yes"` if the condition is true and `"No"` if the condition is false.
@@ -95,7 +104,7 @@ val program = (constant(1) > constant(2)).diverge(
 
 Since `1 < 2` the condition is `false` and the output thus becomes `"no"`.
 
-## Piping Lambdas
+## Piping
 
 Two lambdas can be composed using the `pipe` or `compose` operator. For eg: if there exists a lambda `l1: A ~> B` and a
 lambda `l2: B ~> C` then they can be composed using the pipe operator as —
@@ -248,7 +257,7 @@ val program = scope { implicit ctx =>
 A `Scope` is like a `ZRef` with `get` and `set` methods on it. It can be initialized with a default value.
 However, it can only be initialized inside a `scope { }` block. The `{implicit ctx =>` provides context in which the scoped variable is available.
 
-## Advanced Example
+## Fibonacci
 
 Here is an advanced example of a program that calculates fibonacci numbers and is completely serializable.
 
@@ -269,3 +278,5 @@ def fib = constant(Fib(0, 1, 0)) >>>
     Fib.lens.i.get.inc              ->> Fib.lens.i.set,
   ).repeatWhile(Fib.lens.i.get =!= constant(20)) >>> Fib.lens.b.get
 ```
+
+**PS:** If you like what you see, give the repo a ⭐️ 🙏

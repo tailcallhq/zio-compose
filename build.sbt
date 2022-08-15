@@ -4,7 +4,11 @@ Global / scalaVersion := "2.13.8"
 val libVersion = "0.1.0-SNAPSHOT"
 
 // Projects
-lazy val root = (project in file(".")).aggregate(zioCompose, zioComposeMacros)
+lazy val root = (project in file("."))
+  .aggregate(zioCompose, zioComposeMacros)
+  .settings(
+    publish / skip := true,
+  )
 
 lazy val zioCompose = project
   .in(file("./compose"))
