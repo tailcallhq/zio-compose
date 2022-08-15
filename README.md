@@ -190,7 +190,7 @@ val program: Any ~> Customer = constant(User("John", "Doe", 20)) >>> user2Custom
 ## Looping
 
 With ZIO Compose one can loop over a lambda in multiple ways. For eg:
-Let's say I want to add all numbers between 0 to 10. We can do this by creating a type `Sum` which maintains intermediary state of our program something like this —
+Let's say I want to add all numbers between 0 to 10. We can do this by creating a type `Sum` which maintains intermediary state of our program like this —
 
 ```scala
 import compose.macros.DeriveSchema
@@ -202,16 +202,51 @@ object Sum {
 }
 ```
 
-Then we write a recursive function using `repeatWhile` operator updating intermediary state `Sum` in each iteration.
+Then we make a lambda of type `Sum ~> Sum` to represent one iteration of our loop. In the iteration we perform two operations -
+
+1. Increase the value of `count` by one.
+2. Add the value of `count` to `result`.
 
 ```scala
 import Lambda._
 
-val sum: Any ~> Int = transform(
-  Sum.lens.count.get.inc                   ->>  Sum.lens.count.set,
+val iteration: Sum ~> Sum = transform(
+  Sum.lens.count.get.inc                   ->> Sum.lens.count.set,
   Sum.lens.result.get + Sum.lens.count.get ->> Sum.lens.result.set
-).repeatWhile(Sum.lens.count.get < constant(10))
+)
 ```
+
+We then use the `repeatWhile` operator to keep iterating while the condition is true.
+
+```scala
+val sum: Any ~> Sum = iteration.repeatWhile(Sum.lens.count.get < constant(10))
+```
+
+To get the exact value of the sum we can again use the lens API as follows —
+
+```scala
+val program: Any ~> Int = sum >>> Sum.lens.result.get
+```
+
+## Scopes
+
+Scopes allows us to define and update variables within a given context.
+They turn out to be pretty handy when we want to share some data across different part of our program without having to pass it using `pipe`.
+Below we take an arbitrary example where have two numbers and we want to check if their sum is greater than their product.
+
+```scala
+import Lambda._
+val program = scope { implicit ctx =>
+  val a = Scope(10)
+  val b = Scope(5)
+  val result = Scope(false)
+
+  (a.get + b.get) > (a.get * b.get) >>> result.set
+}
+```
+
+A `Scope` is like a `ZRef` with `get` and `set` methods on it. It can be initialized with a default value.
+However, it can only be initialized inside a `scope { }` block. The `{implicit ctx =>` provides context in which the scoped variable is available.
 
 ## Advanced Example
 
