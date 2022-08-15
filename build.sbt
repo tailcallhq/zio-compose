@@ -9,7 +9,7 @@ def publishSettings(projectName: String) = Seq(
   version        := libVersion,
   name           := projectName,
   versionScheme  := Some("early-semver"),
-  publishTo      := Some("Github Package Registry" at s"https://maven.pkg.github.com/tusharmath/${projectName}"),
+  publishTo      := Some("Github Package Registry" at s"https://maven.pkg.github.com/tusharmath/zio-compose"),
 )
 
 // Projects
