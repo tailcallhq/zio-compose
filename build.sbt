@@ -1,8 +1,8 @@
 import Dependencies._
 
-Global / scalaVersion             := "2.13.8"
-ThisBuild / githubWorkflowPublish := Seq(WorkflowStep.Sbt(List("ci-release")))
-ThisBuild / githubWorkflowPublishTargetBranches += RefPredicate.StartsWith(Ref.Tag("v"))
+Global / scalaVersion                           := "2.13.8"
+ThisBuild / githubWorkflowPublish               := Seq(WorkflowStep.Sbt(List("ci-release")))
+ThisBuild / githubWorkflowPublishTargetBranches := Seq()
 
 def publishSettings(projectName: String) = Seq(
   publish / skip   := false,
