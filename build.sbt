@@ -1,13 +1,14 @@
 import Dependencies._
 
-Global / scalaVersion := "2.13.8"
+Global / scalaVersion                           := "2.13.8"
+ThisBuild / githubWorkflowPublish               := Seq(WorkflowStep.Sbt(List("ci-release")))
 
 def publishSettings(projectName: String) = Seq(
-  publish / skip    := false,
-  name              := projectName,
-  versionScheme     := Some("early-semver"),
-  githubOwner       := "tusharmath",
-  githubRepository  := "zio-compose",
+  publish / skip   := false,
+  name             := projectName,
+  versionScheme    := Some("early-semver"),
+  githubOwner      := "tusharmath",
+  githubRepository := "zio-compose",
   organizationName := "com.tusharmath",
 )
 

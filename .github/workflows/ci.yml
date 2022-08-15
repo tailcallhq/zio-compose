@@ -110,5 +110,4 @@ jobs:
           tar xf targets.tar
           rm targets.tar
 
-      - name: Publish project
-        run: sbt ++${{ matrix.scala }} +publish
+      - run: sbt ++${{ matrix.scala }} ci-release
