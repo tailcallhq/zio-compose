@@ -4,13 +4,12 @@ Global / scalaVersion := "2.13.8"
 
 val libVersion = "0.1.0-SNAPSHOT"
 
-githubOwner      := "tusharmath"
-githubRepository := "zio-compose"
-
 def publishSettings(projectName: String) = Seq(
   publish / skip := false,
+  version        := libVersion,
   name           := projectName,
   versionScheme  := Some("early-semver"),
+  publishTo      := Some("Github Package Registry" at s"https://maven.pkg.github.com/tusharmath/${projectName}"),
 )
 
 // Projects
