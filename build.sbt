@@ -5,9 +5,10 @@ Global / scalaVersion := "2.13.8"
 val libVersion = "0.1.0-SNAPSHOT"
 
 lazy val publishSettings = Seq(
-  publish / skip := false,
-  publishTo      := Some("Github Package Registry" at "https://maven.pkg.github.com/tusharmath/zio-compose"),
-  versionScheme  := Some("early-semver"),
+  publish / skip    := false,
+  publishTo         := Some("Github Package Registry" at "https://maven.pkg.github.com/tusharmath/zio-compose"),
+  versionScheme     := Some("early-semver"),
+  githubWorkflowEnv := Map("GITHUB_TOKEN" -> "${{ secrets.GITHUB_TOKEN }}"),
 )
 
 // Projects
