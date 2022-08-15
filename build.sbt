@@ -30,6 +30,10 @@ lazy val zioComposeMacros = project
     name                := "zio-compose-macros",
     fork                := true,
     publish / skip      := true,
+    libraryDependencies := Seq(
+      ZIOSchema,
+      "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
+    ),
   )
 
 // Flags
@@ -38,4 +42,6 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 Global / scalacOptions        := Seq(
   "-Ywarn-unused:imports",
   "-Werror",
+  "-feature",
+  "-language:reflectiveCalls",
 )

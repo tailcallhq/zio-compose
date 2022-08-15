@@ -1,6 +1,5 @@
 package compose
 
-import compose.lens.LambdaAccessor
 import zio.durationInt
 import zio.schema.{DeriveSchema, Schema}
 import zio.schema.Schema._
@@ -9,6 +8,7 @@ import zio.test.Assertion.{equalTo, isTrue}
 import zio.test.TestAspect.timeout
 
 import scala.language.postfixOps
+import compose.macros.DeriveAccessors
 
 object LambdaSpec extends ZIOSpecDefault {
 
@@ -51,18 +51,19 @@ object LambdaSpec extends ZIOSpecDefault {
     },
     suite("lens")(
       test("get") {
-        val res = constant(FooBar(100, 200)) >>> FooBar.foo.get
+        val res = constant(FooBar(100, 200)) >>> FooBar.accessors.foo.get
         assertZIO(res.eval {})(equalTo(100))
       },
       test("set") {
-        val res = constant(FooBar(100, 200)) <*> constant(1) >>> FooBar.foo.set
+        val res = constant(FooBar(100, 200)) <*> constant(1) >>> FooBar.accessors.foo.set
         assertZIO(res.eval {})(equalTo(FooBar(1, 200)))
       },
     ),
     test("transformation") {
-      val res = constant(FooBar(1, 1)) >>> transform(
-        FooBar.foo.get + constant(1) ->> FooBar.foo.set,
-        FooBar.bar.get + constant(2) ->> FooBar.bar.set,
+      val accessors = FooBar.accessors
+      val res       = constant(FooBar(1, 1)) >>> transform(
+        accessors.foo.get + constant(1) ->> accessors.foo.set,
+        accessors.bar.get + constant(2) ->> accessors.bar.set,
       )
       assertZIO(res.eval {})(equalTo(FooBar(2, 3)))
     },
@@ -180,6 +181,6 @@ object LambdaSpec extends ZIOSpecDefault {
 
   object FooBar {
     implicit val schema: Schema[FooBar] = DeriveSchema.gen[FooBar]
-    val (foo, bar) = schema.makeAccessors(LambdaAccessor).asInstanceOf[(FooBar >>- Int, FooBar >>- Int)]
+    val accessors                       = DeriveAccessors.gen[FooBar]
   }
 }

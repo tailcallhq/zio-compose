@@ -1,15 +1,13 @@
 package compose
 
 import compose.interpreter.Interpreter
-import compose.lens.LambdaAccessor
 import zio.{ZIO, ZIOAppDefault}
 import zio.schema.{DeriveSchema, Schema}
+import compose.macros.DeriveAccessors
 
 object Example extends ZIOAppDefault {
 
   import Lambda._
-  import compose.dsl.NumericDSL.IsNumeric._
-  import Person._
 
   // WAP to sum two numbers
   def program1: Any ~> Int = constant(1) + constant(2)
@@ -22,22 +20,22 @@ object Example extends ZIOAppDefault {
   def program3 = constant(10) > constant(2)
 
   def program4 =
-    (default[User] zip (constant(Person("Tushar", "Mathur", 100)) >>> Person.age.get)) >>>
-      User.age.set
+    (default[User] zip (constant(Person("Tushar", "Mathur", 100)) >>> Person.lens.age.get)) >>>
+      User.lens.age.set
 
   def program5 = constant(Person("Tushar", "Mathur", 50)) >>> transform(
-    (Person.age.get + constant(10))                                ->> User.age.set,
-    (Person.firstName.get ++ constant(" ") ++ Person.lastName.get) ->> User.name.set,
-    (Person.age.get > constant(18))                                ->> User.isAllowed.set,
+    (Person.lens.age.get + constant(10))                                     ->> User.lens.age.set,
+    (Person.lens.firstName.get ++ constant(" ") ++ Person.lens.lastName.get) ->> User.lens.name.set,
+    (Person.lens.age.get > constant(18))                                     ->> User.lens.isAllowed.set,
   )
 
   def program6 = {
     constant(Fib(0, 1, 0)) >>>
       transform(
-        Fib.b.get             ->> Fib.a.set,
-        Fib.a.get + Fib.b.get ->> Fib.b.set,
-        Fib.i.get.inc         ->> Fib.i.set,
-      ).repeatWhile(Fib.i.get =!= constant(20)) >>> Fib.b.get
+        Fib.lens.b.get                  ->> Fib.lens.a.set,
+        Fib.lens.a.get + Fib.lens.b.get ->> Fib.lens.b.set,
+        Fib.lens.i.get.inc              ->> Fib.lens.i.set,
+      ).repeatWhile(Fib.lens.i.get =!= constant(20)) >>> Fib.lens.b.get
   }
 
   def program7 = (constant(2) <*> constant(2) <*> constant(3)) >>> scope { implicit ctx =>
@@ -83,23 +81,16 @@ object Example extends ZIOAppDefault {
 
   object Fib {
     implicit val schema: Schema[Fib] = DeriveSchema.gen[Fib]
-    val (a, b, i)                    = schema
-      .makeAccessors(LambdaAccessor)
-      .asInstanceOf[(Fib >>- Int, Fib >>- Int, Fib >>- Int)]
+    val lens                         = DeriveAccessors.gen[Fib]
   }
 
   object Person {
     implicit val schema: Schema[Person] = DeriveSchema.gen[Person]
-    val (firstName, lastName, age)      = schema
-      .makeAccessors(LambdaAccessor)
-      .asInstanceOf[(Person >>- String, Person >>- String, Person >>- Int)]
+    val lens                            = DeriveAccessors.gen[Person]
   }
 
   object User {
     implicit val schema: Schema[User] = DeriveSchema.gen[User]
-
-    val (name, age, isAllowed) = schema
-      .makeAccessors(LambdaAccessor)
-      .asInstanceOf[(User >>- String, User >>- Int, User >>- Boolean)]
+    val lens                          = DeriveAccessors.gen[User]
   }
 }
