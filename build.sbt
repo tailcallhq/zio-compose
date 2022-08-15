@@ -1,7 +1,14 @@
 import Dependencies._
 
 Global / scalaVersion := "2.13.8"
+
 val libVersion = "0.1.0-SNAPSHOT"
+
+lazy val publishSettings = Seq(
+  publish / skip := false,
+  publishTo      := Some("Github Package Registry" at "https://maven.pkg.github.com/tusharmath/zio-compose"),
+  versionScheme  := Some("early-semver"),
+)
 
 // Projects
 lazy val root = (project in file("."))
@@ -23,17 +30,16 @@ lazy val zioCompose = project
       ZIOTest,
       ZIOTestSbt,
     ),
-    publish / skip      := true,
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
   )
   .dependsOn(zioComposeMacros)
 
 lazy val zioComposeMacros = project
   .in(file("./compose-macros"))
+  .settings(publishSettings)
   .settings(
     name                := "zio-compose-macros",
     fork                := true,
-    publish / skip      := true,
     libraryDependencies := Seq(
       ZIOSchema,
       "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
