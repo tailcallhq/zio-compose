@@ -8,7 +8,7 @@ def publishSettings(projectName: String) = Seq(
   versionScheme  := Some("early-semver"),
   publishTo      := Some("GitHub Package Registry" at s"https://maven.pkg.github.com/tusharmath/zio-compose"),
   credentials += Credentials("GitHub Package Registry", "maven.pkg.github.com", "tusharmath", sys.env("GITHUB_TOKEN")),
-  organization   := "io.github.tusharmath",
+  organization   := "com.tusharmath",
 )
 
 // Projects
