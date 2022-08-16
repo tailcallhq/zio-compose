@@ -1,6 +1,5 @@
 package examples
 
-import compose.interpreter.Interpreter
 import zio.{ZIO, ZIOAppDefault}
 import zio.schema.{DeriveSchema, Schema}
 import compose.macros.DeriveAccessors
