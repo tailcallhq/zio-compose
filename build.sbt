@@ -1,7 +1,17 @@
 import Dependencies._
 
-Global / scalaVersion     := "2.13.8"
-ThisBuild / versionScheme := Some("early-semver")
+// Flags
+Global / semanticdbEnabled          := true
+Global / onChangedBuildSource       := ReloadOnSourceChanges
+Global / scalacOptions              := Seq(
+  "-Ywarn-unused:imports",
+  "-Werror",
+  "-feature",
+  "-language:reflectiveCalls",
+)
+Global / scalaVersion               := "2.13.8"
+ThisBuild / versionScheme           := Some("early-semver")
+ThisBuild / dynverSonatypeSnapshots := true
 
 lazy val publishSettings = Seq(
   githubOwner       := "tusharmath",
@@ -44,13 +54,3 @@ lazy val zioComposeMacros = project
       "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
     ),
   )
-
-// Flags
-Global / semanticdbEnabled    := true
-Global / onChangedBuildSource := ReloadOnSourceChanges
-Global / scalacOptions        := Seq(
-  "-Ywarn-unused:imports",
-  "-Werror",
-  "-feature",
-  "-language:reflectiveCalls",
-)
