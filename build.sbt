@@ -22,7 +22,7 @@ lazy val publishSettings = Seq(
 
 // Projects
 lazy val root = (project in file("."))
-  .aggregate(zioCompose, zioComposeMacros)
+  .aggregate(zioCompose, zioComposeMacros, zioComposeExamples)
   .settings(name := "root", publish / skip := true)
   .settings(publishSettings)
 
@@ -30,7 +30,6 @@ lazy val zioCompose = project
   .in(file("./compose"))
   .settings(publishSettings)
   .settings(
-    fork                := true,
     name                := "zio-compose",
     libraryDependencies := Seq(
       ZIOCore,
@@ -48,10 +47,19 @@ lazy val zioComposeMacros = project
   .in(file("./compose-macros"))
   .settings(publishSettings)
   .settings(
-    fork                := true,
     name                := "zio-compose-macros",
     libraryDependencies := Seq(
       ZIOSchema,
       "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
     ),
+  )
+
+lazy val zioComposeExamples = project
+  .in(file("./compose-examples"))
+  .dependsOn(zioCompose, zioComposeMacros)
+  .settings(publishSettings)
+  .settings(
+    name           := "zio-compose-examples",
+    publish / skip := true,
+    fork           := true,
   )

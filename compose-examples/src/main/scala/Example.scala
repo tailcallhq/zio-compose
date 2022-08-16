@@ -1,34 +1,39 @@
-package compose
+package examples
 
 import compose.interpreter.Interpreter
 import zio.{ZIO, ZIOAppDefault}
 import zio.schema.{DeriveSchema, Schema}
 import compose.macros.DeriveAccessors
+import compose.{Lambda, Interpreter}
 
 object Example extends ZIOAppDefault {
-
-  import Lambda._
+  import compose.Lambda._
 
   // WAP to sum two numbers
   def program1: Any ~> Int = constant(1) + constant(2)
 
+  // conditionally execute one of the two programs
   def program2 = constant(true).diverge(
     isTrue = constant("Yes"),
     isFalse = constant("No"),
   )
 
+  // numeric comparison
   def program3 = constant(10) > constant(2)
 
+  // lense for accessing the value of a user
   def program4 =
     (default[User] zip (constant(Person("Tushar", "Mathur", 100)) >>> Person.lens.age.get)) >>>
       User.lens.age.set
 
+  // transforming a person into a user
   def program5 = constant(Person("Tushar", "Mathur", 50)) >>> transform(
     (Person.lens.age.get + constant(10))                                     ->> User.lens.age.set,
     (Person.lens.firstName.get ++ constant(" ") ++ Person.lens.lastName.get) ->> User.lens.name.set,
     (Person.lens.age.get > constant(18))                                     ->> User.lens.isAllowed.set,
   )
 
+  // calculating fib(20)
   def program6 = {
     constant(Fib(0, 1, 0)) >>>
       transform(
@@ -38,6 +43,7 @@ object Example extends ZIOAppDefault {
       ).repeatWhile(Fib.lens.i.get =!= constant(20)) >>> Fib.lens.b.get
   }
 
+  // testing if the sum of three numbers is greater than their product
   def program7 = (constant(2) <*> constant(2) <*> constant(3)) >>> scope { implicit ctx =>
     val a      = Scope.make(0)
     val b      = Scope.make(0)
@@ -53,6 +59,7 @@ object Example extends ZIOAppDefault {
     ) *> result.get
   }
 
+  // fibonacci using mutables scopes
   def program8 = constant(10) >>> scope { implicit ctx =>
     val a = Scope.make(0)
     val b = Scope.make(1)
