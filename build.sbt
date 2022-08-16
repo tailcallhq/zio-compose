@@ -6,13 +6,13 @@ ThisBuild / versionScheme := Some("early-semver")
 lazy val publishSettings = Seq(
   githubOwner       := "tusharmath",
   githubRepository  := "zio-compose",
-  githubTokenSource := TokenSource.GitConfig("github.token"),
+  githubTokenSource := TokenSource.GitConfig("github.token") || TokenSource.Environment("GITHUB_TOKEN"),
 )
 
 // Projects
 lazy val root = (project in file("."))
   .aggregate(zioCompose, zioComposeMacros)
-  .settings(publish / skip := true)
+  .settings(name := "root", publish / skip := true)
   .settings(publishSettings)
 
 lazy val zioCompose = project
