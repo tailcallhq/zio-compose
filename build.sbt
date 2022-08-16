@@ -1,8 +1,7 @@
 import Dependencies._
 
-Global / scalaVersion                           := "2.13.8"
-ThisBuild / githubWorkflowPublishTargetBranches := Seq()
-ThisBuild / versionScheme                       := Some("early-semver")
+Global / scalaVersion     := "2.13.8"
+ThisBuild / versionScheme := Some("early-semver")
 
 lazy val publishSettings = Seq(
   githubOwner       := "tusharmath",
