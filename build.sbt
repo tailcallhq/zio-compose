@@ -48,7 +48,7 @@ lazy val zioComposeMacros = project
   .settings(publishSettings)
   .settings(
     fork                := true,
-    name                := "zio-compose",
+    name                := "zio-compose-macros",
     libraryDependencies := Seq(
       ZIOSchema,
       "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
