@@ -17,6 +17,7 @@ lazy val publishSettings = Seq(
   githubOwner       := "tusharmath",
   githubRepository  := "zio-compose",
   githubTokenSource := TokenSource.GitConfig("github.token") || TokenSource.Environment("GITHUB_TOKEN"),
+  organization      := "com.tusharmath",
 )
 
 // Projects
