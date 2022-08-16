@@ -69,7 +69,7 @@ object Example extends ZIOAppDefault {
 
   override def run =
     for {
-      int <- Interpreter.eval(program8)
+      int <- Interpreter.eval(program6)
       _   <- ZIO.succeed(println(int))
     } yield ()
 
