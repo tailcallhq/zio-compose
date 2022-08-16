@@ -14,10 +14,11 @@ ThisBuild / versionScheme           := Some("early-semver")
 ThisBuild / dynverSonatypeSnapshots := true
 
 lazy val publishSettings = Seq(
-  githubOwner       := "tusharmath",
-  githubRepository  := "zio-compose",
-  githubTokenSource := TokenSource.GitConfig("github.token") || TokenSource.Environment("GITHUB_TOKEN"),
-  organization      := "com.tusharmath",
+  githubOwner                  := "tusharmath",
+  githubRepository             := "zio-compose",
+  githubTokenSource            := TokenSource.GitConfig("github.token") || TokenSource.Environment("GITHUB_TOKEN"),
+  organization                 := "com.tusharmath",
+  packageDoc / publishArtifact := false,
 )
 
 // Projects
