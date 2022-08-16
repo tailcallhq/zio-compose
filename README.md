@@ -23,7 +23,7 @@ Update your resolvers and add `zio-compose` as a dependency in your build.sbt.
 
 ```scala
 resolvers           += "Github Packages" at "https://maven.pkg.github.com",
-libraryDependencies += "com.tusharmath" % "zio-compose" %% version
+libraryDependencies += "com.tusharmath" %% "zio-compose" % version
 ```
 
 # Getting started
