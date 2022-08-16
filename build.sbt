@@ -1,30 +1,27 @@
 import Dependencies._
 
 Global / scalaVersion                           := "2.13.8"
-ThisBuild / githubWorkflowPublish               := Seq(WorkflowStep.Sbt(List("ci-release")))
 ThisBuild / githubWorkflowPublishTargetBranches := Seq()
+ThisBuild / versionScheme                       := Some("early-semver")
 
-def publishSettings(projectName: String) = Seq(
-  publish / skip   := false,
-  name             := projectName,
-  versionScheme    := Some("early-semver"),
-  githubOwner      := "tusharmath",
-  githubRepository := "zio-compose",
-  organizationName := "com.tusharmath",
+lazy val publishSettings = Seq(
+  githubOwner       := "tusharmath",
+  githubRepository  := "zio-compose",
+  githubTokenSource := TokenSource.GitConfig("github.token"),
 )
 
 // Projects
 lazy val root = (project in file("."))
   .aggregate(zioCompose, zioComposeMacros)
-  .settings(
-    publish / skip := true,
-  )
+  .settings(publish / skip := true)
+  .settings(publishSettings)
 
 lazy val zioCompose = project
   .in(file("./compose"))
-  .settings(publishSettings("zio-compose"))
+  .settings(publishSettings)
   .settings(
     fork                := true,
+    name                := "zio-compose",
     libraryDependencies := Seq(
       ZIOCore,
       ZIOSchema,
@@ -39,9 +36,10 @@ lazy val zioCompose = project
 
 lazy val zioComposeMacros = project
   .in(file("./compose-macros"))
-  .settings(publishSettings("zio-compose-macros"))
+  .settings(publishSettings)
   .settings(
     fork                := true,
+    name                := "zio-compose",
     libraryDependencies := Seq(
       ZIOSchema,
       "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
