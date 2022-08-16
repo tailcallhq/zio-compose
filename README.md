@@ -19,9 +19,10 @@ distributed computation using Scala in a type-safe manner. It's built on top of 
 
 ## Installation
 
-Update your `build.sbt` by adding `zio-compose` as a dependency.
+Update your resolvers and add `zio-compose` as a dependency in your build.sbt.
 
 ```scala
+resolvers           += "Github Packages" at "https://maven.pkg.github.com",
 libraryDependencies += "com.tusharmath" % "zio-compose" %% version
 ```
 
