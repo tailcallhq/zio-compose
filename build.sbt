@@ -13,23 +13,13 @@ Global / scalaVersion               := "2.13.8"
 ThisBuild / versionScheme           := Some("early-semver")
 ThisBuild / dynverSonatypeSnapshots := true
 
-lazy val publishSettings = Seq(
-  githubOwner                  := "tusharmath",
-  githubRepository             := "zio-compose",
-  githubTokenSource            := TokenSource.GitConfig("github.token") || TokenSource.Environment("GITHUB_TOKEN"),
-  organization                 := "com.tusharmath",
-  packageDoc / publishArtifact := false,
-)
-
 // Projects
 lazy val root = (project in file("."))
   .aggregate(zioCompose, zioComposeMacros, zioComposeExamples)
   .settings(name := "root", publish / skip := true)
-  .settings(publishSettings)
 
 lazy val zioCompose = project
   .in(file("./compose"))
-  .settings(publishSettings)
   .settings(
     name                := "zio-compose",
     libraryDependencies := Seq(
@@ -46,7 +36,6 @@ lazy val zioCompose = project
 
 lazy val zioComposeMacros = project
   .in(file("./compose-macros"))
-  .settings(publishSettings)
   .settings(
     name                := "zio-compose-macros",
     libraryDependencies := Seq(
@@ -58,9 +47,8 @@ lazy val zioComposeMacros = project
 lazy val zioComposeExamples = project
   .in(file("./compose-examples"))
   .dependsOn(zioCompose, zioComposeMacros)
-  .settings(publishSettings)
   .settings(
     name           := "zio-compose-examples",
     publish / skip := true,
-    fork           := true,
+    fork           := false,
   )
