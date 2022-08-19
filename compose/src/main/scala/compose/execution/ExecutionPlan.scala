@@ -23,7 +23,7 @@ object ExecutionPlan {
 
   implicit def schema: Schema[ExecutionPlan] = DeriveSchema.gen[ExecutionPlan]
 
-  case class ScopeOperation(operation: ScopeOperation.Operation) extends ExecutionPlan
+  final case class ScopeOperation(operation: ScopeOperation.Operation) extends ExecutionPlan
   object ScopeOperation {
 
     sealed trait Operation
@@ -65,7 +65,7 @@ object ExecutionPlan {
     case class Negate(plan: ExecutionPlan)                                   extends Operation
   }
 
-  case class StringOperation(operation: StringOperation.Operation) extends ExecutionPlan
+  final case class StringOperation(operation: StringOperation.Operation) extends ExecutionPlan
 
   object StringOperation {
     sealed trait Operation
@@ -85,6 +85,15 @@ object ExecutionPlan {
     final case class SetPath(path: List[String]) extends Operation
   }
 
+  final case class ArrowOperation(operation: ArrowOperation.Operation) extends ExecutionPlan
+  object ArrowOperation {
+    sealed trait Operation
+
+    final case class Zip(left: ExecutionPlan, right: ExecutionPlan)    extends Operation
+    final case class Pipe(first: ExecutionPlan, second: ExecutionPlan) extends Operation
+    case object Identity                                               extends Operation
+  }
+
   final case class Arg(plan: ExecutionPlan, n: Int) extends ExecutionPlan
 
   final case class RepeatWhile(self: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
@@ -92,10 +101,6 @@ object ExecutionPlan {
   final case class Concat(self: ExecutionPlan, other: ExecutionPlan, canConcat: DynamicValue) extends ExecutionPlan
 
   final case class Default(value: DynamicValue) extends ExecutionPlan
-
-  final case class Zip(left: ExecutionPlan, right: ExecutionPlan) extends ExecutionPlan
-
-  final case class Pipe(first: ExecutionPlan, second: ExecutionPlan) extends ExecutionPlan
 
   final case class FromMap(value: Map[DynamicValue, DynamicValue]) extends ExecutionPlan
 
@@ -107,5 +112,4 @@ object ExecutionPlan {
 
   final case class DoWhile(plan: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
 
-  case object Identity extends ExecutionPlan
 }

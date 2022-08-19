@@ -3,6 +3,7 @@ package compose.interpreter
 import compose.dsl.ArrowDSL.CanConcat
 import compose.interpreter.Interpreter.effect
 import compose.execution.ExecutionPlan.{
+  ArrowOperation,
   LogicalOperation,
   NumericOperation,
   OpticalOperation,
@@ -265,17 +266,22 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
             } yield toDynamic(-a)
         }
 
-      case ExecutionPlan.Zip(left, right) =>
-        for {
-          a <- evalDynamic(left, input)
-          b <- evalDynamic(right, input)
-        } yield DynamicValue.Tuple(a, b)
+      case ExecutionPlan.ArrowOperation(operation) =>
+        operation match {
+          case ArrowOperation.Zip(left, right) =>
+            for {
+              a <- evalDynamic(left, input)
+              b <- evalDynamic(right, input)
+            } yield DynamicValue.Tuple(a, b)
 
-      case ExecutionPlan.Pipe(first, second) =>
-        for {
-          input  <- evalDynamic(first, input)
-          output <- evalDynamic(second, input)
-        } yield output
+          case ArrowOperation.Pipe(first, second) =>
+            for {
+              input  <- evalDynamic(first, input)
+              output <- evalDynamic(second, input)
+            } yield output
+
+          case ArrowOperation.Identity => ZIO.succeed(input)
+        }
 
       case ExecutionPlan.FromMap(value)  =>
         ZIO.succeed(value.get(input) match {
@@ -283,7 +289,7 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
           case None        => DynamicValue.NoneValue
         })
       case ExecutionPlan.Constant(value) => ZIO.succeed(value)
-      case ExecutionPlan.Identity        => ZIO.succeed(input)
+
     }
   }
 }

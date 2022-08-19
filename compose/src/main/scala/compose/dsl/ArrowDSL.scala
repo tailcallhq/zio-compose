@@ -4,6 +4,7 @@ import compose.{lens, ~>, Lambda}
 import compose.Lambda.make
 import compose.dsl.ArrowDSL.CanConcat
 import compose.execution.ExecutionPlan
+import compose.execution.ExecutionPlan.ArrowOperation
 import compose.interpreter.Interpreter
 import compose.lens.Transformation
 import zio.schema.{DeriveSchema, Schema}
@@ -49,7 +50,7 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
     (self =:= other).not
 
   final def pipe[C](other: B ~> C): A ~> C =
-    make[A, C] { ExecutionPlan.Pipe(self.compile, other.compile) }
+    make[A, C] { ArrowOperation(ArrowOperation.Pipe(self.compile, other.compile)) }
 
   final def repeatUntil[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 =
     repeatWhile(cond.not)
@@ -63,7 +64,7 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
     lens.Transformation[A, C, I](self, other)
 
   final def zip[A1 <: A, B1 >: B, B2](other: A1 ~> B2): A1 ~> (B1, B2) =
-    make[A1, (B1, B2)] { ExecutionPlan.Zip(self.compile, other.compile) }
+    make[A1, (B1, B2)] { ArrowOperation(ArrowOperation.Zip(self.compile, other.compile)) }
 
   final def zipLeft[A1 <: A, B1 >: B, B2](other: A1 ~> B2): A1 ~> B1 =
     ((self: A1 ~> B1) <*> other)._1

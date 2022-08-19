@@ -4,7 +4,7 @@ import compose.dsl._
 import compose.lens.Transformation
 import compose.Lambda.make
 import compose.execution.ExecutionPlan
-import compose.execution.ExecutionPlan.ScopeOperation
+import compose.execution.ExecutionPlan.{ArrowOperation, ScopeOperation}
 import compose.execution.ExecutionPlan.ScopeOperation.{ContextId, ScopeId}
 import zio.schema.Schema
 
@@ -52,7 +52,7 @@ object Lambda {
       ExecutionPlan.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) }),
     )
 
-  def identity[A]: Lambda[A, A] = make[A, A] { ExecutionPlan.Identity }
+  def identity[A]: Lambda[A, A] = make[A, A] { ArrowOperation(ArrowOperation.Identity) }
 
   def scope[A, B](f: ScopeContext => A ~> B)(implicit s: Schema[B]): A ~> B = Lambda.make[A, B] {
     val ctx = ScopeContext()
