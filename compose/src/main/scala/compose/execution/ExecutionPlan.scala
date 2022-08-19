@@ -31,8 +31,8 @@ object ExecutionPlan {
     final case class GetScope(scopeId: ScopeId, ctxId: ContextId, value: DynamicValue) extends Operation
     final case class WithinScope(plan: ExecutionPlan, ctxId: ContextId)                extends Operation
 
-    case class ContextId(id: Int)
-    case class ScopeId(id: Int, contextId: ContextId)
+    final case class ContextId(id: Int)
+    final case class ScopeId(id: Int, contextId: ContextId)
   }
 
   final case class LogicalOperation(operation: LogicalOperation.Operation) extends ExecutionPlan
@@ -57,24 +57,25 @@ object ExecutionPlan {
     }
 
     sealed trait Operation
-    case class Add(left: ExecutionPlan, right: ExecutionPlan)                extends Operation
-    case class Multiply(left: ExecutionPlan, right: ExecutionPlan)           extends Operation
-    case class Divide(left: ExecutionPlan, right: ExecutionPlan)             extends Operation
-    case class GreaterThan(left: ExecutionPlan, right: ExecutionPlan)        extends Operation
-    case class GreaterThanEqualTo(left: ExecutionPlan, right: ExecutionPlan) extends Operation
-    case class Negate(plan: ExecutionPlan)                                   extends Operation
+    final case class Add(left: ExecutionPlan, right: ExecutionPlan)                extends Operation
+    final case class Multiply(left: ExecutionPlan, right: ExecutionPlan)           extends Operation
+    final case class Divide(left: ExecutionPlan, right: ExecutionPlan)             extends Operation
+    final case class GreaterThan(left: ExecutionPlan, right: ExecutionPlan)        extends Operation
+    final case class GreaterThanEqualTo(left: ExecutionPlan, right: ExecutionPlan) extends Operation
+    final case class Negate(plan: ExecutionPlan)                                   extends Operation
   }
 
   final case class StringOperation(operation: StringOperation.Operation) extends ExecutionPlan
 
   object StringOperation {
     sealed trait Operation
-    case class StartsWith(self: ExecutionPlan, other: ExecutionPlan) extends Operation
-    case class EndsWith(self: ExecutionPlan, other: ExecutionPlan)   extends Operation
-    case class Contains(self: ExecutionPlan, other: ExecutionPlan)   extends Operation
-    case class Length(self: ExecutionPlan)                           extends Operation
-    case class UpperCase(self: ExecutionPlan)                        extends Operation
-    case class LowerCase(self: ExecutionPlan)                        extends Operation
+    final case class StartsWith(self: ExecutionPlan, other: ExecutionPlan) extends Operation
+    final case class EndsWith(self: ExecutionPlan, other: ExecutionPlan)   extends Operation
+    final case class Contains(self: ExecutionPlan, other: ExecutionPlan)   extends Operation
+    final case class Length(self: ExecutionPlan)                           extends Operation
+    final case class UpperCase(self: ExecutionPlan)                        extends Operation
+    final case class LowerCase(self: ExecutionPlan)                        extends Operation
+    final case class Concat(self: ExecutionPlan, other: ExecutionPlan)     extends Operation
   }
 
   case class OpticalOperation(operation: OpticalOperation.Operation) extends ExecutionPlan
@@ -108,8 +109,6 @@ object ExecutionPlan {
   }
 
   final case class RepeatWhile(self: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
-
-  final case class Concat(self: ExecutionPlan, other: ExecutionPlan, canConcat: DynamicValue) extends ExecutionPlan
 
   final case class Default(value: DynamicValue) extends ExecutionPlan
 

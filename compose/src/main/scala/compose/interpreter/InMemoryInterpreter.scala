@@ -1,7 +1,5 @@
 package compose.interpreter
 
-import compose.dsl.ArrowDSL.CanConcat
-import compose.interpreter.Interpreter.effect
 import compose.execution.ExecutionPlan.{
   ArrowOperation,
   DebugOperation,
@@ -73,6 +71,12 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
               str1 <- eval[String](self, input)
               str2 <- eval[String](other, input)
             } yield toDynamic(str1.contains(str2))
+
+          case StringOperation.Concat(self, other) =>
+            for {
+              str1 <- eval[String](self, input)
+              str2 <- eval[String](other, input)
+            } yield toDynamic(str1 ++ str2)
         }
 
       case ExecutionPlan.ScopeOperation(operation) =>
@@ -139,17 +143,6 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
         }
 
         loop
-
-      case ExecutionPlan.Concat(self, other, canConcat) =>
-        for {
-          canConcat <- effect(canConcat.toTypedValue(Schema[CanConcat[_]]))
-          result    <- canConcat match {
-            case CanConcat.ConcatString =>
-              eval[String](self, input).zipWithPar(eval[String](other, input)) { case (a, b) =>
-                toDynamic(a + b)
-              }
-          }
-        } yield result
 
       case ExecutionPlan.Default(value) => ZIO.succeed(value)
 

@@ -5,6 +5,9 @@ import compose.execution.ExecutionPlan.StringOperation
 import compose.Lambda.make
 
 trait StringDSL[-A, +B] { self: A ~> B =>
+  final def ++[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit ev: B1 <:< String): A1 ~> B1 =
+    make[A, B] { StringOperation(StringOperation.Concat(self.compile, other.compile)) }
+
   final def contains[A1 <: A](other: A1 ~> String)(implicit ev: B <:< String): A1 ~> Boolean =
     make[A1, Boolean](StringOperation(StringOperation.Contains(self.compile, other.compile)))
 
