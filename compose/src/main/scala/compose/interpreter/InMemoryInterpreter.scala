@@ -217,16 +217,13 @@ final case class InMemoryInterpreter(scope: Scope[Int, Int, DynamicValue]) exten
           right <- evalDynamic(right, input)
         } yield toDynamic(left == right)
 
-      case ExecutionPlan.FromMap(value, ast) =>
-        val schema = ast.toSchema.asInstanceOf[Schema[Any]]
-        for {
-          result <- value.get(input) match {
-            case Some(value) => effect(value.toTypedValue(schema)).map(Option(_))
-            case None        => ZIO.succeed(None)
-          }
-        } yield Schema.option(schema).toDynamic(result)
-      case ExecutionPlan.Constant(value)     => ZIO.succeed(value)
-      case ExecutionPlan.Identity            => ZIO.succeed(input)
+      case ExecutionPlan.FromMap(value)  =>
+        ZIO.succeed(value.get(input) match {
+          case Some(value) => DynamicValue.SomeValue(value)
+          case None        => DynamicValue.NoneValue
+        })
+      case ExecutionPlan.Constant(value) => ZIO.succeed(value)
+      case ExecutionPlan.Identity        => ZIO.succeed(input)
     }
   }
 }

@@ -50,7 +50,7 @@ object Lambda {
     source: Map[A, B],
   )(implicit input: Schema[A], output: Schema[B]): Lambda[A, Option[B]] =
     Lambda.make[A, Option[B]](
-      ExecutionPlan.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) }, output.ast),
+      ExecutionPlan.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) }),
     )
 
   def identity[A]: Lambda[A, A] = make[A, A] { ExecutionPlan.Identity }
