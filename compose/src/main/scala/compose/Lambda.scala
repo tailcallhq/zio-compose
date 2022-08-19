@@ -23,6 +23,10 @@ trait Lambda[-A, +B]
   final def doUntil[C](cond: C ~> Boolean): A ~> B =
     doWhile(cond.not)
 
+  final def narrow[A1](implicit ev: A1 <:< A): A1 ~> B = self.asInstanceOf[A1 ~> B]
+
+  final def widen[B1](implicit ev: B <:< B1): A ~> B1 = self.asInstanceOf[A ~> B1]
+
 }
 
 object Lambda {
@@ -49,9 +53,7 @@ object Lambda {
       ExecutionPlan.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) }, output.ast),
     )
 
-  def identity[A]: Lambda[A, A] = make[A, A] {
-    ExecutionPlan.Identity
-  }
+  def identity[A]: Lambda[A, A] = make[A, A] { ExecutionPlan.Identity }
 
   def scope[A, B](f: ScopeContext => A ~> B)(implicit s: Schema[B]): A ~> B = Lambda.make[A, B] {
     val context = ScopeContext()
