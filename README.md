@@ -1,4 +1,5 @@
 ![workflow](https://github.com/tusharmath/graphql-compose/actions/workflows/ci.yml/badge.svg)
+![latest version](https://maven-badges.herokuapp.com/maven-central/com.tusharmath/zio-compose_2.13/badge.svg?style=plastic)
 
 ZIO Compose is a library that helps you write programs that can be serialized and sent over the wire.
 
