@@ -3,7 +3,7 @@ package compose
 import compose.dsl._
 import compose.lens.Transformation
 import compose.execution.ExecutionPlan
-import compose.execution.ExecutionPlan.{ArrowOperation, DebugOperation, ScopeOperation}
+import compose.execution.ExecutionPlan.{ArrowOperation, DebugOperation, ScopeOperation, SourceOperation}
 import compose.execution.ExecutionPlan.ScopeOperation.{ContextId, ScopeId}
 import compose.Lambda.make
 import zio.schema.Schema
@@ -35,21 +35,23 @@ trait Lambda[-A, +B]
 object Lambda {
 
   def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B =
-    make[Any, B] { ExecutionPlan.Constant(schema.toDynamic(b)) }
+    make[Any, B] { SourceOperation(SourceOperation.Constant(schema.toDynamic(b))) }
 
   def default[A](implicit schema: Schema[A]): Any ~> A = make[Any, A] {
-    ExecutionPlan
-      .Default(schema.defaultValue match {
-        case Left(cause)  => throw new Exception(cause)
-        case Right(value) => schema.toDynamic(value)
-      })
+    SourceOperation(
+      SourceOperation
+        .Default(schema.defaultValue match {
+          case Left(cause)  => throw new Exception(cause)
+          case Right(value) => schema.toDynamic(value)
+        }),
+    )
   }
 
   def fromMap[A, B](
     source: Map[A, B],
   )(implicit input: Schema[A], output: Schema[B]): Lambda[A, Option[B]] =
     Lambda.make[A, Option[B]](
-      ExecutionPlan.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) }),
+      SourceOperation(SourceOperation.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) })),
     )
 
   def identity[A]: Lambda[A, A] = make[A, A] { ArrowOperation(ArrowOperation.Identity) }

@@ -108,13 +108,16 @@ object ExecutionPlan {
     final case class Arg(plan: ExecutionPlan, n: Int) extends Operation
   }
 
+  final case class SourceOperation(source: SourceOperation.Operation) extends ExecutionPlan
+  object SourceOperation {
+    sealed trait Operation
+
+    final case class Default(value: DynamicValue)                    extends Operation
+    final case class FromMap(value: Map[DynamicValue, DynamicValue]) extends Operation
+    final case class Constant(value: DynamicValue)                   extends Operation
+  }
+
   final case class RepeatWhile(self: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
-
-  final case class Default(value: DynamicValue) extends ExecutionPlan
-
-  final case class FromMap(value: Map[DynamicValue, DynamicValue]) extends ExecutionPlan
-
-  final case class Constant(value: DynamicValue) extends ExecutionPlan
 
   final case class DoWhile(plan: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
 

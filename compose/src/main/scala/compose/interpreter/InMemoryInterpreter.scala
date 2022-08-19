@@ -7,6 +7,7 @@ import compose.execution.ExecutionPlan.{
   NumericOperation,
   OpticalOperation,
   ScopeOperation,
+  SourceOperation,
   StringOperation,
   TupleOperation,
 }
@@ -144,7 +145,16 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
 
         loop
 
-      case ExecutionPlan.Default(value) => ZIO.succeed(value)
+      case ExecutionPlan.SourceOperation(operation) =>
+        operation match {
+          case SourceOperation.Default(value)  => ZIO.succeed(value)
+          case SourceOperation.FromMap(value)  =>
+            ZIO.succeed(value.get(input) match {
+              case Some(value) => DynamicValue.SomeValue(value)
+              case None        => DynamicValue.NoneValue
+            })
+          case SourceOperation.Constant(value) => ZIO.succeed(value)
+        }
 
       case ExecutionPlan.OpticalOperation(operation) =>
         operation match {
@@ -282,13 +292,6 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
 
           case ArrowOperation.Identity => ZIO.succeed(input)
         }
-
-      case ExecutionPlan.FromMap(value)  =>
-        ZIO.succeed(value.get(input) match {
-          case Some(value) => DynamicValue.SomeValue(value)
-          case None        => DynamicValue.NoneValue
-        })
-      case ExecutionPlan.Constant(value) => ZIO.succeed(value)
 
     }
   }
