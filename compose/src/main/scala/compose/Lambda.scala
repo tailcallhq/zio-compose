@@ -5,7 +5,6 @@ import compose.lens.Transformation
 import compose.operation._
 import ExecutionPlan._
 import compose.Lambda.make
-import compose.operation.ScopeOp.{ContextId, ScopeId}
 import zio.schema.Schema
 
 trait Lambda[-A, +B]
@@ -32,7 +31,7 @@ trait Lambda[-A, +B]
 
 }
 
-object Lambda {
+object Lambda extends ScopeDSL {
 
   def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B =
     make[Any, B] { SourceExecution(SourceOp.Constant(schema.toDynamic(b))) }
@@ -56,11 +55,6 @@ object Lambda {
 
   def identity[A]: Lambda[A, A] = make[A, A] { ArrowExecution(ArrowOp.Identity) }
 
-  def scope[A, B](f: ScopeContext => A ~> B)(implicit s: Schema[B]): A ~> B = Lambda.make[A, B] {
-    val ctx = ScopeContext()
-    ScopeExecution(ScopeOp.WithinScope(f(ctx).compile, ctx.id))
-  }
-
   def stats[A, B](f: A ~> B*)(implicit ev: Schema[B]): A ~> B = f.reduce(_ *> _)
 
   def transform[A, B](transformations: Transformation[A, B]*)(implicit s: Schema[B]): A ~> B =
@@ -69,42 +63,10 @@ object Lambda {
         transformation(ab)
     }
 
-  sealed trait ScopeContext { self =>
-    def id: ContextId = ContextId(self.hashCode())
-  }
-
-  sealed trait Scope[A] {
-    def :=[X](f: X ~> A): X ~> Unit = set <<< f
-    def get: Any ~> A
-    def set: A ~> Unit
-  }
-
   trait UnsafeMake[A, B] {
-    def apply(plan: ExecutionPlan): A ~> B = new ~>[A, B] {
+    def apply(plan: => ExecutionPlan): A ~> B = new ~>[A, B] {
       override def compile: ExecutionPlan = plan
     }
-  }
-
-  object ScopeContext {
-    private[compose] def apply(): ScopeContext = new ScopeContext {}
-  }
-
-  object Scope {
-
-    def make[A](value: A)(implicit ctx: ScopeContext, schema: Schema[A]): Scope[A] =
-      new Scope[A] { self =>
-        def id: ScopeId = ScopeId(self.hashCode(), ctx.id)
-
-        override def set: A ~> Unit = Lambda.make[A, Unit] {
-          ScopeExecution(ScopeOp.SetScope(self.id, ctx.id))
-        }
-
-        override def get: Any ~> A = Lambda.make[Any, A] {
-          ScopeExecution(
-            ScopeOp.GetScope(self.id, ctx.id, schema.toDynamic(value)),
-          )
-        }
-      }
   }
 
   private[compose] object make {
