@@ -13,8 +13,8 @@ import scala.collection.immutable.ListMap
 import zio.{Task, UIO, ZIO}
 import zio.schema.codec.JsonCodec
 
-final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpreter {
-  import InMemory._
+final case class InMemoryInterpreter(scope: Scope[Int, Int, DynamicValue]) extends Interpreter {
+  import InMemoryInterpreter._
 
   def evalDynamic(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
@@ -231,9 +231,9 @@ final case class InMemory(scope: Scope[Int, Int, DynamicValue]) extends Interpre
   }
 }
 
-object InMemory {
-  def make: UIO[InMemory] =
-    Scope.inMemory[Int, Int, DynamicValue].map(scope => new InMemory(scope))
+object InMemoryInterpreter {
+  def make: UIO[InMemoryInterpreter] =
+    Scope.inMemory[Int, Int, DynamicValue].map(scope => new InMemoryInterpreter(scope))
 
   private def toDynamic[A](a: A)(implicit schema: Schema[A]): DynamicValue =
     schema.toDynamic(a)

@@ -34,5 +34,5 @@ object Interpreter {
       res <- int.eval(f)
     } yield res
 
-  def inMemory: UIO[Interpreter] = InMemory.make
+  def inMemory: UIO[Interpreter] = InMemoryInterpreter.make
 }
