@@ -1,10 +1,8 @@
 package compose.interpreter
 
 import compose.dsl.ArrowDSL.CanConcat
-import compose.dsl.NumericDSL
-import compose.dsl.NumericDSL.IsNumeric
 import compose.interpreter.Interpreter.effect
-import compose.execution.ExecutionPlan.{LogicalOperation, StringOperation}
+import compose.execution.ExecutionPlan.{LogicalOperation, NumericOperation, StringOperation}
 import compose.execution.ExecutionPlan
 import zio.schema.{DynamicValue, Schema}
 
@@ -188,24 +186,38 @@ final case class InMemoryInterpreter(scope: Scope[Int, Int, DynamicValue]) exten
             } yield toDynamic(!bool)
         }
 
-      case ExecutionPlan.NumericOperation(operation, left, right, is) =>
-        for {
-          isNumeric <- effect(is.toTypedValue(Schema[IsNumeric[_]]))
-          params    <-
-            isNumeric match {
-              case IsNumeric.NumericInt =>
-                eval[Int](left, input).zip(eval[Int](right, input)).map { case (a, b) =>
-                  operation match {
-                    case NumericDSL.Operation.Add                => a + b
-                    case NumericDSL.Operation.Multiply           => a * b
-                    case NumericDSL.Operation.Subtract           => a - b
-                    case NumericDSL.Operation.Divide             => a / b
-                    case NumericDSL.Operation.GreaterThan        => if (a > b) 1 else 0
-                    case NumericDSL.Operation.GreaterThanEqualTo => if (a >= b) 1 else 0
-                  }
-                }
-            }
-        } yield toDynamic(params)
+      case ExecutionPlan.NumericOperation(operation, ExecutionPlan.NumericOperation.Kind.IntNumber) =>
+        operation match {
+          case NumericOperation.Add(left, right)                =>
+            for {
+              a <- eval[Int](left, input)
+              b <- eval[Int](right, input)
+            } yield toDynamic(a + b)
+          case NumericOperation.Multiply(left, right)           =>
+            for {
+              a <- eval[Int](left, input)
+              b <- eval[Int](right, input)
+            } yield toDynamic(a * b)
+          case NumericOperation.Divide(left, right)             =>
+            for {
+              a <- eval[Int](left, input)
+              b <- eval[Int](right, input)
+            } yield toDynamic(a / b)
+          case NumericOperation.GreaterThan(left, right)        =>
+            for {
+              a <- eval[Int](left, input)
+              b <- eval[Int](right, input)
+            } yield toDynamic(a > b)
+          case NumericOperation.GreaterThanEqualTo(left, right) =>
+            for {
+              a <- eval[Int](left, input)
+              b <- eval[Int](right, input)
+            } yield toDynamic(a >= b)
+          case NumericOperation.Negate(plan)                    =>
+            for {
+              a <- eval[Int](plan, input)
+            } yield toDynamic(-a)
+        }
 
       case ExecutionPlan.Zip(left, right) =>
         for {

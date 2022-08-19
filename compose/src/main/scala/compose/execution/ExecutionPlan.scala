@@ -1,6 +1,5 @@
 package compose.execution
 
-import compose.dsl.NumericDSL
 import zio.schema.{DeriveSchema, DynamicValue, Schema}
 import zio.schema.codec.JsonCodec
 import zio.{Chunk, ZIO}
@@ -46,12 +45,23 @@ object ExecutionPlan {
     final case class Not(plan: ExecutionPlan)                       extends Operation
   }
 
-  final case class NumericOperation(
-    operation: NumericDSL.Operation,
-    left: ExecutionPlan,
-    right: ExecutionPlan,
-    numeric: DynamicValue,
-  ) extends ExecutionPlan
+  final case class NumericOperation(operation: NumericOperation.Operation, numberType: NumericOperation.Kind)
+      extends ExecutionPlan
+
+  object NumericOperation {
+    sealed trait Kind
+    object Kind {
+      case object IntNumber extends Kind
+    }
+
+    sealed trait Operation
+    case class Add(left: ExecutionPlan, right: ExecutionPlan)                extends Operation
+    case class Multiply(left: ExecutionPlan, right: ExecutionPlan)           extends Operation
+    case class Divide(left: ExecutionPlan, right: ExecutionPlan)             extends Operation
+    case class GreaterThan(left: ExecutionPlan, right: ExecutionPlan)        extends Operation
+    case class GreaterThanEqualTo(left: ExecutionPlan, right: ExecutionPlan) extends Operation
+    case class Negate(plan: ExecutionPlan)                                   extends Operation
+  }
 
   final case class Zip(left: ExecutionPlan, right: ExecutionPlan) extends ExecutionPlan
 

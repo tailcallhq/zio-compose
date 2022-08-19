@@ -1,12 +1,15 @@
 package compose.dsl
 
-import compose.{~>, Lambda}
+import compose.~>
 import compose.Lambda.{constant, make}
 import compose.dsl.NumericDSL.IsNumeric
-import compose.execution.ExecutionPlan
-import zio.schema.{DeriveSchema, DynamicValue, Schema}
+import compose.execution.ExecutionPlan.NumericOperation
+import zio.schema.Schema
 
 trait NumericDSL[-A, +B] { self: A ~> B =>
+  final def /[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> B1 =
+    self divide other
+
   final def >[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> Boolean =
     self gt other
 
@@ -19,24 +22,29 @@ trait NumericDSL[-A, +B] { self: A ~> B =>
   final def <=[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> Boolean =
     self lte other
 
-  final def -[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1], s: Schema[B1]): A1 ~> B1 =
-    numOp(NumericDSL.Operation.Add, other.negate)
+  final def -[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> B1 =
+    self + other.negate
 
   final def +[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> B1 =
-    numOp(NumericDSL.Operation.Add, other)
+    make[A1, B1](NumericOperation(NumericOperation.Add(self.compile, other.compile), num.kind))
 
   final def *[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> B1 =
-    numOp(NumericDSL.Operation.Multiply, other)
+    self multiply other
 
-  final def dec[B1 >: B](implicit num: IsNumeric[B1], s: Schema[B1]): A ~> B1 = self - Lambda.constant(num.one)
+  final def dec[B1 >: B](implicit ev: IsNumeric[B1], s: Schema[B1]): A ~> B1 =
+    self - constant(ev.one)
+
+  final def divide[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> B1 =
+    make[A1, B1](NumericOperation(NumericOperation.Divide(self.compile, other.compile), num.kind))
 
   final def gt[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> Boolean =
-    numOp(NumericDSL.Operation.GreaterThan, other) =:= constant(1)
+    make[A1, Boolean](NumericOperation(NumericOperation.GreaterThan(self.compile, other.compile), num.kind))
 
   final def gte[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> Boolean =
-    numOp(NumericDSL.Operation.GreaterThanEqualTo, other) =:= constant(1)
+    make[A1, Boolean](NumericOperation(NumericOperation.GreaterThanEqualTo(self.compile, other.compile), num.kind))
 
-  final def inc[B1 >: B](implicit num: IsNumeric[B1], s: Schema[B1]): A ~> B1 = self + Lambda.constant(num.one)
+  final def inc[B1 >: B](implicit ev: IsNumeric[B1], s: Schema[B1]): A ~> B1 =
+    self + constant(ev.one)
 
   final def lt[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> Boolean =
     (self >= other).not
@@ -44,47 +52,30 @@ trait NumericDSL[-A, +B] { self: A ~> B =>
   final def lte[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> Boolean =
     (self gt other).not
 
-  final def negate[B1 >: B](implicit num: IsNumeric[B1], schema: Schema[B1]): A ~> B1 =
-    self * Lambda.constant(num.negativeOne)
+  final def multiply[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> B1 =
+    make[A1, B1](NumericOperation(NumericOperation.Multiply(self.compile, other.compile), num.kind))
 
-  private final def numOp[A1 <: A, B1 >: B](operation: NumericDSL.Operation, other: A1 ~> B1)(implicit
-    num: IsNumeric[B1],
-  ): A1 ~> B1 =
-    make[A1, B1] {
-      ExecutionPlan.NumericOperation(operation, self.compile, other.compile, num.toDynamic)
-    }
-
+  final def negate[B1 >: B](implicit num: IsNumeric[B1]): A ~> B1 = {
+    make[A, B1](NumericOperation(NumericOperation.Negate(self.compile), num.kind))
+  }
 }
 
 object NumericDSL {
-  sealed trait Operation
-
-  object Operation {
-    case object Add                extends Operation
-    case object Multiply           extends Operation
-    case object Subtract           extends Operation
-    case object Divide             extends Operation
-    case object GreaterThan        extends Operation
-    case object GreaterThanEqualTo extends Operation
-  }
 
   sealed trait IsNumeric[A] {
-    self =>
+    def kind: NumericOperation.Kind
+
     def one: A
 
-    def negativeOne: A
-
-    def toDynamic: DynamicValue = IsNumeric.schema.toDynamic(self)
+    def zero: A
   }
 
-  object IsNumeric {
-    implicit case object NumericInt extends IsNumeric[Int] {
-      override def one: Int = 1
+  implicit case object IsInt extends IsNumeric[Int] {
+    override def kind: NumericOperation.Kind = NumericOperation.Kind.IntNumber
 
-      override def negativeOne: Int = -1
-    }
+    override def one: Int = 1
 
-    implicit def schema: Schema[IsNumeric[_]] = DeriveSchema.gen[IsNumeric[_]]
+    override def zero: Int = 0
   }
 
 }
