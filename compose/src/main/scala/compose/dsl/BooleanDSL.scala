@@ -2,7 +2,6 @@ package compose.dsl
 
 import compose.~>
 import compose.Lambda.{constant, make}
-import compose.execution.ExecutionPlan
 import compose.execution.ExecutionPlan.LogicalOperation
 
 trait BooleanDSL[-A, +B] { self: A ~> B =>
@@ -19,7 +18,7 @@ trait BooleanDSL[-A, +B] { self: A ~> B =>
 
   final def diverge[C](isTrue: B ~> C, isFalse: B ~> C)(implicit ev: B <:< Boolean): A ~> C =
     make[A, C] {
-      ExecutionPlan.IfElse(self.compile, isTrue.compile, isFalse.compile)
+      LogicalOperation(LogicalOperation.Diverge(self.compile, isTrue.compile, isFalse.compile))
     }
 
   final def eq[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =

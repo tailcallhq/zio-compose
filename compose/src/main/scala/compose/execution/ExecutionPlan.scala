@@ -39,10 +39,11 @@ object ExecutionPlan {
 
   object LogicalOperation {
     sealed trait Operation
-    final case class And(left: ExecutionPlan, right: ExecutionPlan)    extends Operation
-    final case class Or(left: ExecutionPlan, right: ExecutionPlan)     extends Operation
-    final case class Not(plan: ExecutionPlan)                          extends Operation
-    final case class Equals(left: ExecutionPlan, right: ExecutionPlan) extends Operation
+    final case class And(left: ExecutionPlan, right: ExecutionPlan)                              extends Operation
+    final case class Or(left: ExecutionPlan, right: ExecutionPlan)                               extends Operation
+    final case class Not(plan: ExecutionPlan)                                                    extends Operation
+    final case class Equals(left: ExecutionPlan, right: ExecutionPlan)                           extends Operation
+    final case class Diverge(cond: ExecutionPlan, ifTrue: ExecutionPlan, ifFalse: ExecutionPlan) extends Operation
   }
 
   final case class NumericOperation(operation: NumericOperation.Operation, kind: NumericOperation.Kind)
@@ -84,8 +85,6 @@ object ExecutionPlan {
   final case class Default(value: DynamicValue) extends ExecutionPlan
 
   final case class Zip(left: ExecutionPlan, right: ExecutionPlan) extends ExecutionPlan
-
-  final case class IfElse(cond: ExecutionPlan, ifTrue: ExecutionPlan, ifFalse: ExecutionPlan) extends ExecutionPlan
 
   final case class Pipe(first: ExecutionPlan, second: ExecutionPlan) extends ExecutionPlan
 

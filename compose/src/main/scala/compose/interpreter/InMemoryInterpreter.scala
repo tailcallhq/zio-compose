@@ -195,6 +195,11 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
               right <- evalDynamic(right, input)
             } yield toDynamic(left == right)
 
+          case LogicalOperation.Diverge(cond, ifTrue, ifFalse) =>
+            for {
+              cond   <- eval[Boolean](cond, input)
+              result <- if (cond) evalDynamic(ifTrue, input) else evalDynamic(ifFalse, input)
+            } yield result
         }
 
       case ExecutionPlan.NumericOperation(operation, ExecutionPlan.NumericOperation.Kind.IntNumber) =>
@@ -236,17 +241,12 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
           b <- evalDynamic(right, input)
         } yield DynamicValue.Tuple(a, b)
 
-      case ExecutionPlan.IfElse(cond, ifTrue, ifFalse) =>
-        for {
-          cond   <- eval[Boolean](cond, input)
-          result <- if (cond) evalDynamic(ifTrue, input) else evalDynamic(ifFalse, input)
-        } yield result
-      case ExecutionPlan.Pipe(first, second)           =>
+      case ExecutionPlan.Pipe(first, second) =>
         for {
           input  <- evalDynamic(first, input)
           output <- evalDynamic(second, input)
         } yield output
-      case ExecutionPlan.GetPath(path)                 =>
+      case ExecutionPlan.GetPath(path)       =>
         input match {
           case DynamicValue.Record(values) =>
             @tailrec
