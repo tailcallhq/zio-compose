@@ -101,7 +101,11 @@ object ExecutionPlan {
     final case class Show(plan: ExecutionPlan, name: String)  extends Operation
   }
 
-  final case class Arg(plan: ExecutionPlan, n: Int) extends ExecutionPlan
+  final case class TupleOperation(operation: TupleOperation.Operation) extends ExecutionPlan
+  object TupleOperation {
+    sealed trait Operation
+    final case class Arg(plan: ExecutionPlan, n: Int) extends Operation
+  }
 
   final case class RepeatWhile(self: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
 
