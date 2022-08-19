@@ -1,17 +1,32 @@
 import Dependencies._
 
 // Flags
-Global / semanticdbEnabled          := true
-Global / onChangedBuildSource       := ReloadOnSourceChanges
-Global / scalacOptions              := Seq(
+Global / semanticdbEnabled    := true
+Global / onChangedBuildSource := ReloadOnSourceChanges
+Global / scalacOptions        := Seq(
   "-Ywarn-unused:imports",
   "-Werror",
   "-feature",
   "-language:reflectiveCalls",
 )
-Global / scalaVersion               := "2.13.8"
-ThisBuild / versionScheme           := Some("early-semver")
-ThisBuild / dynverSonatypeSnapshots := true
+Global / scalaVersion         := "2.13.8"
+ThisBuild / versionScheme     := Some("early-semver")
+
+inThisBuild(
+  List(
+    organization := "com.tusharmath",
+    homepage     := Some(url("https://github.com/tusharmath/zio-compose")),
+    licenses     := List("MIT" -> url("https://github.com/tusharmath/zio-compose/blob/main/LICENSE")),
+    developers   := List(
+      Developer(
+        "tusharmath",
+        "Tushar Mathur",
+        "tusharmath@gmail.com",
+        url("https://tusharmath.com"),
+      ),
+    ),
+  ),
+)
 
 // Projects
 lazy val root = (project in file("."))
