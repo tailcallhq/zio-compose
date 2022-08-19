@@ -65,15 +65,16 @@ object ExecutionPlan {
     case class Negate(plan: ExecutionPlan)                                   extends Operation
   }
 
-  sealed trait StringOperation extends ExecutionPlan
+  case class StringOperation(operation: StringOperation.Operation) extends ExecutionPlan
 
   object StringOperation {
-    case class StartsWith(self: ExecutionPlan, other: ExecutionPlan) extends StringOperation
-    case class EndsWith(self: ExecutionPlan, other: ExecutionPlan)   extends StringOperation
-    case class Contains(self: ExecutionPlan, other: ExecutionPlan)   extends StringOperation
-    case class Length(self: ExecutionPlan)                           extends StringOperation
-    case class UpperCase(self: ExecutionPlan)                        extends StringOperation
-    case class LowerCase(self: ExecutionPlan)                        extends StringOperation
+    sealed trait Operation
+    case class StartsWith(self: ExecutionPlan, other: ExecutionPlan) extends Operation
+    case class EndsWith(self: ExecutionPlan, other: ExecutionPlan)   extends Operation
+    case class Contains(self: ExecutionPlan, other: ExecutionPlan)   extends Operation
+    case class Length(self: ExecutionPlan)                           extends Operation
+    case class UpperCase(self: ExecutionPlan)                        extends Operation
+    case class LowerCase(self: ExecutionPlan)                        extends Operation
   }
 
   final case class Arg(plan: ExecutionPlan, n: Int) extends ExecutionPlan

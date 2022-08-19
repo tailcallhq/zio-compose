@@ -21,43 +21,41 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
         val json = plan.json
         zio.Console.printLine(s"${name}: $json") *> evalDynamic(plan, input)
 
-      case operation: ExecutionPlan.StringOperation =>
-        for {
-          result <- operation match {
-            case StringOperation.Length(plan) =>
-              for {
-                str <- eval[String](plan, input)
-              } yield toDynamic(str.length)
+      case ExecutionPlan.StringOperation(operation) =>
+        operation match {
+          case StringOperation.Length(plan) =>
+            for {
+              str <- eval[String](plan, input)
+            } yield toDynamic(str.length)
 
-            case StringOperation.UpperCase(plan) =>
-              for {
-                str <- eval[String](plan, input)
-              } yield toDynamic(str.toUpperCase)
+          case StringOperation.UpperCase(plan) =>
+            for {
+              str <- eval[String](plan, input)
+            } yield toDynamic(str.toUpperCase)
 
-            case StringOperation.LowerCase(plan) =>
-              for {
-                str <- eval[String](plan, input)
-              } yield toDynamic(str.toLowerCase)
+          case StringOperation.LowerCase(plan) =>
+            for {
+              str <- eval[String](plan, input)
+            } yield toDynamic(str.toLowerCase)
 
-            case StringOperation.StartsWith(self, other) =>
-              for {
-                str1 <- eval[String](self, input)
-                str2 <- eval[String](other, input)
-              } yield toDynamic(str1.startsWith(str2))
+          case StringOperation.StartsWith(self, other) =>
+            for {
+              str1 <- eval[String](self, input)
+              str2 <- eval[String](other, input)
+            } yield toDynamic(str1.startsWith(str2))
 
-            case StringOperation.EndsWith(self, other) =>
-              for {
-                str1 <- eval[String](self, input)
-                str2 <- eval[String](other, input)
-              } yield toDynamic(str1.endsWith(str2))
+          case StringOperation.EndsWith(self, other) =>
+            for {
+              str1 <- eval[String](self, input)
+              str2 <- eval[String](other, input)
+            } yield toDynamic(str1.endsWith(str2))
 
-            case StringOperation.Contains(self, other) =>
-              for {
-                str1 <- eval[String](self, input)
-                str2 <- eval[String](other, input)
-              } yield toDynamic(str1.contains(str2))
-          }
-        } yield result
+          case StringOperation.Contains(self, other) =>
+            for {
+              str1 <- eval[String](self, input)
+              str2 <- eval[String](other, input)
+            } yield toDynamic(str1.contains(str2))
+        }
 
       case ExecutionPlan.ScopeOperation(operation) =>
         operation match {
