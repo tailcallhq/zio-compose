@@ -1,16 +1,31 @@
 import Dependencies._
 
 // Flags
-Global / semanticdbEnabled    := true
-Global / onChangedBuildSource := ReloadOnSourceChanges
-Global / scalacOptions        := Seq(
+Global / semanticdbEnabled                      := true
+Global / onChangedBuildSource                   := ReloadOnSourceChanges
+Global / scalacOptions                          := Seq(
   "-Ywarn-unused:imports",
   "-Werror",
   "-feature",
   "-language:reflectiveCalls",
 )
-Global / scalaVersion         := "2.13.8"
-ThisBuild / versionScheme     := Some("early-semver")
+Global / scalaVersion                           := "2.13.8"
+ThisBuild / versionScheme                       := Some("early-semver")
+ThisBuild / githubWorkflowTargetTags ++= Seq("v*")
+ThisBuild / githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v")))
+ThisBuild / githubWorkflowPublish               := Seq(WorkflowStep.Sbt(List("ci-release")))
+ThisBuild / githubWorkflowPublishTargetBranches += RefPredicate.StartsWith(Ref.Tag("v"))
+ThisBuild / githubWorkflowPublish               := Seq(
+  WorkflowStep.Sbt(
+    List("ci-release"),
+    env = Map(
+      "PGP_PASSPHRASE"    -> "${{ secrets.PGP_PASSPHRASE }}",
+      "PGP_SECRET"        -> "${{ secrets.PGP_SECRET }}",
+      "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
+      "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}",
+    ),
+  ),
+)
 
 inThisBuild(
   List(
