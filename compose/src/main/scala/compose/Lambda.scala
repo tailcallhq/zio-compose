@@ -1,8 +1,8 @@
 package compose
 
 import compose.dsl._
-import compose.Lambda.make
 import compose.lens.Transformation
+import compose.Lambda.make
 import zio.schema.Schema
 
 trait Lambda[-A, +B]
@@ -17,8 +17,8 @@ trait Lambda[-A, +B]
 
   def compile: ExecutionPlan
 
-  final def debug[B1 >: B](name: String)(implicit s: Schema[B1]): Lambda[A, B1] =
-    (self: A ~> B1) <* make[A, Unit] { ExecutionPlan.Debug(name) }
+  final def debug[B1 >: B](name: String)(implicit s: Schema[B1]): A ~> B1 =
+    make[A, B1] { ExecutionPlan.Debug(self.compile, name) }
 
   final def doUntil[C](cond: C ~> Boolean): A ~> B =
     doWhile(cond.not)
@@ -30,10 +30,6 @@ trait Lambda[-A, +B]
 }
 
 object Lambda {
-
-  def _1[B1, B2]: (B1, B2) ~> B1 = make[(B1, B2), B1] { ExecutionPlan.Arg(0) }
-
-  def _2[B1, B2]: (B1, B2) ~> B2 = make[(B1, B2), B2] { ExecutionPlan.Arg(1) }
 
   def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B =
     make[Any, B] { ExecutionPlan.Constant(schema.toDynamic(b)) }

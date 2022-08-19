@@ -13,8 +13,6 @@ sealed trait ExecutionPlan { self =>
 
 object ExecutionPlan {
 
-  implicit def schema: Schema[ExecutionPlan] = DeriveSchema.gen[ExecutionPlan]
-
   def from(json: String): ZIO[Any, Exception, ExecutionPlan] =
     from(Chunk.fromArray(json.getBytes))
 
@@ -24,11 +22,13 @@ object ExecutionPlan {
       case Right(value) => ZIO.succeed(value)
     }
 
+  implicit def schema: Schema[ExecutionPlan] = DeriveSchema.gen[ExecutionPlan]
+
   final case class SetScope(scope: Int, ctx: Int) extends ExecutionPlan
 
   final case class GetScope(scope: Int, ctx: Int, value: DynamicValue) extends ExecutionPlan
 
-  final case class Arg(n: Int) extends ExecutionPlan
+  final case class Arg(plan: ExecutionPlan, n: Int) extends ExecutionPlan
 
   final case class RepeatWhile(self: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
 
@@ -65,27 +65,23 @@ object ExecutionPlan {
 
   final case class Constant(value: DynamicValue) extends ExecutionPlan
 
-  final case class Debug(name: String) extends ExecutionPlan
+  final case class Debug(plan: ExecutionPlan, name: String) extends ExecutionPlan
 
-  final case class EndScope(ctx: Int) extends ExecutionPlan
+  final case class EndScope(plan: ExecutionPlan, ctx: Int) extends ExecutionPlan
 
-  final case class Show(name: String) extends ExecutionPlan
-
-  case object Identity extends ExecutionPlan
+  final case class Show(plan: ExecutionPlan, name: String) extends ExecutionPlan
 
   final case class DoWhile(plan: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
 
+  case object Identity extends ExecutionPlan
+
   sealed trait StringOperation extends ExecutionPlan
-
   object StringOperation {
-    case class StartsWith(plan: ExecutionPlan) extends StringOperation
-    case class EndsWith(plan: ExecutionPlan)   extends StringOperation
-    case class Contains(plan: ExecutionPlan)   extends StringOperation
-
-    case object Length extends StringOperation
-
-    case object UpperCase extends StringOperation
-
-    case object LowerCase extends StringOperation
+    case class StartsWith(self: ExecutionPlan, other: ExecutionPlan) extends StringOperation
+    case class EndsWith(self: ExecutionPlan, other: ExecutionPlan)   extends StringOperation
+    case class Contains(self: ExecutionPlan, other: ExecutionPlan)   extends StringOperation
+    case class Length(self: ExecutionPlan)                           extends StringOperation
+    case class UpperCase(self: ExecutionPlan)                        extends StringOperation
+    case class LowerCase(self: ExecutionPlan)                        extends StringOperation
   }
 }

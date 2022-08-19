@@ -42,7 +42,7 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
     make[A, B](ExecutionPlan.DoWhile(self.compile, cond.compile))
 
   final def endContext[B1 >: B](ctx: ScopeContext)(implicit s: Schema[B1]): A ~> B1 =
-    (self: A ~> B1) <* make[Any, Unit](ExecutionPlan.EndScope(ctx.hashCode()))
+    make[A, B1](ExecutionPlan.EndScope(self.compile, ctx.hashCode()))
 
   final def eq[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
     make[A1, Boolean] { ExecutionPlan.Equals(self.compile, other.compile) }
@@ -62,7 +62,7 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
   final def repeatWhile[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 =
     make[B1, B1] { ExecutionPlan.RepeatWhile(self.compile, cond.compile) }
 
-  final def show(name: String): A ~> B = self <* make[Any, Unit](ExecutionPlan.Show(name))
+  final def show(name: String): A ~> B = make[A, B](ExecutionPlan.Show(self.compile, name))
 
   final def transform[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
     lens.Transformation[A, C, I](self, other)

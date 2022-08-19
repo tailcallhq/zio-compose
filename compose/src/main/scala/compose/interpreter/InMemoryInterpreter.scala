@@ -18,52 +18,77 @@ final case class InMemoryInterpreter(scope: Scope[Int, Int, DynamicValue]) exten
 
   def evalDynamic(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
-      case ExecutionPlan.Show(name) =>
+      case ExecutionPlan.Show(plan, name) =>
         val json = plan.json
-        zio.Console.printLine(s"${name}: $json").as(input)
+        zio.Console.printLine(s"${name}: $json") *> evalDynamic(plan, input)
 
       case operation: ExecutionPlan.StringOperation =>
         for {
-          string <- effect(input.toTypedValue(Schema[String]))
           result <- operation match {
-            case StringOperation.Length            => ZIO.succeed(Schema[Int].toDynamic(string.length))
-            case StringOperation.UpperCase         => ZIO.succeed(Schema[String].toDynamic(string.toUpperCase))
-            case StringOperation.LowerCase         => ZIO.succeed(Schema[String].toDynamic(string.toLowerCase))
-            case StringOperation.StartsWith(other) =>
+            case StringOperation.Length(plan) =>
               for {
-                str2 <- eval[String](other, input)
-              } yield Schema[Boolean].toDynamic(string.startsWith(str2))
-            case StringOperation.EndsWith(other)   =>
+                str <- eval[String](plan, input)
+              } yield toDynamic(str.length)
+
+            case StringOperation.UpperCase(plan) =>
               for {
-                str2 <- eval[String](other, input)
-              } yield Schema[Boolean].toDynamic(string.endsWith(str2))
-            case StringOperation.Contains(other)   =>
+                str <- eval[String](plan, input)
+              } yield toDynamic(str.toUpperCase)
+
+            case StringOperation.LowerCase(plan) =>
               for {
+                str <- eval[String](plan, input)
+              } yield toDynamic(str.toLowerCase)
+
+            case StringOperation.StartsWith(self, other) =>
+              for {
+                str1 <- eval[String](self, input)
                 str2 <- eval[String](other, input)
-              } yield Schema[Boolean].toDynamic(string.contains(str2))
+              } yield toDynamic(str1.startsWith(str2))
+
+            case StringOperation.EndsWith(self, other) =>
+              for {
+                str1 <- eval[String](self, input)
+                str2 <- eval[String](other, input)
+              } yield toDynamic(str1.endsWith(str2))
+
+            case StringOperation.Contains(self, other) =>
+              for {
+                str1 <- eval[String](self, input)
+                str2 <- eval[String](other, input)
+              } yield toDynamic(str1.contains(str2))
           }
         } yield result
 
-      case ExecutionPlan.EndScope(id) =>
-        scope.delete(id).as(Schema[Unit].toDynamic {})
+      case ExecutionPlan.EndScope(plan, id) =>
+        for {
+          result <- evalDynamic(plan, input)
+          _      <- scope.delete(id)
+        } yield result
 
-      case ExecutionPlan.Debug(name) =>
-        val json = new String(JsonCodec.encode(Schema[DynamicValue])(input).toArray)
-        zio.Console.printLine(s"${name}: $json").as(input)
+      case ExecutionPlan.Debug(plan, name) =>
+        for {
+          result <- evalDynamic(plan, input)
+          json = new String(JsonCodec.encode(Schema[DynamicValue])(result).toArray)
+          _ <- zio.Console.printLine(s"${name}: $json")
+        } yield result
 
-      case ExecutionPlan.Arg(i) =>
-        input match {
-          case DynamicValue.Tuple(left, right) =>
-            i match {
-              case 0 => ZIO.succeed(left)
-              case 1 => ZIO.succeed(right)
-              case n =>
-                ZIO.fail(
-                  new RuntimeException(s"Can not extract element at index ${n} from ${input}"),
-                )
-            }
-          case _                               => ZIO.fail(new RuntimeException(s"Can not extract args from ${input}"))
-        }
+      case ExecutionPlan.Arg(plan, i) =>
+        for {
+          input  <- evalDynamic(plan, input)
+          result <- input match {
+            case DynamicValue.Tuple(left, right) =>
+              i match {
+                case 0 => ZIO.succeed(left)
+                case 1 => ZIO.succeed(right)
+                case n =>
+                  ZIO.fail(
+                    new RuntimeException(s"Can not extract element at index ${n} from ${input}"),
+                  )
+              }
+            case _ => ZIO.fail(new RuntimeException(s"Can not extract args from ${input}"))
+          }
+        } yield result
 
       case ExecutionPlan.GetScope(scopeId, ctxId, initial) =>
         for {
