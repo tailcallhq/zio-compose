@@ -2,7 +2,13 @@ package compose.interpreter
 
 import compose.dsl.ArrowDSL.CanConcat
 import compose.interpreter.Interpreter.effect
-import compose.execution.ExecutionPlan.{LogicalOperation, NumericOperation, ScopeOperation, StringOperation}
+import compose.execution.ExecutionPlan.{
+  LogicalOperation,
+  NumericOperation,
+  OpticalOperation,
+  ScopeOperation,
+  StringOperation,
+}
 import compose.execution.ExecutionPlan
 import compose.execution.ExecutionPlan.ScopeOperation.{ContextId, ScopeId}
 import zio.schema.{DynamicValue, Schema}
@@ -139,30 +145,56 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
 
       case ExecutionPlan.Default(value) => ZIO.succeed(value)
 
-      case ExecutionPlan.SetPath(path) =>
-        input match {
-          case DynamicValue.Tuple(DynamicValue.Record(values), input) =>
-            def loop(
-              path: List[String],
-              values: ListMap[String, DynamicValue],
-              a: DynamicValue,
-            ): Either[Exception, DynamicValue] = {
-              path match {
-                case Nil          => Left(new Exception("Path not found"))
-                case head :: tail =>
-                  values.get(head) match {
-                    case None    => Left(new Exception("Path not found"))
-                    case Some(v) =>
-                      if (tail.isEmpty) Right(DynamicValue.Record(values + (head -> a)))
-                      else
-                        loop(tail, v.asInstanceOf[DynamicValue.Record].values, a) map { value =>
-                          DynamicValue.Record(values + (head -> value))
-                        }
+      case ExecutionPlan.OpticalOperation(operation) =>
+        operation match {
+          case OpticalOperation.GetPath(path) =>
+            input match {
+              case DynamicValue.Record(values) =>
+                @tailrec
+                def loop(path: List[String], values: ListMap[String, DynamicValue]): Either[Exception, DynamicValue] = {
+                  path match {
+                    case Nil          => Left(new Exception("Path not found"))
+                    case head :: tail =>
+                      values.get(head) match {
+                        case None    => Left(new Exception("Path not found"))
+                        case Some(v) =>
+                          if (tail.isEmpty) Right(v)
+                          else
+                            loop(tail, v.asInstanceOf[DynamicValue.Record].values)
+                      }
                   }
-              }
+                }
+
+                ZIO.fromEither(loop(path, values))
+              case _                           => ZIO.fail(new Exception("Select only works on records"))
             }
-            ZIO.fromEither(loop(path, values, input))
-          case input => ZIO.fail(new Exception(s"Set path doesn't work on: ${input}"))
+
+          case OpticalOperation.SetPath(path) =>
+            input match {
+              case DynamicValue.Tuple(DynamicValue.Record(values), input) =>
+                def loop(
+                  path: List[String],
+                  values: ListMap[String, DynamicValue],
+                  a: DynamicValue,
+                ): Either[Exception, DynamicValue] = {
+                  path match {
+                    case Nil          => Left(new Exception("Path not found"))
+                    case head :: tail =>
+                      values.get(head) match {
+                        case None    => Left(new Exception("Path not found"))
+                        case Some(v) =>
+                          if (tail.isEmpty) Right(DynamicValue.Record(values + (head -> a)))
+                          else
+                            loop(tail, v.asInstanceOf[DynamicValue.Record].values, a) map { value =>
+                              DynamicValue.Record(values + (head -> value))
+                            }
+                      }
+                  }
+                }
+
+                ZIO.fromEither(loop(path, values, input))
+              case input => ZIO.fail(new Exception(s"Set path doesn't work on: ${input}"))
+            }
         }
 
       case ExecutionPlan.LogicalOperation(operation) =>
@@ -244,26 +276,6 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
           input  <- evalDynamic(first, input)
           output <- evalDynamic(second, input)
         } yield output
-      case ExecutionPlan.GetPath(path)       =>
-        input match {
-          case DynamicValue.Record(values) =>
-            @tailrec
-            def loop(path: List[String], values: ListMap[String, DynamicValue]): Either[Exception, DynamicValue] = {
-              path match {
-                case Nil          => Left(new Exception("Path not found"))
-                case head :: tail =>
-                  values.get(head) match {
-                    case None    => Left(new Exception("Path not found"))
-                    case Some(v) =>
-                      if (tail.isEmpty) Right(v)
-                      else
-                        loop(tail, v.asInstanceOf[DynamicValue.Record].values)
-                  }
-              }
-            }
-            ZIO.fromEither(loop(path, values))
-          case _                           => ZIO.fail(new Exception("Select only works on records"))
-        }
 
       case ExecutionPlan.FromMap(value)  =>
         ZIO.succeed(value.get(input) match {

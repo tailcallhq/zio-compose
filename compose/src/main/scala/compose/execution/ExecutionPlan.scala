@@ -77,6 +77,14 @@ object ExecutionPlan {
     case class LowerCase(self: ExecutionPlan)                        extends Operation
   }
 
+  case class OpticalOperation(operation: OpticalOperation.Operation) extends ExecutionPlan
+  object OpticalOperation {
+    sealed trait Operation
+
+    final case class GetPath(path: List[String]) extends Operation
+    final case class SetPath(path: List[String]) extends Operation
+  }
+
   final case class Arg(plan: ExecutionPlan, n: Int) extends ExecutionPlan
 
   final case class RepeatWhile(self: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
@@ -88,10 +96,6 @@ object ExecutionPlan {
   final case class Zip(left: ExecutionPlan, right: ExecutionPlan) extends ExecutionPlan
 
   final case class Pipe(first: ExecutionPlan, second: ExecutionPlan) extends ExecutionPlan
-
-  final case class GetPath(path: List[String]) extends ExecutionPlan
-
-  final case class SetPath(path: List[String]) extends ExecutionPlan
 
   final case class FromMap(value: Map[DynamicValue, DynamicValue]) extends ExecutionPlan
 
