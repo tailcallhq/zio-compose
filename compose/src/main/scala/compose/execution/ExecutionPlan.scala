@@ -1,4 +1,4 @@
-package compose
+package compose.execution
 
 import compose.dsl.NumericDSL
 import zio.schema.{DeriveSchema, DynamicValue, Schema}
@@ -36,11 +36,15 @@ object ExecutionPlan {
 
   final case class Default(value: DynamicValue) extends ExecutionPlan
 
-  final case class LogicalAnd(left: ExecutionPlan, right: ExecutionPlan) extends ExecutionPlan
+  final case class LogicalOperation(operation: LogicalOperation.Operation) extends ExecutionPlan
 
-  final case class LogicalOr(left: ExecutionPlan, right: ExecutionPlan) extends ExecutionPlan
+  object LogicalOperation {
+    sealed trait Operation
 
-  final case class LogicalNot(plan: ExecutionPlan) extends ExecutionPlan
+    final case class And(left: ExecutionPlan, right: ExecutionPlan) extends Operation
+    final case class Or(left: ExecutionPlan, right: ExecutionPlan)  extends Operation
+    final case class Not(plan: ExecutionPlan)                       extends Operation
+  }
 
   final case class NumericOperation(
     operation: NumericDSL.Operation,

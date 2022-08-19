@@ -1,8 +1,9 @@
 package compose.dsl
 
-import compose.{lens, ~>, ExecutionPlan, Lambda}
+import compose.{lens, ~>, Lambda}
 import compose.Lambda.{make, ScopeContext}
 import compose.dsl.ArrowDSL.CanConcat
+import compose.execution.ExecutionPlan
 import compose.interpreter.Interpreter
 import compose.lens.Transformation
 import zio.schema.{DeriveSchema, Schema}

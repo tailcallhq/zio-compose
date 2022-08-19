@@ -1,7 +1,7 @@
 package compose.dsl
 
 import compose.~>
-import compose.ExecutionPlan.StringOperation
+import compose.execution.ExecutionPlan.StringOperation
 import compose.Lambda.make
 
 trait StringDSL[-A, +B] { self: A ~> B =>

@@ -1,7 +1,8 @@
 package compose.lens
 
-import compose.{~>, ExecutionPlan}
+import compose.~>
 import compose.Lambda.make
+import compose.execution.ExecutionPlan
 import zio.schema.Schema
 import zio.prelude.NonEmptyList
 

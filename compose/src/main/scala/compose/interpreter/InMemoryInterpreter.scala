@@ -1,11 +1,11 @@
 package compose.interpreter
 
-import compose.ExecutionPlan
 import compose.dsl.ArrowDSL.CanConcat
 import compose.dsl.NumericDSL
 import compose.dsl.NumericDSL.IsNumeric
 import compose.interpreter.Interpreter.effect
-import compose.ExecutionPlan.StringOperation
+import compose.execution.ExecutionPlan.{LogicalOperation, StringOperation}
+import compose.execution.ExecutionPlan
 import zio.schema.{DynamicValue, Schema}
 
 import scala.annotation.tailrec
@@ -165,22 +165,29 @@ final case class InMemoryInterpreter(scope: Scope[Int, Int, DynamicValue]) exten
           case input => ZIO.fail(new Exception(s"Set path doesn't work on: ${input}"))
         }
 
-      case ExecutionPlan.LogicalAnd(left, right) =>
-        for {
-          left  <- eval[Boolean](left, input)
-          right <- eval[Boolean](right, input)
-        } yield toDynamic { left && right }
+      case ExecutionPlan.LogicalOperation(operation) =>
+        operation match {
+          case LogicalOperation.And(left, right) =>
+            for {
+              left  <- eval[Boolean](left, input)
+              right <- eval[Boolean](right, input)
+            } yield toDynamic {
+              left && right
+            }
+          case LogicalOperation.Or(left, right)  =>
+            for {
+              left  <- eval[Boolean](left, input)
+              right <- eval[Boolean](right, input)
+            } yield toDynamic {
+              left || right
+            }
 
-      case ExecutionPlan.LogicalOr(left, right) =>
-        for {
-          left  <- eval[Boolean](left, input)
-          right <- eval[Boolean](right, input)
-        } yield toDynamic { left || right }
+          case LogicalOperation.Not(plan) =>
+            for {
+              bool <- eval[Boolean](plan, input)
+            } yield toDynamic(!bool)
+        }
 
-      case ExecutionPlan.LogicalNot(plan)                             =>
-        for {
-          bool <- eval[Boolean](plan, input)
-        } yield toDynamic { !bool }
       case ExecutionPlan.NumericOperation(operation, left, right, is) =>
         for {
           isNumeric <- effect(is.toTypedValue(Schema[IsNumeric[_]]))

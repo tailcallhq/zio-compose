@@ -1,7 +1,8 @@
 package compose.dsl
 
-import compose.{~>, ExecutionPlan}
+import compose.~>
 import compose.Lambda.make
+import compose.execution.ExecutionPlan
 
 trait TupleDSL[-A, +B] { self: A ~> B =>
   final def _1[B1, B2](implicit ev: B <:< (B1, B2)): A ~> B1 = make[A, B1] { ExecutionPlan.Arg(self.compile, 0) }

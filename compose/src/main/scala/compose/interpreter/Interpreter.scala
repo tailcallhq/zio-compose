@@ -1,8 +1,9 @@
 package compose.interpreter
 
+import compose.execution.ExecutionPlan
 import zio.{Task, UIO, ZIO}
 import zio.schema.{DynamicValue, Schema}
-import compose.{~>, ExecutionPlan}
+import compose.~>
 import zio.schema.codec.JsonCodec
 
 trait Interpreter {

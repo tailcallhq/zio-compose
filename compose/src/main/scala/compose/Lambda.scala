@@ -3,6 +3,7 @@ package compose
 import compose.dsl._
 import compose.lens.Transformation
 import compose.Lambda.make
+import compose.execution.ExecutionPlan
 import zio.schema.Schema
 
 trait Lambda[-A, +B]

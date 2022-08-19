@@ -1,7 +1,9 @@
 package compose.dsl
 
-import compose.{~>, ExecutionPlan}
+import compose.~>
 import compose.Lambda.{constant, make}
+import compose.execution.ExecutionPlan
+import compose.execution.ExecutionPlan.LogicalOperation
 
 trait BooleanDSL[-A, +B] { self: A ~> B =>
   final def &&[A1](other: A1 ~> Boolean)(implicit ev: B <:< Boolean): A1 ~> Boolean =
@@ -12,7 +14,7 @@ trait BooleanDSL[-A, +B] { self: A ~> B =>
 
   final def and[A1](other: A1 ~> Boolean)(implicit ev: B <:< Boolean): A1 ~> Boolean =
     make[A1, Boolean] {
-      ExecutionPlan.LogicalAnd(self.compile, other.compile)
+      LogicalOperation(LogicalOperation.And(self.compile, other.compile))
     }
 
   final def diverge[C](isTrue: B ~> C, isFalse: B ~> C)(implicit ev: B <:< Boolean): A ~> C =
@@ -27,12 +29,12 @@ trait BooleanDSL[-A, +B] { self: A ~> B =>
     self =:= constant(true)
 
   final def not(implicit ev: B <:< Boolean): A ~> Boolean = make[A, Boolean] {
-    ExecutionPlan.LogicalNot(self.compile)
+    LogicalOperation(LogicalOperation.Not(self.compile))
   }
 
   final def or[A1](other: A1 ~> Boolean)(implicit ev: B <:< Boolean): A1 ~> Boolean =
     make[A1, Boolean] {
-      ExecutionPlan.LogicalOr(self.compile, other.compile)
+      LogicalOperation(LogicalOperation.Or(self.compile, other.compile))
     }
 
 }

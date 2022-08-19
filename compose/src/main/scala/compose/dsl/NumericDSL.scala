@@ -1,8 +1,9 @@
 package compose.dsl
 
-import compose.{~>, ExecutionPlan, Lambda}
+import compose.{~>, Lambda}
 import compose.Lambda.{constant, make}
 import compose.dsl.NumericDSL.IsNumeric
+import compose.execution.ExecutionPlan
 import zio.schema.{DeriveSchema, DynamicValue, Schema}
 
 trait NumericDSL[-A, +B] { self: A ~> B =>
