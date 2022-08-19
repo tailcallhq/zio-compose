@@ -5,7 +5,7 @@ import zio.schema.DynamicValue
 import zio.{Task, ZIO}
 
 trait ArrowInterpreter {
-  self: InMemoryInterpreter =>
+  self: Interpreter.InMemoryInterpreter =>
   def evalArrow(input: DynamicValue, operation: ArrowOp): Task[DynamicValue] = {
     operation match {
       case ArrowOp.Zip(left, right) =>

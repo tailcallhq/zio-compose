@@ -1,13 +1,12 @@
 package compose.interpreter
 
-import compose.interpreter.InMemoryInterpreter.toDynamic
 import compose.operation.ScopeOp
 import zio.schema.DynamicValue
 import zio.{Task, ZIO}
 
 trait ScopeInterpreter {
-  self: InMemoryInterpreter =>
-  def evalScope(input: DynamicValue, operation: ScopeOp): Task[DynamicValue]  = {
+  self: Interpreter.InMemoryInterpreter =>
+  def evalScope(input: DynamicValue, operation: ScopeOp): Task[DynamicValue] = {
     operation match {
       case ScopeOp.SetScope(scopeId, ctxId) =>
         for {

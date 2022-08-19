@@ -5,7 +5,7 @@ import zio.schema.DynamicValue
 import zio.{Task, ZIO}
 
 trait TupleInterpreter {
-  self: InMemoryInterpreter =>
+  self: Interpreter.InMemoryInterpreter =>
   def evalTuple(input: DynamicValue, operation: TupleOp): Task[DynamicValue] = {
     operation match {
       case TupleOp.Arg(plan, i) =>

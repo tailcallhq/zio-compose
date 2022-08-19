@@ -5,8 +5,8 @@ import zio.schema.DynamicValue
 import zio.{Task, ZIO}
 
 trait SourceInterpreter {
-  self: InMemoryInterpreter =>
-  def evalSource(input: DynamicValue, operation: SourceOp) : Task[DynamicValue] = {
+  self: Interpreter.InMemoryInterpreter =>
+  def evalSource(input: DynamicValue, operation: SourceOp): Task[DynamicValue] = {
     operation match {
       case SourceOp.Default(value)  => ZIO.succeed(value)
       case SourceOp.FromMap(value)  =>

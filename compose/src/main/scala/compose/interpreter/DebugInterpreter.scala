@@ -6,8 +6,8 @@ import zio.schema.codec.JsonCodec
 import zio.Task
 
 trait DebugInterpreter {
-  self: InMemoryInterpreter =>
-  def evalDebug(input: DynamicValue, operation: DebugOp): Task[DynamicValue]  = {
+  self: Interpreter.InMemoryInterpreter =>
+  def evalDebug(input: DynamicValue, operation: DebugOp): Task[DynamicValue] = {
     operation match {
       case DebugOp.Debug(plan, name) =>
         for {

@@ -5,8 +5,8 @@ import zio.schema.DynamicValue
 import zio.{Task, ZIO}
 
 trait RecursiveInterpreter {
-  self: InMemoryInterpreter =>
-  def evalRecursive(input: DynamicValue, operation: RecursiveOp): Task[DynamicValue]  = {
+  self: Interpreter.InMemoryInterpreter =>
+  def evalRecursive(input: DynamicValue, operation: RecursiveOp): Task[DynamicValue] = {
     operation match {
       case RecursiveOp.RepeatWhile(f, cond) =>
         def loop(input: DynamicValue): Task[DynamicValue] = {

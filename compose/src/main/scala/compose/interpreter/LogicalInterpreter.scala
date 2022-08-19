@@ -1,13 +1,12 @@
 package compose.interpreter
 
-import compose.interpreter.InMemoryInterpreter.toDynamic
 import compose.operation.LogicalOp
 import zio.schema.DynamicValue
 import zio.Task
 
 trait LogicalInterpreter {
-  self: InMemoryInterpreter =>
-  def evalLogical(input: DynamicValue, operation: LogicalOp): Task[DynamicValue]  = {
+  self: Interpreter.InMemoryInterpreter =>
+  def evalLogical(input: DynamicValue, operation: LogicalOp): Task[DynamicValue] = {
     operation match {
       case LogicalOp.And(left, right) =>
         for {

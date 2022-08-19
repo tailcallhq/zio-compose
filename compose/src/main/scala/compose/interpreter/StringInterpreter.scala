@@ -1,13 +1,12 @@
 package compose.interpreter
 
-import compose.interpreter.InMemoryInterpreter.toDynamic
 import compose.operation.StringOp
 import zio.schema.DynamicValue
 import zio.Task
 
 trait StringInterpreter {
-  self: InMemoryInterpreter =>
-  def evalString(input: DynamicValue, operation: StringOp) : Task[DynamicValue] = {
+  self: Interpreter.InMemoryInterpreter =>
+  def evalString(input: DynamicValue, operation: StringOp): Task[DynamicValue] = {
     operation match {
       case StringOp.Length(plan) =>
         for {

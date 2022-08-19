@@ -8,8 +8,8 @@ import scala.annotation.tailrec
 import scala.collection.immutable.ListMap
 
 trait OpticalInterpreter {
-  self: InMemoryInterpreter =>
-  def evalOptical(input: DynamicValue, operation: OpticalOp): Task[DynamicValue]  = {
+  self: Interpreter.InMemoryInterpreter =>
+  def evalOptical(input: DynamicValue, operation: OpticalOp): Task[DynamicValue] = {
     operation match {
       case OpticalOp.GetPath(path) =>
         input match {
