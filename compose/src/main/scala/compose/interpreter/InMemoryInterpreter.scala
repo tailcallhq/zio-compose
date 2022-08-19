@@ -1,8 +1,8 @@
 package compose.interpreter
 
-import compose.execution.ExecutionPlan._
-import compose.execution.ExecutionPlan
-import compose.execution.ExecutionPlan.ScopeOperation.{ContextId, ScopeId}
+import compose.operation._
+import compose.operation.ScopeOp.{ContextId, ScopeId}
+import compose.ExecutionPlan
 import zio.schema.{DynamicValue, Schema}
 
 import scala.annotation.tailrec
@@ -15,69 +15,69 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
 
   def evalDynamic(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
-      case ExecutionPlan.DebugOperation(operation) =>
+      case ExecutionPlan.DebugExecution(operation) =>
         operation match {
-          case DebugOperation.Debug(plan, name) =>
+          case DebugOp.Debug(plan, name) =>
             for {
               result <- evalDynamic(plan, input)
               json = new String(JsonCodec.encode(Schema[DynamicValue])(result).toArray)
               _ <- zio.Console.printLine(s"${name}: $json")
             } yield result
-          case DebugOperation.Show(plan, name)  =>
+          case DebugOp.Show(plan, name)  =>
             val json = plan.json
             zio.Console.printLine(s"${name}: $json") *> evalDynamic(plan, input)
         }
 
-      case ExecutionPlan.StringOperation(operation) =>
+      case ExecutionPlan.StringExecution(operation) =>
         operation match {
-          case StringOperation.Length(plan) =>
+          case StringOp.Length(plan) =>
             for {
               str <- eval[String](plan, input)
             } yield toDynamic(str.length)
 
-          case StringOperation.UpperCase(plan) =>
+          case StringOp.UpperCase(plan) =>
             for {
               str <- eval[String](plan, input)
             } yield toDynamic(str.toUpperCase)
 
-          case StringOperation.LowerCase(plan) =>
+          case StringOp.LowerCase(plan) =>
             for {
               str <- eval[String](plan, input)
             } yield toDynamic(str.toLowerCase)
 
-          case StringOperation.StartsWith(self, other) =>
+          case StringOp.StartsWith(self, other) =>
             for {
               str1 <- eval[String](self, input)
               str2 <- eval[String](other, input)
             } yield toDynamic(str1.startsWith(str2))
 
-          case StringOperation.EndsWith(self, other) =>
+          case StringOp.EndsWith(self, other) =>
             for {
               str1 <- eval[String](self, input)
               str2 <- eval[String](other, input)
             } yield toDynamic(str1.endsWith(str2))
 
-          case StringOperation.Contains(self, other) =>
+          case StringOp.Contains(self, other) =>
             for {
               str1 <- eval[String](self, input)
               str2 <- eval[String](other, input)
             } yield toDynamic(str1.contains(str2))
 
-          case StringOperation.Concat(self, other) =>
+          case StringOp.Concat(self, other) =>
             for {
               str1 <- eval[String](self, input)
               str2 <- eval[String](other, input)
             } yield toDynamic(str1 ++ str2)
         }
 
-      case ExecutionPlan.ScopeOperation(operation) =>
+      case ExecutionPlan.ScopeExecution(operation) =>
         operation match {
-          case ScopeOperation.SetScope(scopeId, ctxId) =>
+          case ScopeOp.SetScope(scopeId, ctxId) =>
             for {
               _ <- scope.set(ctxId, scopeId, input)
             } yield toDynamic(())
 
-          case ScopeOperation.GetScope(scopeId, ctxId, value) =>
+          case ScopeOp.GetScope(scopeId, ctxId, value) =>
             for {
               option <- scope.get(ctxId, scopeId)
               value  <- option match {
@@ -86,16 +86,16 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
               }
             } yield value
 
-          case ScopeOperation.WithinScope(plan, ctxId) =>
+          case ScopeOp.WithinScope(plan, ctxId) =>
             for {
               result <- evalDynamic(plan, input)
               _      <- scope.delete(ctxId)
             } yield result
         }
 
-      case ExecutionPlan.TupleOperation(operation) =>
+      case ExecutionPlan.TupleExecution(operation) =>
         operation match {
-          case TupleOperation.Arg(plan, i) =>
+          case TupleOp.Arg(plan, i) =>
             for {
               input  <- evalDynamic(plan, input)
               result <- input match {
@@ -113,9 +113,9 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
             } yield result
         }
 
-      case ExecutionPlan.RecursiveOperation(operation) =>
+      case ExecutionPlan.RecursiveExecution(operation) =>
         operation match {
-          case RecursiveOperation.RepeatWhile(f, cond) =>
+          case RecursiveOp.RepeatWhile(f, cond) =>
             def loop(input: DynamicValue): Task[DynamicValue] = {
               for {
                 output <- evalDynamic(f, input)
@@ -126,7 +126,7 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
 
             loop(input)
 
-          case RecursiveOperation.DoWhile(f, cond) =>
+          case RecursiveOp.DoWhile(f, cond) =>
             def loop: Task[DynamicValue] = {
               for {
                 output <- evalDynamic(f, input)
@@ -137,20 +137,20 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
 
             loop
         }
-      case ExecutionPlan.SourceOperation(operation)    =>
+      case ExecutionPlan.SourceExecution(operation)    =>
         operation match {
-          case SourceOperation.Default(value)  => ZIO.succeed(value)
-          case SourceOperation.FromMap(value)  =>
+          case SourceOp.Default(value)  => ZIO.succeed(value)
+          case SourceOp.FromMap(value)  =>
             ZIO.succeed(value.get(input) match {
               case Some(value) => DynamicValue.SomeValue(value)
               case None        => DynamicValue.NoneValue
             })
-          case SourceOperation.Constant(value) => ZIO.succeed(value)
+          case SourceOp.Constant(value) => ZIO.succeed(value)
         }
 
-      case ExecutionPlan.OpticalOperation(operation) =>
+      case ExecutionPlan.OpticalExecution(operation) =>
         operation match {
-          case OpticalOperation.GetPath(path) =>
+          case OpticalOp.GetPath(path) =>
             input match {
               case DynamicValue.Record(values) =>
                 @tailrec
@@ -172,7 +172,7 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
               case _                           => ZIO.fail(new Exception("Select only works on records"))
             }
 
-          case OpticalOperation.SetPath(path) =>
+          case OpticalOp.SetPath(path) =>
             input match {
               case DynamicValue.Tuple(DynamicValue.Record(values), input) =>
                 def loop(
@@ -200,16 +200,16 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
             }
         }
 
-      case ExecutionPlan.LogicalOperation(operation) =>
+      case ExecutionPlan.LogicalExecution(operation) =>
         operation match {
-          case LogicalOperation.And(left, right) =>
+          case LogicalOp.And(left, right) =>
             for {
               left  <- eval[Boolean](left, input)
               right <- eval[Boolean](right, input)
             } yield toDynamic {
               left && right
             }
-          case LogicalOperation.Or(left, right)  =>
+          case LogicalOp.Or(left, right)  =>
             for {
               left  <- eval[Boolean](left, input)
               right <- eval[Boolean](right, input)
@@ -217,72 +217,72 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
               left || right
             }
 
-          case LogicalOperation.Not(plan) =>
+          case LogicalOp.Not(plan) =>
             for {
               bool <- eval[Boolean](plan, input)
             } yield toDynamic(!bool)
 
-          case LogicalOperation.Equals(left, right) =>
+          case LogicalOp.Equals(left, right) =>
             for {
               left  <- evalDynamic(left, input)
               right <- evalDynamic(right, input)
             } yield toDynamic(left == right)
 
-          case LogicalOperation.Diverge(cond, ifTrue, ifFalse) =>
+          case LogicalOp.Diverge(cond, ifTrue, ifFalse) =>
             for {
               cond   <- eval[Boolean](cond, input)
               result <- if (cond) evalDynamic(ifTrue, input) else evalDynamic(ifFalse, input)
             } yield result
         }
 
-      case ExecutionPlan.NumericOperation(operation, ExecutionPlan.NumericOperation.Kind.IntNumber) =>
+      case ExecutionPlan.NumericExecution(operation, NumericOp.Kind.IntNumber) =>
         operation match {
-          case NumericOperation.Add(left, right)                =>
+          case NumericOp.Add(left, right)                =>
             for {
               a <- eval[Int](left, input)
               b <- eval[Int](right, input)
             } yield toDynamic(a + b)
-          case NumericOperation.Multiply(left, right)           =>
+          case NumericOp.Multiply(left, right)           =>
             for {
               a <- eval[Int](left, input)
               b <- eval[Int](right, input)
             } yield toDynamic(a * b)
-          case NumericOperation.Divide(left, right)             =>
+          case NumericOp.Divide(left, right)             =>
             for {
               a <- eval[Int](left, input)
               b <- eval[Int](right, input)
             } yield toDynamic(a / b)
-          case NumericOperation.GreaterThan(left, right)        =>
+          case NumericOp.GreaterThan(left, right)        =>
             for {
               a <- eval[Int](left, input)
               b <- eval[Int](right, input)
             } yield toDynamic(a > b)
-          case NumericOperation.GreaterThanEqualTo(left, right) =>
+          case NumericOp.GreaterThanEqualTo(left, right) =>
             for {
               a <- eval[Int](left, input)
               b <- eval[Int](right, input)
             } yield toDynamic(a >= b)
-          case NumericOperation.Negate(plan)                    =>
+          case NumericOp.Negate(plan)                    =>
             for {
               a <- eval[Int](plan, input)
             } yield toDynamic(-a)
         }
 
-      case ExecutionPlan.ArrowOperation(operation) =>
+      case ExecutionPlan.ArrowExecution(operation) =>
         operation match {
-          case ArrowOperation.Zip(left, right) =>
+          case ArrowOp.Zip(left, right) =>
             for {
               a <- evalDynamic(left, input)
               b <- evalDynamic(right, input)
             } yield DynamicValue.Tuple(a, b)
 
-          case ArrowOperation.Pipe(first, second) =>
+          case ArrowOp.Pipe(first, second) =>
             for {
               input  <- evalDynamic(first, input)
               output <- evalDynamic(second, input)
             } yield output
 
-          case ArrowOperation.Identity => ZIO.succeed(input)
+          case ArrowOp.Identity => ZIO.succeed(input)
         }
 
     }

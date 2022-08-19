@@ -2,10 +2,10 @@ package compose
 
 import compose.dsl._
 import compose.lens.Transformation
-import compose.execution.ExecutionPlan
-import compose.execution.ExecutionPlan.{ArrowOperation, DebugOperation, ScopeOperation, SourceOperation}
-import compose.execution.ExecutionPlan.ScopeOperation.{ContextId, ScopeId}
+import compose.operation._
+import ExecutionPlan._
 import compose.Lambda.make
+import compose.operation.ScopeOp.{ContextId, ScopeId}
 import zio.schema.Schema
 
 trait Lambda[-A, +B]
@@ -21,7 +21,7 @@ trait Lambda[-A, +B]
   def compile: ExecutionPlan
 
   final def debug[B1 >: B](name: String)(implicit s: Schema[B1]): A ~> B1 =
-    make[A, B1] { DebugOperation(DebugOperation.Debug(self.compile, name)) }
+    make[A, B1] { DebugExecution(DebugOp.Debug(self.compile, name)) }
 
   final def doUntil[C](cond: C ~> Boolean): A ~> B =
     doWhile(cond.not)
@@ -35,11 +35,11 @@ trait Lambda[-A, +B]
 object Lambda {
 
   def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B =
-    make[Any, B] { SourceOperation(SourceOperation.Constant(schema.toDynamic(b))) }
+    make[Any, B] { SourceExecution(SourceOp.Constant(schema.toDynamic(b))) }
 
   def default[A](implicit schema: Schema[A]): Any ~> A = make[Any, A] {
-    SourceOperation(
-      SourceOperation
+    SourceExecution(
+      SourceOp
         .Default(schema.defaultValue match {
           case Left(cause)  => throw new Exception(cause)
           case Right(value) => schema.toDynamic(value)
@@ -51,14 +51,14 @@ object Lambda {
     source: Map[A, B],
   )(implicit input: Schema[A], output: Schema[B]): Lambda[A, Option[B]] =
     Lambda.make[A, Option[B]](
-      SourceOperation(SourceOperation.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) })),
+      SourceExecution(SourceOp.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) })),
     )
 
-  def identity[A]: Lambda[A, A] = make[A, A] { ArrowOperation(ArrowOperation.Identity) }
+  def identity[A]: Lambda[A, A] = make[A, A] { ArrowExecution(ArrowOp.Identity) }
 
   def scope[A, B](f: ScopeContext => A ~> B)(implicit s: Schema[B]): A ~> B = Lambda.make[A, B] {
     val ctx = ScopeContext()
-    ScopeOperation(ScopeOperation.WithinScope(f(ctx).compile, ctx.id))
+    ScopeExecution(ScopeOp.WithinScope(f(ctx).compile, ctx.id))
   }
 
   def stats[A, B](f: A ~> B*)(implicit ev: Schema[B]): A ~> B = f.reduce(_ *> _)
@@ -96,12 +96,12 @@ object Lambda {
         def id: ScopeId = ScopeId(self.hashCode(), ctx.id)
 
         override def set: A ~> Unit = Lambda.make[A, Unit] {
-          ScopeOperation(ScopeOperation.SetScope(self.id, ctx.id))
+          ScopeExecution(ScopeOp.SetScope(self.id, ctx.id))
         }
 
         override def get: Any ~> A = Lambda.make[Any, A] {
-          ScopeOperation(
-            ScopeOperation.GetScope(self.id, ctx.id, schema.toDynamic(value)),
+          ScopeExecution(
+            ScopeOp.GetScope(self.id, ctx.id, schema.toDynamic(value)),
           )
         }
       }

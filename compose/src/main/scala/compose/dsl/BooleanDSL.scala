@@ -2,7 +2,8 @@ package compose.dsl
 
 import compose.~>
 import compose.Lambda.{constant, make}
-import compose.execution.ExecutionPlan.LogicalOperation
+import compose.ExecutionPlan.LogicalExecution
+import compose.operation.LogicalOp
 
 trait BooleanDSL[-A, +B] { self: A ~> B =>
   final def &&[A1](other: A1 ~> Boolean)(implicit ev: B <:< Boolean): A1 ~> Boolean =
@@ -13,17 +14,17 @@ trait BooleanDSL[-A, +B] { self: A ~> B =>
 
   final def and[A1](other: A1 ~> Boolean)(implicit ev: B <:< Boolean): A1 ~> Boolean =
     make[A1, Boolean] {
-      LogicalOperation(LogicalOperation.And(self.compile, other.compile))
+      LogicalExecution(LogicalOp.And(self.compile, other.compile))
     }
 
   final def diverge[C](isTrue: B ~> C, isFalse: B ~> C)(implicit ev: B <:< Boolean): A ~> C =
     make[A, C] {
-      LogicalOperation(LogicalOperation.Diverge(self.compile, isTrue.compile, isFalse.compile))
+      LogicalExecution(LogicalOp.Diverge(self.compile, isTrue.compile, isFalse.compile))
     }
 
   final def eq[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
     make[A1, Boolean] {
-      LogicalOperation(LogicalOperation.Equals(self.compile, other.compile))
+      LogicalExecution(LogicalOp.Equals(self.compile, other.compile))
     }
 
   final def isFalse(implicit ev: B <:< Boolean): A ~> Boolean =
@@ -33,11 +34,11 @@ trait BooleanDSL[-A, +B] { self: A ~> B =>
     self =:= constant(true)
 
   final def not(implicit ev: B <:< Boolean): A ~> Boolean = make[A, Boolean] {
-    LogicalOperation(LogicalOperation.Not(self.compile))
+    LogicalExecution(LogicalOp.Not(self.compile))
   }
 
   final def or[A1](other: A1 ~> Boolean)(implicit ev: B <:< Boolean): A1 ~> Boolean =
     make[A1, Boolean] {
-      LogicalOperation(LogicalOperation.Or(self.compile, other.compile))
+      LogicalExecution(LogicalOp.Or(self.compile, other.compile))
     }
 }
