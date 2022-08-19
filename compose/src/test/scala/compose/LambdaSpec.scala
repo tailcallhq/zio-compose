@@ -3,7 +3,7 @@ package compose
 import zio.durationInt
 import zio.schema.{DeriveSchema, Schema}
 import zio.schema.Schema._
-import zio.test.{assertZIO, checkAll, Gen, ZIOSpecDefault}
+import zio.test.{assertZIO, check, checkAll, Gen, ZIOSpecDefault}
 import zio.test.Assertion.{equalTo, isTrue}
 import zio.test.TestAspect.timeout
 
@@ -184,6 +184,46 @@ object LambdaSpec extends ZIOSpecDefault {
         val notSeq   = boolean.map(b => constant(b).not -> !b)
 
         checkAll(andSeq ++ orSeq ++ notSeq) { case (lambda, expected) =>
+          assertZIO(lambda.eval {})(equalTo(expected))
+        }
+      },
+    ),
+    suite("numeric")(
+      test("integer comparison") {
+        val int  = Gen.int
+        val int2 = int <*> int
+
+        val gt: Gen[Any, (Any ~> Boolean, Boolean)] = int2.map { case (b1, b2) =>
+          (constant(b1) > constant(b2)) -> (b1 > b2)
+        }
+
+        val lt: Gen[Any, (Any ~> Boolean, Boolean)] = int2.map { case (b1, b2) =>
+          (constant(b1) < constant(b2)) -> (b1 < b2)
+        }
+
+        val gte: Gen[Any, (Any ~> Boolean, Boolean)] = int2.map { case (b1, b2) =>
+          (constant(b1) >= constant(b2)) -> (b1 >= b2)
+        }
+
+        val lte: Gen[Any, (Any ~> Boolean, Boolean)] = int2.map { case (b1, b2) =>
+          (constant(b1) <= constant(b2)) -> (b1 <= b2)
+        }
+
+        check(gt ++ gte ++ lt ++ lte) { case (lambda, expected) =>
+          assertZIO(lambda.eval {})(equalTo(expected))
+        }
+      },
+      test("integer operation") {
+        val int  = Gen.int
+        val int2 = int <*> int
+
+        val add    = int2.map { case (b1, b2) => (constant(b1) + constant(b2)) -> (b1 + b2) }
+        val mul    = int2.map { case (b1, b2) => (constant(b1) * constant(b2)) -> (b1 * b2) }
+        val div    = int2.map { case (b1, b2) => (constant(b1) / constant(b2)) -> (b1 / b2) }
+        val sub    = int2.map { case (b1, b2) => (constant(b1) - constant(b2)) -> (b1 - b2) }
+        val negate = int.map(b => constant(b).negate -> -b)
+
+        check(add ++ mul ++ div ++ sub ++ negate) { case (lambda, expected) =>
           assertZIO(lambda.eval {})(equalTo(expected))
         }
       },
