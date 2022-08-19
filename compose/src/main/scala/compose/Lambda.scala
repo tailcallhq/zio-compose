@@ -4,6 +4,8 @@ import compose.dsl._
 import compose.lens.Transformation
 import compose.Lambda.make
 import compose.execution.ExecutionPlan
+import compose.execution.ExecutionPlan.ScopeOperation
+import compose.execution.ExecutionPlan.ScopeOperation.{ContextId, ScopeId}
 import zio.schema.Schema
 
 trait Lambda[-A, +B]
@@ -53,8 +55,8 @@ object Lambda {
   def identity[A]: Lambda[A, A] = make[A, A] { ExecutionPlan.Identity }
 
   def scope[A, B](f: ScopeContext => A ~> B)(implicit s: Schema[B]): A ~> B = Lambda.make[A, B] {
-    val context = ScopeContext()
-    f(context).endContext(context).compile
+    val ctx = ScopeContext()
+    ScopeOperation(ScopeOperation.WithinScope(f(ctx).compile, ctx.id))
   }
 
   def stats[A, B](f: A ~> B*)(implicit ev: Schema[B]): A ~> B = f.reduce(_ *> _)
@@ -65,7 +67,9 @@ object Lambda {
         transformation(ab)
     }
 
-  sealed trait ScopeContext
+  sealed trait ScopeContext { self =>
+    def id: ContextId = ContextId(self.hashCode())
+  }
 
   sealed trait Scope[A] {
     def :=[X](f: X ~> A): X ~> Unit = set <<< f
@@ -80,19 +84,23 @@ object Lambda {
   }
 
   object ScopeContext {
-
     private[compose] def apply(): ScopeContext = new ScopeContext {}
   }
 
   object Scope {
+
     def make[A](value: A)(implicit ctx: ScopeContext, schema: Schema[A]): Scope[A] =
       new Scope[A] { self =>
+        def id: ScopeId = ScopeId(self.hashCode(), ctx.id)
+
         override def set: A ~> Unit = Lambda.make[A, Unit] {
-          ExecutionPlan.SetScope(self.hashCode(), ctx.hashCode())
+          ScopeOperation(ScopeOperation.SetScope(self.id, ctx.id))
         }
 
         override def get: Any ~> A = Lambda.make[Any, A] {
-          ExecutionPlan.GetScope(self.hashCode(), ctx.hashCode(), schema.toDynamic(value))
+          ScopeOperation(
+            ScopeOperation.GetScope(self.id, ctx.id, schema.toDynamic(value)),
+          )
         }
       }
   }

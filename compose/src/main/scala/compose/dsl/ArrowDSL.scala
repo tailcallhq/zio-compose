@@ -1,7 +1,7 @@
 package compose.dsl
 
 import compose.{lens, ~>, Lambda}
-import compose.Lambda.{make, ScopeContext}
+import compose.Lambda.make
 import compose.dsl.ArrowDSL.CanConcat
 import compose.execution.ExecutionPlan
 import compose.interpreter.Interpreter
@@ -41,10 +41,6 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
 
   final def doWhile[C](cond: C ~> Boolean): A ~> B =
     make[A, B](ExecutionPlan.DoWhile(self.compile, cond.compile))
-
-  final def endContext[B1 >: B](ctx: ScopeContext)(implicit s: Schema[B1]): A ~> B1 =
-    make[A, B1](ExecutionPlan.EndScope(self.compile, ctx.hashCode()))
-
 
   final def eval[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
     Interpreter.inMemory.flatMap(_.eval[B1](self.compile, in.toDynamic(a)))

@@ -9,13 +9,13 @@ trait Scope[S, K, V] {
 }
 
 object Scope {
-  def inMemory[S, K, V]: UIO[Scope[S, K, V]] = Ref.make(Map.empty[(S, K), V]).map(InMemory(_))
+  def inMemory[C, S, V]: UIO[Scope[C, S, V]] = Ref.make(Map.empty[(C, S), V]).map(InMemory(_))
 
-  final case class InMemory[S, K, V](ref: Ref[Map[(S, K), V]]) extends Scope[S, K, V] {
-    def delete(scope: S): UIO[Unit] = ref.update { map => map.filter { case s -> _ -> _ => s != scope } }
+  final case class InMemory[C, S, V](ref: Ref[Map[(C, S), V]]) extends Scope[C, S, V] {
+    def delete(scope: C): UIO[Unit] = ref.update { map => map.filter { case s -> _ -> _ => s != scope } }
 
-    def get(scope: S, key: K): UIO[Option[V]] = ref.get.map(_.get(scope, key))
+    def get(scope: C, key: S): UIO[Option[V]] = ref.get.map(_.get(scope, key))
 
-    def set(scope: S, key: K, value: V): UIO[Unit] = ref.update { map => map + (((scope, key), value)) }
+    def set(scope: C, key: S, value: V): UIO[Unit] = ref.update { map => map + (((scope, key), value)) }
   }
 }

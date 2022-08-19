@@ -2,8 +2,9 @@ package compose.interpreter
 
 import compose.dsl.ArrowDSL.CanConcat
 import compose.interpreter.Interpreter.effect
-import compose.execution.ExecutionPlan.{LogicalOperation, NumericOperation, StringOperation}
+import compose.execution.ExecutionPlan.{LogicalOperation, NumericOperation, ScopeOperation, StringOperation}
 import compose.execution.ExecutionPlan
+import compose.execution.ExecutionPlan.ScopeOperation.{ContextId, ScopeId}
 import zio.schema.{DynamicValue, Schema}
 
 import scala.annotation.tailrec
@@ -11,7 +12,7 @@ import scala.collection.immutable.ListMap
 import zio.{Task, UIO, ZIO}
 import zio.schema.codec.JsonCodec
 
-final case class InMemoryInterpreter(scope: Scope[Int, Int, DynamicValue]) extends Interpreter {
+final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicValue]) extends Interpreter {
   import InMemoryInterpreter._
 
   def evalDynamic(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
@@ -58,11 +59,28 @@ final case class InMemoryInterpreter(scope: Scope[Int, Int, DynamicValue]) exten
           }
         } yield result
 
-      case ExecutionPlan.EndScope(plan, id) =>
-        for {
-          result <- evalDynamic(plan, input)
-          _      <- scope.delete(id)
-        } yield result
+      case ExecutionPlan.ScopeOperation(operation) =>
+        operation match {
+          case ScopeOperation.SetScope(scopeId, ctxId) =>
+            for {
+              _ <- scope.set(ctxId, scopeId, input)
+            } yield toDynamic(())
+
+          case ScopeOperation.GetScope(scopeId, ctxId, value) =>
+            for {
+              option <- scope.get(ctxId, scopeId)
+              value  <- option match {
+                case Some(value) => ZIO.succeed(value)
+                case None        => ZIO.succeed(value)
+              }
+            } yield value
+
+          case ScopeOperation.WithinScope(plan, ctxId) =>
+            for {
+              result <- evalDynamic(plan, input)
+              _      <- scope.delete(ctxId)
+            } yield result
+        }
 
       case ExecutionPlan.Debug(plan, name) =>
         for {
@@ -87,20 +105,6 @@ final case class InMemoryInterpreter(scope: Scope[Int, Int, DynamicValue]) exten
             case _ => ZIO.fail(new RuntimeException(s"Can not extract args from ${input}"))
           }
         } yield result
-
-      case ExecutionPlan.GetScope(scopeId, ctxId, initial) =>
-        for {
-          option <- scope.get(scopeId, ctxId)
-          value  <- option match {
-            case Some(value) => ZIO.succeed(value)
-            case None        => ZIO.succeed(initial)
-          }
-        } yield value
-
-      case ExecutionPlan.SetScope(scopeId, ctxId) =>
-        for {
-          _ <- scope.set(scopeId, ctxId, input)
-        } yield toDynamic(())
 
       case ExecutionPlan.RepeatWhile(f, cond) =>
         def loop(input: DynamicValue): Task[DynamicValue] = {
@@ -276,7 +280,7 @@ final case class InMemoryInterpreter(scope: Scope[Int, Int, DynamicValue]) exten
 
 object InMemoryInterpreter {
   def make: UIO[InMemoryInterpreter] =
-    Scope.inMemory[Int, Int, DynamicValue].map(scope => new InMemoryInterpreter(scope))
+    Scope.inMemory[ContextId, ScopeId, DynamicValue].map(scope => new InMemoryInterpreter(scope))
 
   private def toDynamic[A](a: A)(implicit schema: Schema[A]): DynamicValue =
     schema.toDynamic(a)
