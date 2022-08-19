@@ -175,6 +175,19 @@ object LambdaSpec extends ZIOSpecDefault {
         }
       },
     ),
+    suite("logical")(
+      test("and, or, not") {
+        val boolean  = Gen.fromIterable(Seq(true, false))
+        val boolean2 = boolean <*> boolean
+        val andSeq   = boolean2.map { case (b1, b2) => (constant(b1) && constant(b2)) -> (b1 && b2) }
+        val orSeq    = boolean2.map { case (b1, b2) => (constant(b1) || constant(b2)) -> (b1 || b2) }
+        val notSeq   = boolean.map(b => constant(b).not -> !b)
+
+        checkAll(andSeq ++ orSeq ++ notSeq) { case (lambda, expected) =>
+          assertZIO(lambda.eval {})(equalTo(expected))
+        }
+      },
+    ),
   ) @@ timeout(5 second)
 
   case class FooBar(foo: Int, bar: Int)
