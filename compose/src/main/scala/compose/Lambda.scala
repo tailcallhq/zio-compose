@@ -2,10 +2,10 @@ package compose
 
 import compose.dsl._
 import compose.lens.Transformation
-import compose.Lambda.make
 import compose.execution.ExecutionPlan
-import compose.execution.ExecutionPlan.{ArrowOperation, ScopeOperation}
+import compose.execution.ExecutionPlan.{ArrowOperation, DebugOperation, ScopeOperation}
 import compose.execution.ExecutionPlan.ScopeOperation.{ContextId, ScopeId}
+import compose.Lambda.make
 import zio.schema.Schema
 
 trait Lambda[-A, +B]
@@ -21,7 +21,7 @@ trait Lambda[-A, +B]
   def compile: ExecutionPlan
 
   final def debug[B1 >: B](name: String)(implicit s: Schema[B1]): A ~> B1 =
-    make[A, B1] { ExecutionPlan.Debug(self.compile, name) }
+    make[A, B1] { DebugOperation(DebugOperation.Debug(self.compile, name)) }
 
   final def doUntil[C](cond: C ~> Boolean): A ~> B =
     doWhile(cond.not)

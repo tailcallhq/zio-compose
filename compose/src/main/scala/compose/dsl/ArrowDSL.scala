@@ -4,7 +4,7 @@ import compose.{lens, ~>, Lambda}
 import compose.Lambda.make
 import compose.dsl.ArrowDSL.CanConcat
 import compose.execution.ExecutionPlan
-import compose.execution.ExecutionPlan.ArrowOperation
+import compose.execution.ExecutionPlan.{ArrowOperation, DebugOperation}
 import compose.interpreter.Interpreter
 import compose.lens.Transformation
 import zio.schema.{DeriveSchema, Schema}
@@ -58,7 +58,7 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
   final def repeatWhile[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 =
     make[B1, B1] { ExecutionPlan.RepeatWhile(self.compile, cond.compile) }
 
-  final def show(name: String): A ~> B = make[A, B](ExecutionPlan.Show(self.compile, name))
+  final def show(name: String): A ~> B = make[A, B](DebugOperation(DebugOperation.Show(self.compile, name)))
 
   final def transform[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
     lens.Transformation[A, C, I](self, other)

@@ -4,6 +4,7 @@ import compose.dsl.ArrowDSL.CanConcat
 import compose.interpreter.Interpreter.effect
 import compose.execution.ExecutionPlan.{
   ArrowOperation,
+  DebugOperation,
   LogicalOperation,
   NumericOperation,
   OpticalOperation,
@@ -24,9 +25,18 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
 
   def evalDynamic(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
     plan match {
-      case ExecutionPlan.Show(plan, name) =>
-        val json = plan.json
-        zio.Console.printLine(s"${name}: $json") *> evalDynamic(plan, input)
+      case ExecutionPlan.DebugOperation(operation) =>
+        operation match {
+          case DebugOperation.Debug(plan, name) =>
+            for {
+              result <- evalDynamic(plan, input)
+              json = new String(JsonCodec.encode(Schema[DynamicValue])(result).toArray)
+              _ <- zio.Console.printLine(s"${name}: $json")
+            } yield result
+          case DebugOperation.Show(plan, name)  =>
+            val json = plan.json
+            zio.Console.printLine(s"${name}: $json") *> evalDynamic(plan, input)
+        }
 
       case ExecutionPlan.StringOperation(operation) =>
         operation match {
@@ -86,13 +96,6 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
               _      <- scope.delete(ctxId)
             } yield result
         }
-
-      case ExecutionPlan.Debug(plan, name) =>
-        for {
-          result <- evalDynamic(plan, input)
-          json = new String(JsonCodec.encode(Schema[DynamicValue])(result).toArray)
-          _ <- zio.Console.printLine(s"${name}: $json")
-        } yield result
 
       case ExecutionPlan.Arg(plan, i) =>
         for {

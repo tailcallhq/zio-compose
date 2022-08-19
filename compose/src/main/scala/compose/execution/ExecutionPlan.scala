@@ -94,6 +94,13 @@ object ExecutionPlan {
     case object Identity                                               extends Operation
   }
 
+  final case class DebugOperation(operation: DebugOperation.Operation) extends ExecutionPlan
+  object DebugOperation {
+    sealed trait Operation
+    final case class Debug(plan: ExecutionPlan, name: String) extends Operation
+    final case class Show(plan: ExecutionPlan, name: String)  extends Operation
+  }
+
   final case class Arg(plan: ExecutionPlan, n: Int) extends ExecutionPlan
 
   final case class RepeatWhile(self: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
@@ -105,10 +112,6 @@ object ExecutionPlan {
   final case class FromMap(value: Map[DynamicValue, DynamicValue]) extends ExecutionPlan
 
   final case class Constant(value: DynamicValue) extends ExecutionPlan
-
-  final case class Debug(plan: ExecutionPlan, name: String) extends ExecutionPlan
-
-  final case class Show(plan: ExecutionPlan, name: String) extends ExecutionPlan
 
   final case class DoWhile(plan: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
 
