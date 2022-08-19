@@ -22,6 +22,11 @@ trait BooleanDSL[-A, +B] { self: A ~> B =>
       ExecutionPlan.IfElse(self.compile, isTrue.compile, isFalse.compile)
     }
 
+  final def eq[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
+    make[A1, Boolean] {
+      LogicalOperation(LogicalOperation.Equals(self.compile, other.compile))
+    }
+
   final def isFalse(implicit ev: B <:< Boolean): A ~> Boolean =
     self =:= constant(false)
 
@@ -36,5 +41,4 @@ trait BooleanDSL[-A, +B] { self: A ~> B =>
     make[A1, Boolean] {
       LogicalOperation(LogicalOperation.Or(self.compile, other.compile))
     }
-
 }

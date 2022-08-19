@@ -40,9 +40,10 @@ object ExecutionPlan {
   object LogicalOperation {
     sealed trait Operation
 
-    final case class And(left: ExecutionPlan, right: ExecutionPlan) extends Operation
-    final case class Or(left: ExecutionPlan, right: ExecutionPlan)  extends Operation
-    final case class Not(plan: ExecutionPlan)                       extends Operation
+    final case class And(left: ExecutionPlan, right: ExecutionPlan)    extends Operation
+    final case class Or(left: ExecutionPlan, right: ExecutionPlan)     extends Operation
+    final case class Not(plan: ExecutionPlan)                          extends Operation
+    final case class Equals(left: ExecutionPlan, right: ExecutionPlan) extends Operation
   }
 
   final case class NumericOperation(operation: NumericOperation.Operation, numberType: NumericOperation.Kind)
@@ -72,8 +73,6 @@ object ExecutionPlan {
   final case class GetPath(path: List[String]) extends ExecutionPlan
 
   final case class SetPath(path: List[String]) extends ExecutionPlan
-
-  final case class Equals(left: ExecutionPlan, right: ExecutionPlan) extends ExecutionPlan
 
   final case class FromMap(value: Map[DynamicValue, DynamicValue]) extends ExecutionPlan
 

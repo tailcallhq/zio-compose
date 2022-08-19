@@ -184,6 +184,13 @@ final case class InMemoryInterpreter(scope: Scope[Int, Int, DynamicValue]) exten
             for {
               bool <- eval[Boolean](plan, input)
             } yield toDynamic(!bool)
+
+          case LogicalOperation.Equals(left, right) =>
+            for {
+              left  <- evalDynamic(left, input)
+              right <- evalDynamic(right, input)
+            } yield toDynamic(left == right)
+
         }
 
       case ExecutionPlan.NumericOperation(operation, ExecutionPlan.NumericOperation.Kind.IntNumber) =>
@@ -255,11 +262,6 @@ final case class InMemoryInterpreter(scope: Scope[Int, Int, DynamicValue]) exten
             ZIO.fromEither(loop(path, values))
           case _                           => ZIO.fail(new Exception("Select only works on records"))
         }
-      case ExecutionPlan.Equals(left, right)           =>
-        for {
-          left  <- evalDynamic(left, input)
-          right <- evalDynamic(right, input)
-        } yield toDynamic(left == right)
 
       case ExecutionPlan.FromMap(value)  =>
         ZIO.succeed(value.get(input) match {

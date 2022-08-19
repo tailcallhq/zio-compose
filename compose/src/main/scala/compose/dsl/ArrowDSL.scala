@@ -45,8 +45,6 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
   final def endContext[B1 >: B](ctx: ScopeContext)(implicit s: Schema[B1]): A ~> B1 =
     make[A, B1](ExecutionPlan.EndScope(self.compile, ctx.hashCode()))
 
-  final def eq[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
-    make[A1, Boolean] { ExecutionPlan.Equals(self.compile, other.compile) }
 
   final def eval[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
     Interpreter.inMemory.flatMap(_.eval[B1](self.compile, in.toDynamic(a)))
