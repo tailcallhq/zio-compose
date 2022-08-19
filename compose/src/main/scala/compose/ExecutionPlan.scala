@@ -4,7 +4,6 @@ import compose.dsl.NumericDSL
 import zio.schema.{DeriveSchema, DynamicValue, Schema}
 import zio.schema.codec.JsonCodec
 import zio.{Chunk, ZIO}
-import zio.schema.ast.SchemaAst
 
 sealed trait ExecutionPlan { self =>
   def binary: Chunk[Byte] = JsonCodec.encode(ExecutionPlan.schema)(self)
