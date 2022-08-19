@@ -108,7 +108,7 @@ object ExecutionPlan {
     final case class Arg(plan: ExecutionPlan, n: Int) extends Operation
   }
 
-  final case class SourceOperation(source: SourceOperation.Operation) extends ExecutionPlan
+  final case class SourceOperation(operation: SourceOperation.Operation) extends ExecutionPlan
   object SourceOperation {
     sealed trait Operation
 
@@ -117,8 +117,12 @@ object ExecutionPlan {
     final case class Constant(value: DynamicValue)                   extends Operation
   }
 
-  final case class RepeatWhile(self: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
+  final case class RecursiveOperation(operation: RecursiveOperation.Operation) extends ExecutionPlan
+  object RecursiveOperation {
+    sealed trait Operation
 
-  final case class DoWhile(plan: ExecutionPlan, cond: ExecutionPlan) extends ExecutionPlan
+    final case class RepeatWhile(self: ExecutionPlan, cond: ExecutionPlan) extends Operation
+    final case class DoWhile(plan: ExecutionPlan, cond: ExecutionPlan)     extends Operation
+  }
 
 }

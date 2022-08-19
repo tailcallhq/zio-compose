@@ -1,16 +1,6 @@
 package compose.interpreter
 
-import compose.execution.ExecutionPlan.{
-  ArrowOperation,
-  DebugOperation,
-  LogicalOperation,
-  NumericOperation,
-  OpticalOperation,
-  ScopeOperation,
-  SourceOperation,
-  StringOperation,
-  TupleOperation,
-}
+import compose.execution.ExecutionPlan._
 import compose.execution.ExecutionPlan
 import compose.execution.ExecutionPlan.ScopeOperation.{ContextId, ScopeId}
 import zio.schema.{DynamicValue, Schema}
@@ -123,29 +113,31 @@ final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicVal
             } yield result
         }
 
-      case ExecutionPlan.RepeatWhile(f, cond) =>
-        def loop(input: DynamicValue): Task[DynamicValue] = {
-          for {
-            output <- evalDynamic(f, input)
-            isTrue <- eval[Boolean](cond, output)
-            result <- if (isTrue) loop(output) else ZIO.succeed(output)
-          } yield result
+      case ExecutionPlan.RecursiveOperation(operation) =>
+        operation match {
+          case RecursiveOperation.RepeatWhile(f, cond) =>
+            def loop(input: DynamicValue): Task[DynamicValue] = {
+              for {
+                output <- evalDynamic(f, input)
+                isTrue <- eval[Boolean](cond, output)
+                result <- if (isTrue) loop(output) else ZIO.succeed(output)
+              } yield result
+            }
+
+            loop(input)
+
+          case RecursiveOperation.DoWhile(f, cond) =>
+            def loop: Task[DynamicValue] = {
+              for {
+                output <- evalDynamic(f, input)
+                isTrue <- eval[Boolean](cond, input)
+                result <- if (isTrue) loop else ZIO.succeed(output)
+              } yield result
+            }
+
+            loop
         }
-
-        loop(input)
-
-      case ExecutionPlan.DoWhile(f, cond) =>
-        def loop: Task[DynamicValue] = {
-          for {
-            output <- evalDynamic(f, input)
-            isTrue <- eval[Boolean](cond, input)
-            result <- if (isTrue) loop else ZIO.succeed(output)
-          } yield result
-        }
-
-        loop
-
-      case ExecutionPlan.SourceOperation(operation) =>
+      case ExecutionPlan.SourceOperation(operation)    =>
         operation match {
           case SourceOperation.Default(value)  => ZIO.succeed(value)
           case SourceOperation.FromMap(value)  =>

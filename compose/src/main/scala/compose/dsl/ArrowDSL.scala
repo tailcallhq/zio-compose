@@ -2,8 +2,7 @@ package compose.dsl
 
 import compose.{lens, ~>, Lambda}
 import compose.Lambda.make
-import compose.execution.ExecutionPlan
-import compose.execution.ExecutionPlan.{ArrowOperation, DebugOperation}
+import compose.execution.ExecutionPlan.{ArrowOperation, DebugOperation, RecursiveOperation}
 import compose.interpreter.Interpreter
 import compose.lens.Transformation
 import zio.schema.Schema
@@ -35,7 +34,7 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
     other pipe self
 
   final def doWhile[C](cond: C ~> Boolean): A ~> B =
-    make[A, B](ExecutionPlan.DoWhile(self.compile, cond.compile))
+    make[A, B](RecursiveOperation(RecursiveOperation.DoWhile(self.compile, cond.compile)))
 
   final def eval[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
     Interpreter.inMemory.flatMap(_.eval[B1](self.compile, in.toDynamic(a)))
@@ -50,7 +49,7 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
     repeatWhile(cond.not)
 
   final def repeatWhile[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 =
-    make[B1, B1] { ExecutionPlan.RepeatWhile(self.compile, cond.compile) }
+    make[B1, B1] { RecursiveOperation(RecursiveOperation.RepeatWhile(self.compile, cond.compile)) }
 
   final def show(name: String): A ~> B = make[A, B](DebugOperation(DebugOperation.Show(self.compile, name)))
 
