@@ -74,6 +74,9 @@ object Example extends ZIOAppDefault {
     ).doWhile { i.get < identity[Int] } *> n.get
   }
 
+  def guessANumber: Any ~> Unit =
+    writeLine("Guess a number between 1 and 10")
+
   override def run =
     for {
       int <- Interpreter.eval(program6)
