@@ -23,9 +23,7 @@ trait ScopeDSL {
 
   sealed trait Scope[A] {
     def :=[X](f: X ~> A): X ~> Unit = set <<< f
-
     def get: Any ~> A
-
     def set: A ~> Unit
   }
 
