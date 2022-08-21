@@ -67,6 +67,8 @@ object Interpreter {
       }
     }
 
+    def unit: DynamicValue = Schema.primitive[Unit].toDynamic(())
+
     def toDynamic[A](a: A)(implicit schema: Schema[A]): DynamicValue =
       schema.toDynamic(a)
   }

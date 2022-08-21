@@ -46,6 +46,12 @@ object Lambda extends ScopeDSL {
     )
   }
 
+  def writeLine: String ~> Unit = make[String, Unit] {
+    SourceExecution(SourceOp.WriteLine)
+  }
+
+  def writeLine(text: String): Any ~> Unit = constant(text) >>> writeLine
+
   def fromMap[A, B](
     source: Map[A, B],
   )(implicit input: Schema[A], output: Schema[B]): Lambda[A, Option[B]] =
