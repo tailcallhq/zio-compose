@@ -3,7 +3,7 @@ package compose.interpreter
 import zio.{Task, UIO, ZIO}
 import zio.schema.{DynamicValue, Schema}
 import compose.{~>, ExecutionPlan}
-import compose.operation.ScopeOp.{ContextId, ScopeId}
+import compose.ExecutionPlan.ScopeExecution.{ContextId, RefId}
 import zio.schema.codec.JsonCodec
 
 trait Interpreter {
@@ -36,9 +36,9 @@ object Interpreter {
     } yield res
 
   def inMemory: UIO[Interpreter] =
-    Scope.inMemory[ContextId, ScopeId, DynamicValue].map(scope => InMemoryInterpreter(scope))
+    Scope.inMemory[ContextId, RefId, DynamicValue].map(scope => InMemoryInterpreter(scope))
 
-  final case class InMemoryInterpreter(scope: Scope[ContextId, ScopeId, DynamicValue])
+  final case class InMemoryInterpreter(scope: Scope[ContextId, RefId, DynamicValue])
       extends Interpreter
       with ArrowInterpreter
       with DebugInterpreter

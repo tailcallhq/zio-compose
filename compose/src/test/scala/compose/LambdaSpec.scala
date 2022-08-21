@@ -140,7 +140,7 @@ object LambdaSpec extends ZIOSpecDefault {
       }
       assertZIO(res.eval {})(equalTo(1024))
     },
-    suite("StringOperations")(
+    suite("StringExecutionerations")(
       test("length") {
         val res = constant("ABC").length
         assertZIO(res.eval {})(equalTo(3))

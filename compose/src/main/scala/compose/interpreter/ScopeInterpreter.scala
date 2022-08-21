@@ -1,28 +1,28 @@
 package compose.interpreter
 
-import compose.operation.ScopeOp
+import compose.ExecutionPlan.ScopeExecution
 import zio.schema.DynamicValue
 import zio.{Task, ZIO}
 
 trait ScopeInterpreter {
   self: Interpreter.InMemoryInterpreter =>
-  def evalScope(input: DynamicValue, operation: ScopeOp): Task[DynamicValue] = {
+  def evalScope(input: DynamicValue, operation: ScopeExecution.Operation): Task[DynamicValue] = {
     operation match {
-      case ScopeOp.SetScope(scopeId, ctxId) =>
+      case ScopeExecution.SetScope(refId, ctxId) =>
         for {
-          _ <- scope.set(ctxId, scopeId, input)
+          _ <- scope.set(ctxId, refId, input)
         } yield toDynamic(())
 
-      case ScopeOp.GetScope(scopeId, ctxId, value) =>
+      case ScopeExecution.GetScope(refId, ctxId, value) =>
         for {
-          option <- scope.get(ctxId, scopeId)
+          option <- scope.get(ctxId, refId)
           value  <- option match {
             case Some(value) => ZIO.succeed(value)
             case None        => ZIO.succeed(value)
           }
         } yield value
 
-      case ScopeOp.WithinScope(plan, ctxId) =>
+      case ScopeExecution.WithinScope(plan, ctxId) =>
         for {
           result <- evalDynamic(plan, input)
           _      <- scope.delete(ctxId)

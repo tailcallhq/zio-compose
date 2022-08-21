@@ -1,14 +1,14 @@
 package compose.interpreter
 
-import compose.operation.TupleOp
+import compose.ExecutionPlan.TupleExecution
 import zio.schema.DynamicValue
 import zio.{Task, ZIO}
 
 trait TupleInterpreter {
   self: Interpreter.InMemoryInterpreter =>
-  def evalTuple(input: DynamicValue, operation: TupleOp): Task[DynamicValue] = {
+  def evalTuple(input: DynamicValue, operation: TupleExecution.Operation): Task[DynamicValue] = {
     operation match {
-      case TupleOp.Arg(plan, i) =>
+      case TupleExecution.Arg(plan, i) =>
         for {
           input  <- evalDynamic(plan, input)
           result <- input match {

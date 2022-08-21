@@ -2,7 +2,6 @@ package compose
 
 import compose.dsl._
 import compose.lens.Transformation
-import compose.operation._
 import ExecutionPlan._
 import compose.Lambda.make
 import zio.schema.Schema
@@ -20,7 +19,7 @@ trait Lambda[-A, +B]
   def compile: ExecutionPlan
 
   final def debug[B1 >: B](name: String)(implicit s: Schema[B1]): A ~> B1 =
-    make[A, B1] { DebugExecution(DebugOp.Debug(self.compile, name)) }
+    make[A, B1] { DebugExecution(DebugExecution.Debug(self.compile, name)) }
 
   final def doUntil[C](cond: C ~> Boolean): A ~> B =
     doWhile(cond.not)
@@ -34,11 +33,11 @@ trait Lambda[-A, +B]
 object Lambda extends ScopeDSL {
 
   def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B =
-    make[Any, B] { SourceExecution(SourceOp.Constant(schema.toDynamic(b))) }
+    make[Any, B] { SourceExecution(SourceExecution.Constant(schema.toDynamic(b))) }
 
   def default[A](implicit schema: Schema[A]): Any ~> A = make[Any, A] {
     SourceExecution(
-      SourceOp
+      SourceExecution
         .Default(schema.defaultValue match {
           case Left(cause)  => throw new Exception(cause)
           case Right(value) => schema.toDynamic(value)
@@ -47,7 +46,7 @@ object Lambda extends ScopeDSL {
   }
 
   def writeLine: String ~> Unit = make[String, Unit] {
-    SourceExecution(SourceOp.WriteLine)
+    SourceExecution(SourceExecution.WriteLine)
   }
 
   def writeLine(text: String): Any ~> Unit = constant(text) >>> writeLine
@@ -56,10 +55,10 @@ object Lambda extends ScopeDSL {
     source: Map[A, B],
   )(implicit input: Schema[A], output: Schema[B]): Lambda[A, Option[B]] =
     Lambda.make[A, Option[B]](
-      SourceExecution(SourceOp.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) })),
+      SourceExecution(SourceExecution.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) })),
     )
 
-  def identity[A]: Lambda[A, A] = make[A, A] { ArrowExecution(ArrowOp.Identity) }
+  def identity[A]: Lambda[A, A] = make[A, A] { ArrowExecution(ArrowExecution.Identity) }
 
   def stats[A, B](f: A ~> B*)(implicit ev: Schema[B]): A ~> B = f.reduce(_ *> _)
 

@@ -2,7 +2,6 @@ package compose.dsl
 
 import compose.{lens, ~>, Lambda}
 import compose.Lambda.make
-import compose.operation._
 import compose.ExecutionPlan._
 import compose.interpreter.Interpreter
 import compose.lens.Transformation
@@ -35,7 +34,7 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
     other pipe self
 
   final def doWhile[C](cond: C ~> Boolean): A ~> B =
-    make[A, B](RecursiveExecution(RecursiveOp.DoWhile(self.compile, cond.compile)))
+    make[A, B](RecursiveExecution(RecursiveExecution.DoWhile(self.compile, cond.compile)))
 
   final def eval[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
     Interpreter.inMemory.flatMap(_.eval[B1](self.compile, in.toDynamic(a)))
@@ -44,21 +43,21 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
     (self =:= other).not
 
   final def pipe[C](other: B ~> C): A ~> C =
-    make[A, C] { ArrowExecution(ArrowOp.Pipe(self.compile, other.compile)) }
+    make[A, C] { ArrowExecution(ArrowExecution.Pipe(self.compile, other.compile)) }
 
   final def repeatUntil[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 =
     repeatWhile(cond.not)
 
   final def repeatWhile[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 =
-    make[B1, B1] { RecursiveExecution(RecursiveOp.RepeatWhile(self.compile, cond.compile)) }
+    make[B1, B1] { RecursiveExecution(RecursiveExecution.RepeatWhile(self.compile, cond.compile)) }
 
-  final def show(name: String): A ~> B = make[A, B](DebugExecution(DebugOp.Show(self.compile, name)))
+  final def show(name: String): A ~> B = make[A, B](DebugExecution(DebugExecution.Show(self.compile, name)))
 
   final def transform[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
     lens.Transformation[A, C, I](self, other)
 
   final def zip[A1 <: A, B1 >: B, B2](other: A1 ~> B2): A1 ~> (B1, B2) =
-    make[A1, (B1, B2)] { ArrowExecution(ArrowOp.Zip(self.compile, other.compile)) }
+    make[A1, (B1, B2)] { ArrowExecution(ArrowExecution.Zip(self.compile, other.compile)) }
 
   final def zipLeft[A1 <: A, B1 >: B, B2](other: A1 ~> B2): A1 ~> B1 =
     ((self: A1 ~> B1) <*> other)._1

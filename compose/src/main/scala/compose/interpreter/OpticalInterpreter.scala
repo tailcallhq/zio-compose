@@ -1,6 +1,6 @@
 package compose.interpreter
 
-import compose.operation.OpticalOp
+import compose.ExecutionPlan.OpticalExecution
 import zio.schema.DynamicValue
 import zio.{Task, ZIO}
 
@@ -9,9 +9,9 @@ import scala.collection.immutable.ListMap
 
 trait OpticalInterpreter {
   self: Interpreter.InMemoryInterpreter =>
-  def evalOptical(input: DynamicValue, operation: OpticalOp): Task[DynamicValue] = {
+  def evalOptical(input: DynamicValue, operation: OpticalExecution.Operation): Task[DynamicValue] = {
     operation match {
-      case OpticalOp.GetPath(path) =>
+      case OpticalExecution.GetPath(path) =>
         input match {
           case DynamicValue.Record(values) =>
             @tailrec
@@ -33,7 +33,7 @@ trait OpticalInterpreter {
           case _                           => ZIO.fail(new Exception("Select only works on records"))
         }
 
-      case OpticalOp.SetPath(path) =>
+      case OpticalExecution.SetPath(path) =>
         input match {
           case DynamicValue.Tuple(DynamicValue.Record(values), input) =>
             def loop(
