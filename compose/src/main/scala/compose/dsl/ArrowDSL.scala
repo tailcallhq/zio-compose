@@ -53,6 +53,9 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
 
   final def show(name: String): A ~> B = make[A, B](Debugger.Show(self.compile, name))
 
+  final def toInt: A ~> Either[String, Int] =
+    self >>> make[Any, Either[String, Int]](Arrow.ToInt)
+
   final def transform[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
     lens.Transformation[A, C, I](self, other)
 

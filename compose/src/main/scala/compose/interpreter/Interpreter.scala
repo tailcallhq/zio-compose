@@ -74,6 +74,15 @@ object Interpreter {
           } yield output
 
         case Arrow.Identity => ZIO.succeed(input)
+
+        case Arrow.ToInt =>
+          (for {
+            result <- input match {
+              case DynamicValue.Primitive(value, _) =>
+                ZIO.attempt(value.toString.toInt).orElseFail("Cannot convert to Int")
+              case _ => ZIO.fail("Cannot convert to int because input is not a primitive")
+            }
+          } yield result).either.map(toDynamic(_))
       }
     }
 

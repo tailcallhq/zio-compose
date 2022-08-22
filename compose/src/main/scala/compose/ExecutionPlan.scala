@@ -77,6 +77,7 @@ object ExecutionPlan {
   object Arrow {
     final case class Zip(left: ExecutionPlan, right: ExecutionPlan)    extends Arrow
     final case class Pipe(first: ExecutionPlan, second: ExecutionPlan) extends Arrow
+    case object ToInt                                                  extends Arrow
     case object Identity                                               extends Arrow
   }
 

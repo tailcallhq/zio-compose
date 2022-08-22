@@ -228,6 +228,18 @@ object LambdaSpec extends ZIOSpecDefault {
         }
       },
     ),
+    test("toInt") {
+      val seq = Gen.fromIterable(
+        Seq[(Any ~> Either[String, Int], Either[String, Int])](
+          constant("1").toInt   -> Right(1),
+          constant("-1").toInt  -> Right(-1),
+          constant("").toInt    -> Left("Cannot convert to Int"),
+          constant("0.1").toInt -> Left("Cannot convert to Int"),
+          constant("1.1").toInt -> Left("Cannot convert to Int"),
+        ),
+      )
+      checkAll(seq) { case (isInt, expected) => assertZIO(isInt.eval {})(equalTo(expected)) }
+    },
   ) @@ timeout(5 second)
 
   case class FooBar(foo: Int, bar: Int)
