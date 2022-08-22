@@ -1,7 +1,7 @@
 package compose.dsl
 
 import compose.{lens, ~>, Interpreter, Lambda}
-import compose.Lambda.make
+import compose.Lambda.{constant, make}
 import compose.ExecutionPlan._
 import compose.lens.Transformation
 import zio.schema.Schema
@@ -26,6 +26,8 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
 
   final def *>[A1 <: A, B1 >: B, B2](other: A1 ~> B2)(implicit b1: Schema[B1], b2: Schema[B2]): A1 ~> B2 =
     (self: A1 ~> B1) zipRight other
+
+  final def as[C](c: C)(implicit s: Schema[C]): A ~> C = self >>> constant(c)
 
   final def bind[A1 <: A](a: A1)(implicit ev: Schema[A1]): Any ~> B = Lambda.constant(a) >>> self
 
