@@ -1,14 +1,14 @@
 package compose.dsl
 
 import compose.{~>, Lambda}
-import compose.ExecutionPlan.ScopeExecution
-import compose.ExecutionPlan.ScopeExecution.{ContextId, RefId}
+import compose.ExecutionPlan.Scoped
+import compose.ExecutionPlan.Scoped.{ContextId, RefId}
 import zio.schema.Schema
 
 trait ScopeDSL {
   def scope[A, B](f: ScopeContext => A ~> B)(implicit s: Schema[B]): A ~> B = Lambda.make[A, B] {
     val ctx = ScopeContext()
-    ScopeExecution(ScopeExecution.WithinScope(f(ctx).compile, ctx.id))
+    Scoped(Scoped.WithinScope(f(ctx).compile, ctx.id))
   }
 
   sealed trait ScopeContext {
@@ -33,12 +33,12 @@ trait ScopeDSL {
         def id: RefId = RefId(self.hashCode(), ctx.id)
 
         override def set: A ~> Unit = Lambda.make[A, Unit] {
-          ScopeExecution(ScopeExecution.SetScope(self.id, ctx.id))
+          Scoped(Scoped.SetScope(self.id, ctx.id))
         }
 
         override def get: Any ~> A = Lambda.make[Any, A] {
-          ScopeExecution(
-            ScopeExecution.GetScope(self.id, ctx.id, schema.toDynamic(value)),
+          Scoped(
+            Scoped.GetScope(self.id, ctx.id, schema.toDynamic(value)),
           )
         }
       }

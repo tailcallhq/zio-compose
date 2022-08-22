@@ -22,8 +22,8 @@ object ExecutionPlan {
 
   implicit def schema: Schema[ExecutionPlan] = DeriveSchema.gen[ExecutionPlan]
 
-  final case class ScopeExecution(operation: ScopeExecution.Operation) extends ExecutionPlan
-  object ScopeExecution {
+  final case class Scoped(operation: Scoped.Operation) extends ExecutionPlan
+  object Scoped {
     sealed trait Operation
     final case class SetScope(refId: RefId, ctxId: ContextId)                      extends Operation
     final case class GetScope(refId: RefId, ctxId: ContextId, value: DynamicValue) extends Operation
@@ -33,8 +33,8 @@ object ExecutionPlan {
     final case class RefId(id: Int, contextId: ContextId)
   }
 
-  final case class LogicalExecution(operation: LogicalExecution.Operation) extends ExecutionPlan
-  object LogicalExecution {
+  final case class Logical(operation: Logical.Operation) extends ExecutionPlan
+  object Logical {
     sealed trait Operation
     final case class And(left: ExecutionPlan, right: ExecutionPlan)                              extends Operation
     final case class Or(left: ExecutionPlan, right: ExecutionPlan)                               extends Operation
@@ -43,9 +43,8 @@ object ExecutionPlan {
     final case class Diverge(cond: ExecutionPlan, ifTrue: ExecutionPlan, ifFalse: ExecutionPlan) extends Operation
   }
 
-  final case class NumericExecution(operation: NumericExecution.Operation, kind: NumericExecution.Kind)
-      extends ExecutionPlan
-  object NumericExecution {
+  final case class Numeric(operation: Numeric.Operation, kind: Numeric.Kind) extends ExecutionPlan
+  object Numeric {
     sealed trait Operation
     sealed trait Kind
 
@@ -61,8 +60,8 @@ object ExecutionPlan {
     final case class Negate(plan: ExecutionPlan)                                   extends Operation
   }
 
-  final case class StringExecution(operation: StringExecution.Operation) extends ExecutionPlan
-  object StringExecution {
+  final case class Textual(operation: Textual.Operation) extends ExecutionPlan
+  object Textual {
     sealed trait Operation
     final case class StartsWith(self: ExecutionPlan, other: ExecutionPlan) extends Operation
     final case class EndsWith(self: ExecutionPlan, other: ExecutionPlan)   extends Operation
@@ -73,36 +72,36 @@ object ExecutionPlan {
     final case class Concat(self: ExecutionPlan, other: ExecutionPlan)     extends Operation
   }
 
-  final case class OpticalExecution(operation: OpticalExecution.Operation) extends ExecutionPlan
-  object OpticalExecution {
+  final case class Optical(operation: Optical.Operation) extends ExecutionPlan
+  object Optical {
     sealed trait Operation
     final case class GetPath(path: List[String]) extends Operation
     final case class SetPath(path: List[String]) extends Operation
   }
 
-  final case class ArrowExecution(operation: ArrowExecution.Operation) extends ExecutionPlan
-  object ArrowExecution {
+  final case class Arrow(operation: Arrow.Operation) extends ExecutionPlan
+  object Arrow {
     sealed trait Operation
     final case class Zip(left: ExecutionPlan, right: ExecutionPlan)    extends Operation
     final case class Pipe(first: ExecutionPlan, second: ExecutionPlan) extends Operation
     case object Identity                                               extends Operation
   }
 
-  final case class DebugExecution(operation: DebugExecution.Operation) extends ExecutionPlan
-  object DebugExecution {
+  final case class Debugger(operation: Debugger.Operation) extends ExecutionPlan
+  object Debugger {
     sealed trait Operation
     final case class Debug(plan: ExecutionPlan, name: String) extends Operation
     final case class Show(plan: ExecutionPlan, name: String)  extends Operation
   }
 
-  final case class TupleExecution(operation: TupleExecution.Operation) extends ExecutionPlan
-  object TupleExecution {
+  final case class Tupled(operation: Tupled.Operation) extends ExecutionPlan
+  object Tupled {
     sealed trait Operation
     final case class Arg(plan: ExecutionPlan, n: Int) extends Operation
   }
 
-  final case class SourceExecution(operation: SourceExecution.Operation) extends ExecutionPlan
-  object SourceExecution {
+  final case class Sources(operation: Sources.Operation) extends ExecutionPlan
+  object Sources {
     sealed trait Operation
     final case class Default(value: DynamicValue)                    extends Operation
     final case class FromMap(value: Map[DynamicValue, DynamicValue]) extends Operation
@@ -110,8 +109,8 @@ object ExecutionPlan {
     final case object WriteLine                                      extends Operation
   }
 
-  final case class RecursiveExecution(operation: RecursiveExecution.Operation) extends ExecutionPlan
-  object RecursiveExecution {
+  final case class Recursive(operation: Recursive.Operation) extends ExecutionPlan
+  object Recursive {
     sealed trait Operation
     final case class RepeatWhile(self: ExecutionPlan, cond: ExecutionPlan) extends Operation
     final case class DoWhile(plan: ExecutionPlan, cond: ExecutionPlan)     extends Operation
