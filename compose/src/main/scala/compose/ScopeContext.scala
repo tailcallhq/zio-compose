@@ -1,4 +1,4 @@
-package compose.interpreter
+package compose
 
 import zio.{Ref, UIO}
 

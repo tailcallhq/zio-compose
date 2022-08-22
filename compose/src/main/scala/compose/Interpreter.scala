@@ -1,8 +1,7 @@
-package compose.interpreter
+package compose
 
 import zio.{Task, UIO, ZIO}
 import zio.schema.{DynamicValue, Schema}
-import compose.{~>, ExecutionPlan}
 import compose.ExecutionPlan.Scoped.{ContextId, RefId}
 import zio.schema.codec.JsonCodec
 

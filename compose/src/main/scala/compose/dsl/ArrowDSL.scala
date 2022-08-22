@@ -1,9 +1,8 @@
 package compose.dsl
 
-import compose.{lens, ~>, Lambda}
+import compose.{lens, ~>, Interpreter, Lambda}
 import compose.Lambda.make
 import compose.ExecutionPlan._
-import compose.interpreter.Interpreter
 import compose.lens.Transformation
 import zio.schema.Schema
 import zio.Task

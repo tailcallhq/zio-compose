@@ -4,7 +4,6 @@ import zio.{ZIO, ZIOAppDefault}
 import zio.schema.{DeriveSchema, Schema}
 import compose.macros.DeriveAccessors
 import compose._
-import compose.interpreter.Interpreter
 
 object Example extends ZIOAppDefault {
   import compose.Lambda._
