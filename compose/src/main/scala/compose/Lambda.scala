@@ -13,7 +13,8 @@ trait Lambda[-A, +B]
     with BooleanDSL[A, B]
     with StringDSL[A, B]
     with FoldDSL[A, B]
-    with OptionDSL[A, B] { self =>
+    with OptionDSL[A, B]
+    with EitherDSL[A, B] { self =>
 
   final def ->>[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
     self transform other

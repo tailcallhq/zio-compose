@@ -121,4 +121,9 @@ object ExecutionPlan {
   object Optional {
     case object IsEmpty extends Optional
   }
+
+  sealed trait EitherOne extends ExecutionPlan
+  object EitherOne {
+    case object IsLeft extends EitherOne
+  }
 }

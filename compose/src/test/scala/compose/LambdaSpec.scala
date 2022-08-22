@@ -283,6 +283,20 @@ object LambdaSpec extends ZIOSpecDefault {
         }
       },
     ),
+    suite("either")(
+      test("isLeft") {
+        check(Gen.either(Gen.int, Gen.int)) { either =>
+          val res = constant(either).isLeft
+          assertZIO(res.eval {})(equalTo(either.isLeft))
+        }
+      },
+      test("isRight") {
+        check(Gen.either(Gen.int, Gen.int)) { either =>
+          val res = constant(either).isRight
+          assertZIO(res.eval {})(equalTo(either.isRight))
+        }
+      },
+    ),
   ) @@ timeout(5 second)
 
   case class FooBar(foo: Int, bar: Int)

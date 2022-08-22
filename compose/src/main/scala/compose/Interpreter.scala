@@ -58,15 +58,27 @@ object Interpreter {
         case operation: Console       => console(input, operation)
         case operation: Fold          => fold(input, operation)
         case operation: Optional      => optional(input, operation)
+        case operation: EitherOne     => eitherOne(input, operation)
       }
     }
+
+    private def eitherOne(input: DynamicValue, operation: EitherOne): Task[DynamicValue] =
+      operation match {
+        case EitherOne.IsLeft =>
+          input match {
+            case _: DynamicValue.LeftValue  => ZIO.succeed(toDynamic(true))
+            case _: DynamicValue.RightValue => ZIO.succeed(toDynamic(false))
+            case _                          => ZIO.fail(new RuntimeException("Not an either value"))
+          }
+      }
 
     private def optional(input: DynamicValue, operation: Optional): Task[DynamicValue] =
       operation match {
         case Optional.IsEmpty =>
           input match {
-            case DynamicValue.NoneValue => ZIO.succeed(toDynamic(true))
-            case _                      => ZIO.succeed(toDynamic(false))
+            case DynamicValue.NoneValue    => ZIO.succeed(toDynamic(true))
+            case DynamicValue.SomeValue(_) => ZIO.succeed(toDynamic(false))
+            case _                         => ZIO.fail(new RuntimeException("Not an optional value"))
           }
       }
 
