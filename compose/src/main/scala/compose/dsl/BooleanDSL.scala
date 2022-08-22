@@ -16,7 +16,7 @@ trait BooleanDSL[-A, +B] { self: A ~> B =>
       Logical.And(self.compile, other.compile)
     }
 
-  final def diverge[C](isTrue: B ~> C, isFalse: B ~> C)(implicit ev: B <:< Boolean): A ~> C =
+  final def diverge[A1 <: A, C](isTrue: A1 ~> C, isFalse: A1 ~> C)(implicit ev: B <:< Boolean): A ~> C =
     make[A, C] {
       Logical.Diverge(self.compile, isTrue.compile, isFalse.compile)
     }

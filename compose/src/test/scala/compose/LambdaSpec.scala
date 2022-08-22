@@ -46,8 +46,21 @@ object LambdaSpec extends ZIOSpecDefault {
       assertZIO(res.eval {})(equalTo((1, 2)))
     },
     test("diverge") {
-      val res = constant(true).diverge(isTrue = constant("Yes"), isFalse = constant("No"))
-      assertZIO(res.eval {})(equalTo("Yes"))
+      val program = (identity[Int] < constant(10)).diverge(identity[Int].inc, identity[Int].dec)
+
+      val gen = Gen.fromIterable(
+        Seq(
+          1  -> 2,
+          2  -> 3,
+          12 -> 11,
+          14 -> 13,
+        ),
+      )
+
+      checkAll(gen) { case (input, expected) =>
+        val res = constant(input) >>> program
+        assertZIO(res.eval {})(equalTo(expected))
+      }
     },
     suite("lens")(
       test("get") {
