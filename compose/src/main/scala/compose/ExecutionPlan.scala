@@ -109,7 +109,7 @@ object ExecutionPlan {
 
   sealed trait Recursive extends ExecutionPlan
   object Recursive {
-    final case class RepeatWhile(self: ExecutionPlan, cond: ExecutionPlan) extends Recursive
+    final case class RecurseWhile(self: ExecutionPlan, cond: ExecutionPlan) extends Recursive
     final case class DoWhile(plan: ExecutionPlan, cond: ExecutionPlan)     extends Recursive
   }
 

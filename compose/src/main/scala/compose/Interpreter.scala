@@ -298,7 +298,7 @@ object Interpreter {
 
     private def recursive(input: DynamicValue, operation: Recursive): Task[DynamicValue] = {
       operation match {
-        case Recursive.RepeatWhile(f, cond) =>
+        case Recursive.RecurseWhile(f, cond) =>
           def loop(input: DynamicValue): Task[DynamicValue] = {
             for {
               output <- evalDynamic(f, input)

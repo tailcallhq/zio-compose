@@ -84,8 +84,8 @@ object LambdaSpec extends ZIOSpecDefault {
       val res = identity[Int].bind(100)
       assertZIO(res.eval {})(equalTo(100))
     },
-    test("repeatWhile") {
-      val res = constant(1) >>> (constant(2) * identity[Int]).repeatWhile {
+    test("recurseWhile") {
+      val res = constant(1) >>> (constant(2) * identity[Int]).recurseWhile {
         identity[Int] < constant(1024)
       }
       assertZIO(res.eval {})(equalTo(1024))

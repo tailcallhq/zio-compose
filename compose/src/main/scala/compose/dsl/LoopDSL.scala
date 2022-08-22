@@ -11,9 +11,9 @@ trait LoopDSL[-A, +B] { self: A ~> B =>
   final def doUntil(cond: Any ~> Boolean): A ~> B =
     doWhile(cond.not)
 
-  final def repeatUntil[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 =
-    repeatWhile(cond.not)
+  final def recurseUntil[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 =
+    recurseWhile(cond.not)
 
-  final def repeatWhile[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 =
-    make[B1, B1] { Recursive.RepeatWhile(self.compile, cond.compile) }
+  final def recurseWhile[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 =
+    make[B1, B1] { Recursive.RecurseWhile(self.compile, cond.compile) }
 }
