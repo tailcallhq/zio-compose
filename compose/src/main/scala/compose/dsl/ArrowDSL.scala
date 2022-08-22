@@ -36,12 +36,6 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
   final def compose[X](other: X ~> A): X ~> B =
     other pipe self
 
-  final def doWhile(cond: Any ~> Boolean): A ~> B =
-    make[A, B](Recursive.DoWhile(self.compile, cond.compile))
-
-  final def doUntil(cond: Any ~> Boolean): A ~> B =
-    doWhile(cond.not)
-
   final def eval[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
     Interpreter.inMemory.flatMap(_.eval[B1](self.compile, in.toDynamic(a)))
 
@@ -50,12 +44,6 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
 
   final def pipe[C](other: B ~> C): A ~> C =
     make[A, C] { Arrow.Pipe(self.compile, other.compile) }
-
-  final def repeatUntil[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 =
-    repeatWhile(cond.not)
-
-  final def repeatWhile[B1 >: B <: A](cond: B1 ~> Boolean): B1 ~> B1 =
-    make[B1, B1] { Recursive.RepeatWhile(self.compile, cond.compile) }
 
   final def show(name: String): A ~> B = make[A, B](Debugger.Show(self.compile, name))
 
