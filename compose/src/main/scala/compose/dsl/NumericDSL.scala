@@ -58,6 +58,7 @@ trait NumericDSL[-A, +B] { self: A ~> B =>
   final def negate[B1 >: B](implicit num: IsNumeric[B1]): A ~> B1 = {
     make[A, B1](Numeric(Numeric.Negate(self.compile), num.kind))
   }
+
 }
 
 object NumericDSL {
