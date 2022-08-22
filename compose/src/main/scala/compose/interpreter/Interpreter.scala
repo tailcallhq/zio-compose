@@ -39,26 +39,27 @@ object Interpreter {
     } yield res
 
   def inMemory: UIO[Interpreter] =
-    ScopeContext.inMemory[ContextId, RefId, DynamicValue].map(scope => InMemoryInterpreter(scope))
+    ScopeContext.inMemory[ContextId, RefId, DynamicValue].map(scope => new InMemoryInterpreter(scope))
 
-  final case class InMemoryInterpreter(scope: ScopeContext[ContextId, RefId, DynamicValue]) extends Interpreter {
+  final class InMemoryInterpreter(scope: ScopeContext[ContextId, RefId, DynamicValue]) extends Interpreter {
     import ExecutionPlan._
     def evalDynamic(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
       plan match {
-        case operation: Debugger      => evalDynamic(input, operation)
-        case operation: Textual       => evalDynamic(input, operation)
-        case operation: Scoped        => evalDynamic(input, operation)
-        case operation: Tupled        => evalDynamic(input, operation)
-        case operation: Recursive     => evalDynamic(input, operation)
-        case operation: Sources       => evalDynamic(input, operation)
-        case operation: Optical       => evalDynamic(input, operation)
-        case operation: Logical       => evalDynamic(input, operation)
-        case Numeric(operation, kind) => evalDynamic(input, operation, kind)
-        case operation: Arrow         => evalDynamic(input, operation)
+        case operation: Debugger      => debugger(input, operation)
+        case operation: Textual       => textual(input, operation)
+        case operation: Scoped        => scoped(input, operation)
+        case operation: Tupled        => tupled(input, operation)
+        case operation: Recursive     => recursive(input, operation)
+        case operation: Sources       => sources(input, operation)
+        case operation: Optical       => optical(input, operation)
+        case operation: Logical       => logical(input, operation)
+        case Numeric(operation, kind) => numeric(input, operation, kind)
+        case operation: Arrow         => arrowed(input, operation)
+        case operation: Console       => console(input, operation)
       }
     }
 
-    private def evalDynamic(input: DynamicValue, operation: Arrow): Task[DynamicValue] = {
+    private def arrowed(input: DynamicValue, operation: Arrow): Task[DynamicValue] = {
       operation match {
         case Arrow.Zip(left, right) =>
           for {
@@ -76,7 +77,73 @@ object Interpreter {
       }
     }
 
-    private def evalDynamic(
+    private def console(input: DynamicValue, operation: Console): Task[DynamicValue] =
+      operation match {
+        case Console.WriteLine        =>
+          for {
+            string <- Interpreter.effect(input.toTypedValue(Schema[String]))
+            _      <- zio.Console.printLine(string)
+          } yield unit
+        case Console.ReadLine(option) =>
+          for {
+            string <- option match {
+              case Some(prompt) => zio.Console.readLine(prompt)
+              case None         => zio.Console.readLine
+            }
+          } yield toDynamic(string)
+      }
+
+    private def debugger(input: DynamicValue, operation: Debugger): Task[DynamicValue] = {
+      operation match {
+        case Debugger.Debug(plan, name) =>
+          for {
+            result <- evalDynamic(plan, input)
+            json = new String(JsonCodec.encode(Schema[DynamicValue])(result).toArray)
+            _ <- zio.Console.printLine(s"${name}: $json")
+          } yield result
+        case Debugger.Show(plan, name)  =>
+          val json = plan.json
+          zio.Console.printLine(s"${name}: $json") *> evalDynamic(plan, input)
+      }
+    }
+
+    private def logical(input: DynamicValue, operation: Logical): Task[DynamicValue] = {
+      operation match {
+        case Logical.And(left, right) =>
+          for {
+            left  <- eval[Boolean](left, input)
+            right <- eval[Boolean](right, input)
+          } yield toDynamic {
+            left && right
+          }
+        case Logical.Or(left, right)  =>
+          for {
+            left  <- eval[Boolean](left, input)
+            right <- eval[Boolean](right, input)
+          } yield toDynamic {
+            left || right
+          }
+
+        case Logical.Not(plan) =>
+          for {
+            bool <- eval[Boolean](plan, input)
+          } yield toDynamic(!bool)
+
+        case Logical.Equals(left, right) =>
+          for {
+            left  <- evalDynamic(left, input)
+            right <- evalDynamic(right, input)
+          } yield toDynamic(left == right)
+
+        case Logical.Diverge(cond, ifTrue, ifFalse) =>
+          for {
+            cond   <- eval[Boolean](cond, input)
+            result <- if (cond) evalDynamic(ifTrue, input) else evalDynamic(ifFalse, input)
+          } yield result
+      }
+    }
+
+    private def numeric(
       input: DynamicValue,
       operation: Numeric.Operation,
       kind: Numeric.Kind,
@@ -117,43 +184,7 @@ object Interpreter {
       }
     }
 
-    private def evalDynamic(input: DynamicValue, operation: Logical): Task[DynamicValue] = {
-      operation match {
-        case Logical.And(left, right) =>
-          for {
-            left  <- eval[Boolean](left, input)
-            right <- eval[Boolean](right, input)
-          } yield toDynamic {
-            left && right
-          }
-        case Logical.Or(left, right)  =>
-          for {
-            left  <- eval[Boolean](left, input)
-            right <- eval[Boolean](right, input)
-          } yield toDynamic {
-            left || right
-          }
-
-        case Logical.Not(plan) =>
-          for {
-            bool <- eval[Boolean](plan, input)
-          } yield toDynamic(!bool)
-
-        case Logical.Equals(left, right) =>
-          for {
-            left  <- evalDynamic(left, input)
-            right <- evalDynamic(right, input)
-          } yield toDynamic(left == right)
-
-        case Logical.Diverge(cond, ifTrue, ifFalse) =>
-          for {
-            cond   <- eval[Boolean](cond, input)
-            result <- if (cond) evalDynamic(ifTrue, input) else evalDynamic(ifFalse, input)
-          } yield result
-      }
-    }
-
-    private def evalDynamic(input: DynamicValue, operation: Optical): Task[DynamicValue] = {
+    private def optical(input: DynamicValue, operation: Optical): Task[DynamicValue] = {
       operation match {
         case Optical.GetPath(path) =>
           input match {
@@ -209,24 +240,7 @@ object Interpreter {
       }
     }
 
-    private def evalDynamic(input: DynamicValue, operation: Sources): Task[DynamicValue] = {
-      operation match {
-        case Sources.Default(value)  => ZIO.succeed(value)
-        case Sources.FromMap(value)  =>
-          ZIO.succeed(value.get(input) match {
-            case Some(value) => DynamicValue.SomeValue(value)
-            case None        => DynamicValue.NoneValue
-          })
-        case Sources.Constant(value) => ZIO.succeed(value)
-        case Sources.WriteLine       =>
-          for {
-            string <- Interpreter.effect(input.toTypedValue(Schema[String]))
-            _      <- zio.Console.printLine(string)
-          } yield unit
-      }
-    }
-
-    private def evalDynamic(input: DynamicValue, operation: Recursive): Task[DynamicValue] = {
+    private def recursive(input: DynamicValue, operation: Recursive): Task[DynamicValue] = {
       operation match {
         case Recursive.RepeatWhile(f, cond) =>
           def loop(input: DynamicValue): Task[DynamicValue] = {
@@ -252,28 +266,7 @@ object Interpreter {
       }
     }
 
-    private def evalDynamic(input: DynamicValue, operation: Tupled): Task[DynamicValue] = {
-      operation match {
-        case Tupled.Arg(plan, i) =>
-          for {
-            input  <- evalDynamic(plan, input)
-            result <- input match {
-              case DynamicValue.Tuple(left, right) =>
-                i match {
-                  case 0 => ZIO.succeed(left)
-                  case 1 => ZIO.succeed(right)
-                  case n =>
-                    ZIO.fail(
-                      new RuntimeException(s"Can not extract element at index ${n} from ${input}"),
-                    )
-                }
-              case _ => ZIO.fail(new RuntimeException(s"Can not extract args from ${input}"))
-            }
-          } yield result
-      }
-    }
-
-    private def evalDynamic(input: DynamicValue, operation: Scoped): Task[DynamicValue] = {
+    private def scoped(input: DynamicValue, operation: Scoped): Task[DynamicValue] = {
       operation match {
         case Scoped.SetScope(refId, ctxId) =>
           for {
@@ -297,7 +290,19 @@ object Interpreter {
       }
     }
 
-    private def evalDynamic(input: DynamicValue, operation: Textual): Task[DynamicValue] = {
+    private def sources(input: DynamicValue, operation: Sources): Task[DynamicValue] = {
+      operation match {
+        case Sources.Default(value)  => ZIO.succeed(value)
+        case Sources.FromMap(value)  =>
+          ZIO.succeed(value.get(input) match {
+            case Some(value) => DynamicValue.SomeValue(value)
+            case None        => DynamicValue.NoneValue
+          })
+        case Sources.Constant(value) => ZIO.succeed(value)
+      }
+    }
+
+    private def textual(input: DynamicValue, operation: Textual): Task[DynamicValue] = {
       operation match {
         case Textual.Length(plan) =>
           for {
@@ -340,23 +345,30 @@ object Interpreter {
       }
     }
 
-    private def evalDynamic(input: DynamicValue, operation: Debugger): Task[DynamicValue] = {
+    private def toDynamic[A](a: A)(implicit schema: Schema[A]): DynamicValue =
+      schema.toDynamic(a)
+
+    private def tupled(input: DynamicValue, operation: Tupled): Task[DynamicValue] = {
       operation match {
-        case Debugger.Debug(plan, name) =>
+        case Tupled.Arg(plan, i) =>
           for {
-            result <- evalDynamic(plan, input)
-            json = new String(JsonCodec.encode(Schema[DynamicValue])(result).toArray)
-            _ <- zio.Console.printLine(s"${name}: $json")
+            input  <- evalDynamic(plan, input)
+            result <- input match {
+              case DynamicValue.Tuple(left, right) =>
+                i match {
+                  case 0 => ZIO.succeed(left)
+                  case 1 => ZIO.succeed(right)
+                  case n =>
+                    ZIO.fail(
+                      new RuntimeException(s"Can not extract element at index ${n} from ${input}"),
+                    )
+                }
+              case _ => ZIO.fail(new RuntimeException(s"Can not extract args from ${input}"))
+            }
           } yield result
-        case Debugger.Show(plan, name)  =>
-          val json = plan.json
-          zio.Console.printLine(s"${name}: $json") *> evalDynamic(plan, input)
       }
     }
 
-    def toDynamic[A](a: A)(implicit schema: Schema[A]): DynamicValue =
-      schema.toDynamic(a)
-
-    def unit: DynamicValue = Schema.primitive[Unit].toDynamic(())
+    private def unit: DynamicValue = Schema.primitive[Unit].toDynamic(())
   }
 }

@@ -31,7 +31,7 @@ trait Lambda[-A, +B]
 
 }
 
-object Lambda extends ScopeDSL {
+object Lambda extends ScopeDSL with ConsoleDSL {
 
   def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B =
     make[Any, B] { Sources.Constant(schema.toDynamic(b)) }
@@ -43,12 +43,6 @@ object Lambda extends ScopeDSL {
         case Right(value) => schema.toDynamic(value)
       })
   }
-
-  def writeLine: String ~> Unit = make[String, Unit] {
-    Sources.WriteLine
-  }
-
-  def writeLine(text: String): Any ~> Unit = constant(text) >>> writeLine
 
   def fromMap[A, B](
     source: Map[A, B],

@@ -96,7 +96,12 @@ object ExecutionPlan {
     final case class Default(value: DynamicValue)                    extends Sources
     final case class FromMap(value: Map[DynamicValue, DynamicValue]) extends Sources
     final case class Constant(value: DynamicValue)                   extends Sources
-    final case object WriteLine                                      extends Sources
+  }
+
+  sealed trait Console extends ExecutionPlan
+  object Console {
+    case object WriteLine                             extends Console
+    final case class ReadLine(prompt: Option[String]) extends Console
   }
 
   sealed trait Recursive extends ExecutionPlan
