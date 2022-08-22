@@ -42,6 +42,7 @@ object Interpreter {
 
   final class InMemoryInterpreter(scope: ScopeContext[ContextId, RefId, DynamicValue]) extends Interpreter {
     import ExecutionPlan._
+
     def evalDynamic(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
       plan match {
         case operation: Debugger      => debugger(input, operation)
@@ -55,6 +56,7 @@ object Interpreter {
         case Numeric(operation, kind) => numeric(input, operation, kind)
         case operation: Arrow         => arrowed(input, operation)
         case operation: Console       => console(input, operation)
+        case operation: Fold          => fold(input, operation)
       }
     }
 
@@ -114,6 +116,18 @@ object Interpreter {
           zio.Console.printLine(s"${name}: $json") *> evalDynamic(plan, input)
       }
     }
+
+    private def fold(input: DynamicValue, operation: Fold): Task[DynamicValue] =
+      operation match {
+        case Fold.FoldOption(isEmpty, f) =>
+          for {
+            result <- input match {
+              case DynamicValue.SomeValue(input) => evalDynamic(f, input)
+              case DynamicValue.NoneValue        => evalDynamic(isEmpty, input)
+              case _                             => ZIO.fail(new RuntimeException("Cannot fold on this input"))
+            }
+          } yield result
+      }
 
     private def logical(input: DynamicValue, operation: Logical): Task[DynamicValue] = {
       operation match {

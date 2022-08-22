@@ -110,4 +110,9 @@ object ExecutionPlan {
     final case class RepeatWhile(self: ExecutionPlan, cond: ExecutionPlan) extends Recursive
     final case class DoWhile(plan: ExecutionPlan, cond: ExecutionPlan)     extends Recursive
   }
+
+  sealed trait Fold extends ExecutionPlan
+  object Fold {
+    final case class FoldOption(isEmpty: ExecutionPlan, f: ExecutionPlan) extends Fold
+  }
 }

@@ -240,6 +240,22 @@ object LambdaSpec extends ZIOSpecDefault {
       )
       checkAll(seq) { case (isInt, expected) => assertZIO(isInt.eval {})(equalTo(expected)) }
     },
+    suite("fold")(
+      test("option") {
+        val program = identity[Option[Int]].fold(constant(0), identity[Int].inc)
+        val seq     = Gen.fromIterable(
+          Seq(
+            Option.empty[Int] -> 0,
+            Option(1)         -> 2,
+            Option(2)         -> 3,
+          ),
+        )
+
+        checkAll(seq) { case (option, expected) =>
+          assertZIO(program.eval(option))(equalTo(expected))
+        }
+      },
+    ),
   ) @@ timeout(5 second)
 
   case class FooBar(foo: Int, bar: Int)

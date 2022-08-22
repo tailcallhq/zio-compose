@@ -11,7 +11,8 @@ trait Lambda[-A, +B]
     with NumericDSL[A, B]
     with TupleDSL[A, B]
     with BooleanDSL[A, B]
-    with StringDSL[A, B] { self =>
+    with StringDSL[A, B]
+    with FoldDSL[A, B] { self =>
 
   final def ->>[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
     self transform other
@@ -28,10 +29,9 @@ trait Lambda[-A, +B]
   final def narrow[A1](implicit ev: A1 <:< A): A1 ~> B = self.asInstanceOf[A1 ~> B]
 
   final def widen[B1](implicit ev: B <:< B1): A ~> B1 = self.asInstanceOf[A ~> B1]
-
 }
 
-object Lambda extends ScopeDSL with ConsoleDSL {
+object Lambda extends ScopeDSL with ConsoleDSL with FoldDSL.Implicits {
 
   def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B =
     make[Any, B] { Sources.Constant(schema.toDynamic(b)) }
