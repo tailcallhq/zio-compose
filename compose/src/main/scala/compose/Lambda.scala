@@ -19,7 +19,7 @@ trait Lambda[-A, +B]
   def compile: ExecutionPlan
 
   final def debug[B1 >: B](name: String)(implicit s: Schema[B1]): A ~> B1 = {
-    make[A, B1] { Debugger(Debugger.Debug(self.compile, name)) }
+    make[A, B1] { Debugger.Debug(self.compile, name) }
   }
 
   final def doUntil[C](cond: C ~> Boolean): A ~> B =
@@ -34,20 +34,18 @@ trait Lambda[-A, +B]
 object Lambda extends ScopeDSL {
 
   def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B =
-    make[Any, B] { Sources(Sources.Constant(schema.toDynamic(b))) }
+    make[Any, B] { Sources.Constant(schema.toDynamic(b)) }
 
   def default[A](implicit schema: Schema[A]): Any ~> A = make[Any, A] {
-    Sources(
-      Sources
-        .Default(schema.defaultValue match {
-          case Left(cause)  => throw new Exception(cause)
-          case Right(value) => schema.toDynamic(value)
-        }),
-    )
+    Sources
+      .Default(schema.defaultValue match {
+        case Left(cause)  => throw new Exception(cause)
+        case Right(value) => schema.toDynamic(value)
+      })
   }
 
   def writeLine: String ~> Unit = make[String, Unit] {
-    Sources(Sources.WriteLine)
+    Sources.WriteLine
   }
 
   def writeLine(text: String): Any ~> Unit = constant(text) >>> writeLine
@@ -56,10 +54,10 @@ object Lambda extends ScopeDSL {
     source: Map[A, B],
   )(implicit input: Schema[A], output: Schema[B]): Lambda[A, Option[B]] =
     Lambda.make[A, Option[B]](
-      Sources(Sources.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) })),
+      Sources.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) }),
     )
 
-  def identity[A]: Lambda[A, A] = make[A, A] { Arrow(Arrow.Identity) }
+  def identity[A]: Lambda[A, A] = make[A, A] { Arrow.Identity }
 
   def stats[A, B](f: A ~> B*)(implicit ev: Schema[B]): A ~> B = f.reduce(_ *> _)
 

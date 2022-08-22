@@ -45,20 +45,20 @@ object Interpreter {
     import ExecutionPlan._
     def evalDynamic(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
       plan match {
-        case Debugger(operation)     => evalDynamic(input, operation)
-        case Textual(operation)               => evalDynamic(input, operation)
-        case Scoped(operation)     => evalDynamic(input, operation)
-        case Tupled(operation)     => evalDynamic(input, operation)
-        case Recursive(operation) => evalDynamic(input, operation)
-        case Sources(operation)    => evalDynamic(input, operation)
-        case Optical(operation)            => evalDynamic(input, operation)
-        case Logical(operation)            => evalDynamic(input, operation)
-        case Numeric(operation, kind)      => evalDynamic(input, operation, kind)
-        case Arrow(operation)              => evalDynamic(input, operation)
+        case operation: Debugger      => evalDynamic(input, operation)
+        case operation: Textual       => evalDynamic(input, operation)
+        case operation: Scoped        => evalDynamic(input, operation)
+        case operation: Tupled        => evalDynamic(input, operation)
+        case operation: Recursive     => evalDynamic(input, operation)
+        case operation: Sources       => evalDynamic(input, operation)
+        case operation: Optical       => evalDynamic(input, operation)
+        case operation: Logical       => evalDynamic(input, operation)
+        case Numeric(operation, kind) => evalDynamic(input, operation, kind)
+        case operation: Arrow         => evalDynamic(input, operation)
       }
     }
 
-    private def evalDynamic(input: DynamicValue, operation: Arrow.Operation): Task[DynamicValue] = {
+    private def evalDynamic(input: DynamicValue, operation: Arrow): Task[DynamicValue] = {
       operation match {
         case Arrow.Zip(left, right) =>
           for {
@@ -117,7 +117,7 @@ object Interpreter {
       }
     }
 
-    private def evalDynamic(input: DynamicValue, operation: Logical.Operation): Task[DynamicValue] = {
+    private def evalDynamic(input: DynamicValue, operation: Logical): Task[DynamicValue] = {
       operation match {
         case Logical.And(left, right) =>
           for {
@@ -153,7 +153,7 @@ object Interpreter {
       }
     }
 
-    private def evalDynamic(input: DynamicValue, operation: Optical.Operation): Task[DynamicValue] = {
+    private def evalDynamic(input: DynamicValue, operation: Optical): Task[DynamicValue] = {
       operation match {
         case Optical.GetPath(path) =>
           input match {
@@ -209,7 +209,7 @@ object Interpreter {
       }
     }
 
-    private def evalDynamic(input: DynamicValue, operation: Sources.Operation): Task[DynamicValue] = {
+    private def evalDynamic(input: DynamicValue, operation: Sources): Task[DynamicValue] = {
       operation match {
         case Sources.Default(value)  => ZIO.succeed(value)
         case Sources.FromMap(value)  =>
@@ -226,7 +226,7 @@ object Interpreter {
       }
     }
 
-    private def evalDynamic(input: DynamicValue, operation: Recursive.Operation): Task[DynamicValue] = {
+    private def evalDynamic(input: DynamicValue, operation: Recursive): Task[DynamicValue] = {
       operation match {
         case Recursive.RepeatWhile(f, cond) =>
           def loop(input: DynamicValue): Task[DynamicValue] = {
@@ -252,7 +252,7 @@ object Interpreter {
       }
     }
 
-    private def evalDynamic(input: DynamicValue, operation: Tupled.Operation): Task[DynamicValue] = {
+    private def evalDynamic(input: DynamicValue, operation: Tupled): Task[DynamicValue] = {
       operation match {
         case Tupled.Arg(plan, i) =>
           for {
@@ -273,7 +273,7 @@ object Interpreter {
       }
     }
 
-    private def evalDynamic(input: DynamicValue, operation: Scoped.Operation): Task[DynamicValue] = {
+    private def evalDynamic(input: DynamicValue, operation: Scoped): Task[DynamicValue] = {
       operation match {
         case Scoped.SetScope(refId, ctxId) =>
           for {
@@ -297,7 +297,7 @@ object Interpreter {
       }
     }
 
-    private def evalDynamic(input: DynamicValue, operation: Textual.Operation): Task[DynamicValue] = {
+    private def evalDynamic(input: DynamicValue, operation: Textual): Task[DynamicValue] = {
       operation match {
         case Textual.Length(plan) =>
           for {
@@ -340,7 +340,7 @@ object Interpreter {
       }
     }
 
-    private def evalDynamic(input: DynamicValue, operation: Debugger.Operation): Task[DynamicValue] = {
+    private def evalDynamic(input: DynamicValue, operation: Debugger): Task[DynamicValue] = {
       operation match {
         case Debugger.Debug(plan, name) =>
           for {
