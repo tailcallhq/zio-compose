@@ -68,7 +68,7 @@ object Interpreter {
           input match {
             case _: DynamicValue.LeftValue  => ZIO.succeed(toDynamic(true))
             case _: DynamicValue.RightValue => ZIO.succeed(toDynamic(false))
-            case _                          => ZIO.fail(new RuntimeException("Not an either value"))
+            case input                      => ZIO.fail(new RuntimeException(s"Not an either value: ${input}"))
           }
       }
 
@@ -78,7 +78,7 @@ object Interpreter {
           input match {
             case DynamicValue.NoneValue    => ZIO.succeed(toDynamic(true))
             case DynamicValue.SomeValue(_) => ZIO.succeed(toDynamic(false))
-            case _                         => ZIO.fail(new RuntimeException("Not an optional value"))
+            case input                     => ZIO.fail(new RuntimeException(s"Not an optional value: ${input}"))
           }
       }
 
@@ -95,6 +95,9 @@ object Interpreter {
             input  <- evalDynamic(first, input)
             output <- evalDynamic(second, input)
           } yield output
+
+        case Arrow.AsString(ast) =>
+          effect(input.toTypedValue(ast.toSchema).map(any => toDynamic(any.toString)))
 
         case Arrow.Identity => ZIO.succeed(input)
 

@@ -297,6 +297,14 @@ object LambdaSpec extends ZIOSpecDefault {
         }
       },
     ),
+    suite("asString")(
+      test("asString") {
+        check(Gen.int) { int =>
+          val res = constant(int).asString
+          assertZIO(res.eval {})(equalTo(int.toString))
+        }
+      },
+    ),
   ) @@ timeout(5 second)
 
   case class FooBar(foo: Int, bar: Int)

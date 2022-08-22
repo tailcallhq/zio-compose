@@ -25,9 +25,6 @@ trait Lambda[-A, +B]
     make[A, B1] { Debugger.Debug(self.compile, name) }
   }
 
-  final def doUntil[C](cond: C ~> Boolean): A ~> B =
-    doWhile(cond.not)
-
   final def narrow[A1](implicit ev: A1 <:< A): A1 ~> B = self.asInstanceOf[A1 ~> B]
 
   final def widen[B1](implicit ev: B <:< B1): A ~> B1 = self.asInstanceOf[A ~> B1]

@@ -29,13 +29,18 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
 
   final def as[C](c: C)(implicit s: Schema[C]): A ~> C = self >>> constant(c)
 
+  final def asString[B1 >: B](implicit b: Schema[B1]): A ~> String = self >>> make[B, String] { Arrow.AsString(b.ast) }
+
   final def bind[A1 <: A](a: A1)(implicit ev: Schema[A1]): Any ~> B = Lambda.constant(a) >>> self
 
   final def compose[X](other: X ~> A): X ~> B =
     other pipe self
 
-  final def doWhile[C](cond: C ~> Boolean): A ~> B =
+  final def doWhile(cond: Any ~> Boolean): A ~> B =
     make[A, B](Recursive.DoWhile(self.compile, cond.compile))
+
+  final def doUntil(cond: Any ~> Boolean): A ~> B =
+    doWhile(cond.not)
 
   final def eval[A1 <: A, B1 >: B](a: A1)(implicit in: Schema[A1], out: Schema[B1]): Task[B1] =
     Interpreter.inMemory.flatMap(_.eval[B1](self.compile, in.toDynamic(a)))

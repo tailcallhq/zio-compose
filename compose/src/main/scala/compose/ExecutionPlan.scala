@@ -3,6 +3,7 @@ package compose
 import zio.schema.{DeriveSchema, DynamicValue, Schema}
 import zio.schema.codec.JsonCodec
 import zio.{Chunk, ZIO}
+import zio.schema.ast.SchemaAst
 
 sealed trait ExecutionPlan { self =>
   final def binary: Chunk[Byte] = JsonCodec.encode(ExecutionPlan.schema)(self)
@@ -79,6 +80,7 @@ object ExecutionPlan {
     final case class Pipe(first: ExecutionPlan, second: ExecutionPlan) extends Arrow
     case object ToInt                                                  extends Arrow
     case object Identity                                               extends Arrow
+    case class AsString(ast: SchemaAst)                                extends Arrow
   }
 
   sealed trait Debugger extends ExecutionPlan
