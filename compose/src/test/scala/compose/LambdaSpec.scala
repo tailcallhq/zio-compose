@@ -255,6 +255,19 @@ object LambdaSpec extends ZIOSpecDefault {
           assertZIO(program.eval(option))(equalTo(expected))
         }
       },
+      test("either") {
+        val program = identity[Either[Int, Int]].fold(identity[Int].dec, identity[Int].inc)
+        val seq     = Gen.fromIterable(
+          Seq(
+            Left(1)  -> 0,
+            Right(1) -> 2,
+          ),
+        )
+
+        checkAll(seq) { case (option, expected) =>
+          assertZIO(program.eval(option))(equalTo(expected))
+        }
+      },
     ),
   ) @@ timeout(5 second)
 

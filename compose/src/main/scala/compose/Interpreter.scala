@@ -127,6 +127,15 @@ object Interpreter {
               case _                             => ZIO.fail(new RuntimeException("Cannot fold on this input"))
             }
           } yield result
+
+        case Fold.FoldEither(left, right) =>
+          for {
+            result <- input match {
+              case DynamicValue.LeftValue(input)  => evalDynamic(left, input)
+              case DynamicValue.RightValue(input) => evalDynamic(right, input)
+              case _                              => ZIO.fail(new RuntimeException("Cannot fold on this input"))
+            }
+          } yield result
       }
 
     private def logical(input: DynamicValue, operation: Logical): Task[DynamicValue] = {

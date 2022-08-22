@@ -113,6 +113,7 @@ object ExecutionPlan {
 
   sealed trait Fold extends ExecutionPlan
   object Fold {
-    final case class FoldOption(isEmpty: ExecutionPlan, f: ExecutionPlan) extends Fold
+    final case class FoldOption(isEmpty: ExecutionPlan, f: ExecutionPlan)  extends Fold
+    final case class FoldEither(left: ExecutionPlan, right: ExecutionPlan) extends Fold
   }
 }
