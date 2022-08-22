@@ -356,46 +356,30 @@ object Interpreter {
     }
 
     private def textual(input: DynamicValue, operation: Textual): Task[DynamicValue] = {
-      operation match {
-        case Textual.Length(plan) =>
-          for {
-            str <- eval[String](plan, input)
-          } yield toDynamic(str.length)
-
-        case Textual.UpperCase(plan) =>
-          for {
-            str <- eval[String](plan, input)
-          } yield toDynamic(str.toUpperCase)
-
-        case Textual.LowerCase(plan) =>
-          for {
-            str <- eval[String](plan, input)
-          } yield toDynamic(str.toLowerCase)
-
-        case Textual.StartsWith(self, other) =>
-          for {
-            str1 <- eval[String](self, input)
-            str2 <- eval[String](other, input)
-          } yield toDynamic(str1.startsWith(str2))
-
-        case Textual.EndsWith(self, other) =>
-          for {
-            str1 <- eval[String](self, input)
-            str2 <- eval[String](other, input)
-          } yield toDynamic(str1.endsWith(str2))
-
-        case Textual.Contains(self, other) =>
-          for {
-            str1 <- eval[String](self, input)
-            str2 <- eval[String](other, input)
-          } yield toDynamic(str1.contains(str2))
-
-        case Textual.Concat(self, other) =>
-          for {
-            str1 <- eval[String](self, input)
-            str2 <- eval[String](other, input)
-          } yield toDynamic(str1 ++ str2)
-      }
+      for {
+        str1   <- effect(input.toTypedValue(Schema[String]))
+        result <- operation match {
+          case Textual.Length            => ZIO.succeed(toDynamic(str1.length))
+          case Textual.UpperCase         => ZIO.succeed(toDynamic(str1.toUpperCase))
+          case Textual.LowerCase         => ZIO.succeed(toDynamic(str1.toLowerCase))
+          case Textual.StartsWith(other) =>
+            for {
+              str2 <- eval[String](other, input)
+            } yield toDynamic(str1.startsWith(str2))
+          case Textual.EndsWith(other)   =>
+            for {
+              str2 <- eval[String](other, input)
+            } yield toDynamic(str1.endsWith(str2))
+          case Textual.Contains(other)   =>
+            for {
+              str2 <- eval[String](other, input)
+            } yield toDynamic(str1.contains(str2))
+          case Textual.Concat(other)     =>
+            for {
+              str2 <- eval[String](other, input)
+            } yield toDynamic(str1 ++ str2)
+        }
+      } yield result
     }
 
     private def toDynamic[A](a: A)(implicit schema: Schema[A]): DynamicValue =

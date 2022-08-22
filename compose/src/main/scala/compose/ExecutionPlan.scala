@@ -58,13 +58,13 @@ object ExecutionPlan {
 
   sealed trait Textual extends ExecutionPlan
   object Textual {
-    final case class StartsWith(self: ExecutionPlan, other: ExecutionPlan) extends Textual
-    final case class EndsWith(self: ExecutionPlan, other: ExecutionPlan)   extends Textual
-    final case class Contains(self: ExecutionPlan, other: ExecutionPlan)   extends Textual
-    final case class Length(self: ExecutionPlan)                           extends Textual
-    final case class UpperCase(self: ExecutionPlan)                        extends Textual
-    final case class LowerCase(self: ExecutionPlan)                        extends Textual
-    final case class Concat(self: ExecutionPlan, other: ExecutionPlan)     extends Textual
+    final case class StartsWith(other: ExecutionPlan) extends Textual
+    final case class EndsWith(other: ExecutionPlan)   extends Textual
+    final case class Contains(other: ExecutionPlan)   extends Textual
+    case object Length                                extends Textual
+    final case object UpperCase                       extends Textual
+    final case object LowerCase                       extends Textual
+    final case class Concat(other: ExecutionPlan)     extends Textual
   }
 
   sealed trait Optical extends ExecutionPlan
