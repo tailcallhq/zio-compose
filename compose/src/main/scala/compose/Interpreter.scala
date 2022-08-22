@@ -57,8 +57,18 @@ object Interpreter {
         case operation: Arrow         => arrowed(input, operation)
         case operation: Console       => console(input, operation)
         case operation: Fold          => fold(input, operation)
+        case operation: Optional      => optional(input, operation)
       }
     }
+
+    private def optional(input: DynamicValue, operation: Optional): Task[DynamicValue] =
+      operation match {
+        case Optional.IsEmpty =>
+          input match {
+            case DynamicValue.NoneValue => ZIO.succeed(toDynamic(true))
+            case _                      => ZIO.succeed(toDynamic(false))
+          }
+      }
 
     private def arrowed(input: DynamicValue, operation: Arrow): Task[DynamicValue] = {
       operation match {

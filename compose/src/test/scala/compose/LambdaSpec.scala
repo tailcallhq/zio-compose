@@ -269,6 +269,20 @@ object LambdaSpec extends ZIOSpecDefault {
         }
       },
     ),
+    suite("optional")(
+      test("isEmpty") {
+        check(Gen.option(Gen.int)) { optional =>
+          val res = constant(optional).isEmpty
+          assertZIO(res.eval {})(equalTo(optional.isEmpty))
+        }
+      },
+      test("isNonEmpty") {
+        check(Gen.option(Gen.int)) { optional =>
+          val res = constant(optional).nonEmpty
+          assertZIO(res.eval {})(equalTo(optional.nonEmpty))
+        }
+      },
+    ),
   ) @@ timeout(5 second)
 
   case class FooBar(foo: Int, bar: Int)

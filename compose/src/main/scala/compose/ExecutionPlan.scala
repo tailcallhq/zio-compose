@@ -116,4 +116,9 @@ object ExecutionPlan {
     final case class FoldOption(isEmpty: ExecutionPlan, f: ExecutionPlan)  extends Fold
     final case class FoldEither(left: ExecutionPlan, right: ExecutionPlan) extends Fold
   }
+
+  sealed trait Optional extends ExecutionPlan
+  object Optional {
+    case object IsEmpty extends Optional
+  }
 }

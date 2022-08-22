@@ -12,7 +12,8 @@ trait Lambda[-A, +B]
     with TupleDSL[A, B]
     with BooleanDSL[A, B]
     with StringDSL[A, B]
-    with FoldDSL[A, B] { self =>
+    with FoldDSL[A, B]
+    with OptionDSL[A, B] { self =>
 
   final def ->>[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
     self transform other
