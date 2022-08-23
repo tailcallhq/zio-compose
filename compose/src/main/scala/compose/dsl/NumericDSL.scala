@@ -34,6 +34,9 @@ trait NumericDSL[-A, +B] { self: A ~> B =>
   final def between[A1 <: A, B1 >: B](min: A1 ~> B1, max: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> Boolean =
     (self gte min) && (self lte max)
 
+  final def between[B1 >: B](min: B1, max: B1)(implicit num: IsNumeric[B1], s: Schema[B1]): A ~> Boolean =
+    between(constant(min), constant(max))
+
   final def dec[B1 >: B](implicit ev: IsNumeric[B1], s: Schema[B1]): A ~> B1 =
     self - constant(ev.one)
 
