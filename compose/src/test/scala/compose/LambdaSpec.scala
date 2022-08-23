@@ -204,6 +204,19 @@ object LambdaSpec extends ZIOSpecDefault {
           assertZIO(res.eval {})(equalTo(expected))
         }
       },
+      test("interpolator") {
+        val gen = Gen.fromIterable(
+          Seq(
+            cs"${constant("A")}${constant("B")}${constant("C")}"                          -> "ABC",
+            (constant("A") >>> cs"${id[String]}")                                         -> "A",
+            (constant("B") >>> cs"A${id[String]}C")                                       -> "ABC",
+            (constant("B") >>> cs"A${id[String]}-${id[String].lowerCase}-${id[String]}C") -> "AB-b-BC",
+          ),
+        )
+        checkAll(gen) { case (actual, expected) =>
+          assertZIO(actual.eval {})(equalTo(expected))
+        }
+      },
     ),
     suite("logical")(
       test("and, or, not") {

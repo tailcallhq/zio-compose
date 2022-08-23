@@ -31,7 +31,7 @@ trait Lambda[-A, +B]
   final def widen[B1](implicit ev: B <:< B1): A ~> B1 = self.asInstanceOf[A ~> B1]
 }
 
-object Lambda extends ScopeDSL with ConsoleDSL with FoldDSL.Implicits {
+object Lambda extends ScopeDSL with ConsoleDSL with FoldDSL.Implicits with StringDSL.Implicits {
 
   def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B =
     make[Any, B] { Sources.Constant(schema.toDynamic(b)) }
