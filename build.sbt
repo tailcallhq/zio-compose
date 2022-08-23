@@ -4,7 +4,7 @@ import Dependencies._
 Global / semanticdbEnabled        := true
 Global / onChangedBuildSource     := ReloadOnSourceChanges
 Global / scalacOptions            := Seq(
-  "-Ywarn-unused:imports",
+  "-Ywarn-unused",
   "-Werror",
   "-feature",
   "-language:reflectiveCalls",
