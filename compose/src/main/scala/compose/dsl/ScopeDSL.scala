@@ -4,6 +4,7 @@ import compose.{~>, Lambda}
 import compose.ExecutionPlan.Scoped
 import compose.ExecutionPlan.Scoped.{ContextId, RefId}
 import zio.schema.Schema
+import java.util.concurrent.atomic.AtomicInteger
 
 trait ScopeDSL {
   def scope[A, B](f: ScopeContext => A ~> B): A ~> B = Lambda.make[A, B] {
@@ -13,10 +14,11 @@ trait ScopeDSL {
 
   sealed trait ScopeContext {
     self =>
-    def id: ContextId = ContextId(self.hashCode())
+    def id: ContextId = ContextId(ScopeContext.id.incrementAndGet)
   }
 
   object ScopeContext {
+    private val id                             = new AtomicInteger(0)
     private[compose] def apply(): ScopeContext = new ScopeContext {}
   }
 
@@ -27,10 +29,12 @@ trait ScopeDSL {
   }
 
   object Scope {
+    private val id = new AtomicInteger(0)
+
     def make[A](value: A)(implicit ctx: ScopeContext, schema: Schema[A]): Scope[A] =
       new Scope[A] {
         self =>
-        def id: RefId = RefId(self.hashCode(), ctx.id)
+        def id: RefId = RefId(Scope.id.incrementAndGet(), ctx.id)
 
         override def set: A ~> Unit = Lambda.make[A, Unit] {
           Scoped.SetScope(self.id, ctx.id)

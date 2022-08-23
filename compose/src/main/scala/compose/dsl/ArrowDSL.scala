@@ -45,8 +45,6 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
   final def pipe[C](other: B ~> C): A ~> C =
     make[A, C] { Arrow.Pipe(self.compile, other.compile) }
 
-  final def show(name: String): A ~> B = make[A, B](Debugger.Show(self.compile, name))
-
   final def toInt: A ~> Either[String, Int] =
     self >>> make[Any, Either[String, Int]](Arrow.ToInt)
 

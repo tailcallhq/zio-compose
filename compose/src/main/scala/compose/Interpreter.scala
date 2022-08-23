@@ -151,6 +151,8 @@ object Interpreter {
         case Debugger.Show(plan, name)  =>
           val json = plan.json
           zio.Console.printLine(s"${name}: $json") *> evalDynamic(plan, input)
+
+        case Debugger.Address(plan) => ZIO.succeed(toDynamic(plan.binary.hashCode().toHexString))
       }
     }
 

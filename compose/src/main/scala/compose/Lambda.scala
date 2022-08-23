@@ -3,7 +3,7 @@ package compose
 import compose.dsl._
 import compose.lens.Transformation
 import ExecutionPlan._
-import compose.Lambda.make
+
 import zio.schema.Schema
 
 trait Lambda[-A, +B]
@@ -15,16 +15,13 @@ trait Lambda[-A, +B]
     with FoldDSL[A, B]
     with OptionDSL[A, B]
     with EitherDSL[A, B]
-    with LoopDSL[A, B] { self =>
+    with LoopDSL[A, B]
+    with DebugDSL[A, B] { self =>
 
   final def ->>[I >: B, C](other: (C, I) ~> C): Transformation[A, C] =
     self transform other
 
   def compile: ExecutionPlan
-
-  final def debug[B1 >: B](name: String): A ~> B1 = {
-    make[A, B1] { Debugger.Debug(self.compile, name) }
-  }
 
   final def narrow[A1](implicit ev: A1 <:< A): A1 ~> B = self.asInstanceOf[A1 ~> B]
 

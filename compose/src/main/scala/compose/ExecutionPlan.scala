@@ -87,6 +87,7 @@ object ExecutionPlan {
   object Debugger {
     final case class Debug(plan: ExecutionPlan, name: String) extends Debugger
     final case class Show(plan: ExecutionPlan, name: String)  extends Debugger
+    final case class Address(plan: ExecutionPlan)          extends Debugger
   }
 
   sealed trait Tupled extends ExecutionPlan

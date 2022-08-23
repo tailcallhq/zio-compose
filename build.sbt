@@ -79,5 +79,4 @@ lazy val zioComposeExamples = project
   .settings(
     name           := "zio-compose-examples",
     publish / skip := true,
-    fork           := true,
   )

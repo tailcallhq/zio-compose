@@ -348,6 +348,10 @@ object LambdaSpec extends ZIOSpecDefault {
         }
       },
     ),
+    test("address") {
+      val res = constant(1).address
+      assertZIO(res.eval {})(equalTo("24a21cdd"))
+    },
   ) @@ timeout(5 second)
 
   case class FooBar(foo: Int, bar: Int)
