@@ -59,6 +59,18 @@ object Interpreter {
         case operation: Fold          => fold(input, operation)
         case operation: Optional      => optional(input, operation)
         case operation: EitherOne     => eitherOne(input, operation)
+        case operation: Random        => random(input, operation)
+      }
+    }
+
+    private def random(input: DynamicValue, operation: Random): Task[DynamicValue] = {
+      operation match {
+        case Random.NextInt(min, max) =>
+          for {
+            min <- eval[Int](min, input)
+            max <- eval[Int](max, input)
+            rnd <- zio.Random.nextIntBetween(min, max)
+          } yield toDynamic(rnd)
       }
     }
 

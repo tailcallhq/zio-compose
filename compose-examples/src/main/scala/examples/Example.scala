@@ -73,12 +73,49 @@ object Example extends ZIOAppDefault {
     ).repeatWhile { i.get < constant(10) } *> n.get
   }
 
-  def guessANumber: Any ~> Unit =
-    writeLine("Guess a number between 1 and 10")
+  def guessANumber: Any ~> Unit = scope { implicit ctx =>
+    val name     = Scope.make("")
+    val guess    = Scope.make(-1)
+    val continue = Scope.make(false)
+    val secret   = Scope.make(-1)
+
+    val startGame: Any ~> Unit = stats(
+      // Prompt the user for a valid guess
+      readLine("Enter a number between 0-9: ").toInt
+        .fold(constant(-1), identity[Int])
+        .repeatUntil(id[Int].between(0, 9)) >>> guess.set,
+
+      // Set the secret number
+      randomInt(0, 9) >>> secret.set,
+
+      // Compare the guess to the secret number
+      (secret.get =:= guess.get).diverge(
+        isTrue = cs"${guess.get.asString} is correct!" >>> writeLine,
+        isFalse = cs"${guess.get.asString} is wrong! Secret was ${secret.get.asString}" >>> writeLine,
+      ),
+
+      // Prompt the user to continue or not
+      (readLine("Do you wish to continue (Y/n)? ") =:= constant("Y")) >>> continue.set,
+
+      // Repeat the game if the user wishes to continue
+    ).repeatWhile(continue.get)
+
+    // List of statements to execute
+    stats[Any, Unit](
+      // Prompt the user for their name
+      readLine("Whats your name? ") >>> name.set,
+
+      // Welcome the user to the game
+      name.get >>> cs"Welcome ${id[String]}!" >>> writeLine,
+
+      // Start the game
+      startGame,
+    )
+  }
 
   override def run =
     for {
-      out <- Interpreter.eval(program6)
+      out <- Interpreter.eval(guessANumber)
       _   <- ZIO.succeed(println(out))
     } yield ()
 

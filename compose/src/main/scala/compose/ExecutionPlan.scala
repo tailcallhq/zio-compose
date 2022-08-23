@@ -128,4 +128,9 @@ object ExecutionPlan {
   object EitherOne {
     case object IsLeft extends EitherOne
   }
+
+  sealed trait Random extends ExecutionPlan
+  object Random {
+    case class NextInt(min: ExecutionPlan, max: ExecutionPlan) extends Random
+  }
 }

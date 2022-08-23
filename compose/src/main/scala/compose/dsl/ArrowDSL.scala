@@ -8,10 +8,10 @@ import zio.schema.Schema
 import zio.Task
 
 trait ArrowDSL[-A, +B] { self: A ~> B =>
-  final def =!=[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
+  final def =!=[A1 <: A, B1 >: B, B2](other: A1 ~> B2)(implicit ev: B1 =:= B2): A1 ~> Boolean =
     self notEq other
 
-  final def =:=[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
+  final def =:=[A1 <: A, B1 >: B, B2](other: A1 ~> B2)(implicit ev: B1 =:= B2): A1 ~> Boolean =
     self eq other
 
   final def >>>[C](other: B ~> C): A ~> C = self pipe other
@@ -40,7 +40,7 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
     Interpreter.inMemory.flatMap(_.eval[B1](self.compile, in.toDynamic(a)))
 
   final def notEq[A1 <: A, B1 >: B](other: A1 ~> B1): A1 ~> Boolean =
-    (self =:= other).not
+    (self eq other).not
 
   final def pipe[C](other: B ~> C): A ~> C =
     make[A, C] { Arrow.Pipe(self.compile, other.compile) }

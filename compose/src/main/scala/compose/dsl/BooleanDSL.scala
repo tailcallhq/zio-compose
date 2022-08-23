@@ -27,10 +27,10 @@ trait BooleanDSL[-A, +B] { self: A ~> B =>
     }
 
   final def isFalse(implicit ev: B <:< Boolean): A ~> Boolean =
-    self =:= constant(false)
+    self.widen =:= constant(false)
 
   final def isTrue(implicit ev: B <:< Boolean): A ~> Boolean =
-    self =:= constant(true)
+    self.widen =:= constant(true)
 
   final def not(implicit ev: B <:< Boolean): A ~> Boolean = make[A, Boolean] {
     Logical.Not(self.compile)
