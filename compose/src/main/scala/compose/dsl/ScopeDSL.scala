@@ -6,7 +6,7 @@ import compose.ExecutionPlan.Scoped.{ContextId, RefId}
 import zio.schema.Schema
 
 trait ScopeDSL {
-  def scope[A, B](f: ScopeContext => A ~> B)(implicit s: Schema[B]): A ~> B = Lambda.make[A, B] {
+  def scope[A, B](f: ScopeContext => A ~> B): A ~> B = Lambda.make[A, B] {
     val ctx = ScopeContext()
     Scoped.WithinScope(f(ctx).compile, ctx.id)
   }

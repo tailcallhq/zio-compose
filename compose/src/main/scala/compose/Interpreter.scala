@@ -15,12 +15,12 @@ trait Interpreter {
   def eval[A](plan: ExecutionPlan, value: DynamicValue)(implicit ev: Schema[A]): Task[A] =
     evalDynamic(plan, value).flatMap(value => Interpreter.effect(value.toTypedValue(ev)))
 
-  def evalDynamic[B](lmb: Any ~> B)(implicit b: Schema[B]): Task[DynamicValue] =
+  def evalDynamic[B](lmb: Any ~> B): Task[DynamicValue] =
     evalDynamic(lmb.compile, Schema.primitive[Unit].toDynamic(()))
 
   def evalDynamic(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue]
 
-  def evalJson[B](lmb: Any ~> B)(implicit b: Schema[B]): Task[String] =
+  def evalJson[B](lmb: Any ~> B): Task[String] =
     evalDynamic(lmb).map(res => new String(JsonCodec.encode(Schema[DynamicValue])(res).toArray))
 }
 

@@ -17,12 +17,12 @@ trait Lambda[-A, +B]
     with EitherDSL[A, B]
     with LoopDSL[A, B] { self =>
 
-  final def ->>[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
+  final def ->>[I >: B, C](other: (C, I) ~> C): Transformation[A, C] =
     self transform other
 
   def compile: ExecutionPlan
 
-  final def debug[B1 >: B](name: String)(implicit s: Schema[B1]): A ~> B1 = {
+  final def debug[B1 >: B](name: String): A ~> B1 = {
     make[A, B1] { Debugger.Debug(self.compile, name) }
   }
 
@@ -55,7 +55,7 @@ object Lambda extends ScopeDSL with ConsoleDSL with FoldDSL.Implicits {
 
   def id[A]: Lambda[A, A] = identity[A]
 
-  def stats[A, B](f: A ~> B*)(implicit ev: Schema[B]): A ~> B = f.reduce(_ *> _)
+  def stats[A, B](f: A ~> B*): A ~> B = f.reduce(_ *> _)
 
   def transform[A, B](transformations: Transformation[A, B]*)(implicit s: Schema[B]): A ~> B =
     transformations.foldLeft[A ~> B](default[B]) {

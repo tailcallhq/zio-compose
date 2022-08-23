@@ -24,7 +24,7 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
   final def <*>[A1 <: A, B1 >: B, B2](other: A1 ~> B2): A1 ~> (B1, B2) =
     (self: A1 ~> B1) zip other
 
-  final def *>[A1 <: A, B1 >: B, B2](other: A1 ~> B2)(implicit b1: Schema[B1], b2: Schema[B2]): A1 ~> B2 =
+  final def *>[A1 <: A, B1 >: B, B2](other: A1 ~> B2): A1 ~> B2 =
     (self: A1 ~> B1) zipRight other
 
   final def as[C](c: C)(implicit s: Schema[C]): A ~> C = self >>> constant(c)
@@ -50,7 +50,7 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
   final def toInt: A ~> Either[String, Int] =
     self >>> make[Any, Either[String, Int]](Arrow.ToInt)
 
-  final def transform[I >: B, C](other: (C, I) ~> C)(implicit i: Schema[I]): Transformation[A, C] =
+  final def transform[I >: B, C](other: (C, I) ~> C): Transformation[A, C] =
     lens.Transformation[A, C, I](self, other)
 
   final def zip[A1 <: A, B1 >: B, B2](other: A1 ~> B2): A1 ~> (B1, B2) =
