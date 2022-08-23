@@ -160,6 +160,17 @@ object LambdaSpec extends ZIOSpecDefault {
       },
     ),
     suite("string")(
+      test("concat") {
+        val gen = Gen.fromIterable(
+          Seq(
+            (constant("A") ++ constant("B"))                           -> "AB",
+            (constant("A") >>> (identity[String] ++ constant("B")))    -> "AB",
+            (constant("A") >>> (identity[String] ++ identity[String])) -> "AA",
+            (constant("B") >>> (constant("A") ++ identity[String]))    -> "AB",
+          ),
+        )
+        checkAll(gen) { case (str, expected) => assertZIO(str.eval {})(equalTo(expected)) }
+      },
       test("length") {
         val res = constant("ABC").length
         assertZIO(res.eval {})(equalTo(3))
