@@ -39,7 +39,7 @@ object Example extends ZIOAppDefault {
         Fib.lens.b.get                  ->> Fib.lens.a.set,
         Fib.lens.a.get + Fib.lens.b.get ->> Fib.lens.b.set,
         Fib.lens.i.get.inc              ->> Fib.lens.i.set,
-      ).repeatWhile(Fib.lens.i.get =!= constant(20)) >>> Fib.lens.b.get
+      ).recurseWhile(Fib.lens.i.get =!= constant(20)) >>> Fib.lens.b.get
   }
 
   // testing if the sum of three numbers is greater than their product
@@ -54,12 +54,12 @@ object Example extends ZIOAppDefault {
       a      := input._1._1,
       b      := input._1._2,
       c      := input._2,
-      result := a.get + b.get > a.get * b.get,
+      result := a.get + b.get + c.get > a.get * b.get * c.get,
     ) *> result.get
   }
 
   // fibonacci using mutables scopes
-  def program8 = constant(10) >>> scope { implicit ctx =>
+  def program8 = scope { implicit ctx =>
     val a = Scope.make(0)
     val b = Scope.make(1)
     val n = Scope.make(0)
@@ -70,7 +70,7 @@ object Example extends ZIOAppDefault {
       a := b.get,
       b := n.get,
       i := i.get.inc,
-    ).doWhile { i.get < identity[Int] } *> n.get
+    ).repeatWhile { i.get < constant(10) } *> n.get
   }
 
   def guessANumber: Any ~> Unit =
@@ -78,8 +78,8 @@ object Example extends ZIOAppDefault {
 
   override def run =
     for {
-      int <- Interpreter.eval(program6)
-      _   <- ZIO.succeed(println(int))
+      out <- Interpreter.eval(program6)
+      _   <- ZIO.succeed(println(out))
     } yield ()
 
   case class Fib(a: Int, b: Int, i: Int)
