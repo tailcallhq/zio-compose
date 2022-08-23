@@ -3,12 +3,13 @@ package compose
 import zio.durationInt
 import zio.schema.{DeriveSchema, Schema}
 import zio.schema.Schema._
-import zio.test.{assertZIO, check, checkAll, Gen, ZIOSpecDefault}
+import zio.test.{assertZIO, check, checkAll, Gen, ZIOSpecDefault, assert}
 import zio.test.Assertion.{equalTo, isTrue}
 import zio.test.TestAspect.timeout
 
 import scala.language.postfixOps
 import compose.macros.DeriveAccessors
+import zio.test.TestConsole
 
 object LambdaSpec extends ZIOSpecDefault {
 
@@ -146,14 +147,19 @@ object LambdaSpec extends ZIOSpecDefault {
         assertZIO(res.eval {})(equalTo(2))
       },
     ),
-    test("doWhile") {
-      val res = scope { implicit ctx =>
-        val a = Scope.make(1)
-        (a := a.get * constant(2)).doWhile(a.get < constant(1000)) *> a.get
-      }
-      assertZIO(res.eval {})(equalTo(1024))
-    },
-    suite("StringExecutionerations")(
+    suite("loop")(
+      test("recurseWhile") {
+        val res = constant(1) >>> id[Int].inc.recurseWhile { id[Int] < constant(1024) }
+        assertZIO(res.eval {})(equalTo(1024))
+      },
+      test("repeatWhile") {
+        for {
+          _      <- TestConsole.feedLines("A", "AA", "AAA", "AAAA", "AAAAA")
+          result <- readLine.repeatWhile { id[String].length < constant(5) }.eval {}
+        } yield assert(result)(equalTo("AAAAA"))
+      },
+    ),
+    suite("string")(
       test("length") {
         val res = constant("ABC").length
         assertZIO(res.eval {})(equalTo(3))

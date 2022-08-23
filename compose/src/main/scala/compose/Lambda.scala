@@ -53,6 +53,8 @@ object Lambda extends ScopeDSL with ConsoleDSL with FoldDSL.Implicits {
 
   def identity[A]: Lambda[A, A] = make[A, A] { Arrow.Identity }
 
+  def id[A]: Lambda[A, A] = identity[A]
+
   def stats[A, B](f: A ~> B*)(implicit ev: Schema[B]): A ~> B = f.reduce(_ *> _)
 
   def transform[A, B](transformations: Transformation[A, B]*)(implicit s: Schema[B]): A ~> B =

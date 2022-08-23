@@ -309,11 +309,11 @@ object Interpreter {
 
           loop(input)
 
-        case Recursive.DoWhile(f, cond) =>
+        case Recursive.RepeatWhile(f, cond) =>
           def loop: Task[DynamicValue] = {
             for {
               output <- evalDynamic(f, input)
-              isTrue <- eval[Boolean](cond, input)
+              isTrue <- eval[Boolean](cond, output)
               result <- if (isTrue) loop else ZIO.succeed(output)
             } yield result
           }
