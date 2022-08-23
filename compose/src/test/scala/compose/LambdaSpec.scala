@@ -3,12 +3,13 @@ package compose
 import zio.durationInt
 import zio.schema.{DeriveSchema, Schema}
 import zio.schema.Schema._
-import zio.test.{assertZIO, check, checkAll, Gen, ZIOSpecDefault}
+import zio.test.{assertZIO, check, checkAll, Gen, ZIOSpecDefault, assert}
 import zio.test.Assertion.{equalTo, isTrue}
 import zio.test.TestAspect.timeout
 
 import scala.language.postfixOps
 import compose.macros.DeriveAccessors
+import zio.test.TestConsole
 
 object LambdaSpec extends ZIOSpecDefault {
 
@@ -46,8 +47,21 @@ object LambdaSpec extends ZIOSpecDefault {
       assertZIO(res.eval {})(equalTo((1, 2)))
     },
     test("diverge") {
-      val res = constant(true).diverge(isTrue = constant("Yes"), isFalse = constant("No"))
-      assertZIO(res.eval {})(equalTo("Yes"))
+      val program = (identity[Int] < constant(10)).diverge(identity[Int].inc, identity[Int].dec)
+
+      val gen = Gen.fromIterable(
+        Seq(
+          1  -> 2,
+          2  -> 3,
+          12 -> 11,
+          14 -> 13,
+        ),
+      )
+
+      checkAll(gen) { case (input, expected) =>
+        val res = constant(input) >>> program
+        assertZIO(res.eval {})(equalTo(expected))
+      }
     },
     suite("lens")(
       test("get") {
@@ -71,8 +85,8 @@ object LambdaSpec extends ZIOSpecDefault {
       val res = identity[Int].bind(100)
       assertZIO(res.eval {})(equalTo(100))
     },
-    test("repeatWhile") {
-      val res = constant(1) >>> (constant(2) * identity[Int]).repeatWhile {
+    test("recurseWhile") {
+      val res = constant(1) >>> (constant(2) * identity[Int]).recurseWhile {
         identity[Int] < constant(1024)
       }
       assertZIO(res.eval {})(equalTo(1024))
@@ -133,14 +147,30 @@ object LambdaSpec extends ZIOSpecDefault {
         assertZIO(res.eval {})(equalTo(2))
       },
     ),
-    test("doWhile") {
-      val res = scope { implicit ctx =>
-        val a = Scope.make(1)
-        (a := a.get * constant(2)).doWhile(a.get < constant(1000)) *> a.get
-      }
-      assertZIO(res.eval {})(equalTo(1024))
-    },
-    suite("StringOperations")(
+    suite("loop")(
+      test("recurseWhile") {
+        val res = constant(1) >>> id[Int].inc.recurseWhile { id[Int] < constant(1024) }
+        assertZIO(res.eval {})(equalTo(1024))
+      },
+      test("repeatWhile") {
+        for {
+          _      <- TestConsole.feedLines("A", "AA", "AAA", "AAAA", "AAAAA")
+          result <- readLine.repeatWhile { id[String].length < constant(5) }.eval {}
+        } yield assert(result)(equalTo("AAAAA"))
+      },
+    ),
+    suite("string")(
+      test("concat") {
+        val gen = Gen.fromIterable(
+          Seq(
+            (constant("A") ++ constant("B"))                           -> "AB",
+            (constant("A") >>> (identity[String] ++ constant("B")))    -> "AB",
+            (constant("A") >>> (identity[String] ++ identity[String])) -> "AA",
+            (constant("B") >>> (constant("A") ++ identity[String]))    -> "AB",
+          ),
+        )
+        checkAll(gen) { case (str, expected) => assertZIO(str.eval {})(equalTo(expected)) }
+      },
       test("length") {
         val res = constant("ABC").length
         assertZIO(res.eval {})(equalTo(3))
@@ -172,6 +202,19 @@ object LambdaSpec extends ZIOSpecDefault {
         checkAll(gen) { case (str, expected) =>
           val res = constant("ABC").contains(constant(str))
           assertZIO(res.eval {})(equalTo(expected))
+        }
+      },
+      test("interpolator") {
+        val gen = Gen.fromIterable(
+          Seq(
+            cs"${constant("A")}${constant("B")}${constant("C")}"                          -> "ABC",
+            (constant("A") >>> cs"${id[String]}")                                         -> "A",
+            (constant("B") >>> cs"A${id[String]}C")                                       -> "ABC",
+            (constant("B") >>> cs"A${id[String]}-${id[String].lowerCase}-${id[String]}C") -> "AB-b-BC",
+          ),
+        )
+        checkAll(gen) { case (actual, expected) =>
+          assertZIO(actual.eval {})(equalTo(expected))
         }
       },
     ),
@@ -225,6 +268,83 @@ object LambdaSpec extends ZIOSpecDefault {
 
         check(add ++ mul ++ div ++ sub ++ negate) { case (lambda, expected) =>
           assertZIO(lambda.eval {})(equalTo(expected))
+        }
+      },
+    ),
+    test("toInt") {
+      val seq = Gen.fromIterable(
+        Seq[(Any ~> Either[String, Int], Either[String, Int])](
+          constant("1").toInt   -> Right(1),
+          constant("-1").toInt  -> Right(-1),
+          constant("").toInt    -> Left("Cannot convert to Int"),
+          constant("0.1").toInt -> Left("Cannot convert to Int"),
+          constant("1.1").toInt -> Left("Cannot convert to Int"),
+        ),
+      )
+      checkAll(seq) { case (isInt, expected) => assertZIO(isInt.eval {})(equalTo(expected)) }
+    },
+    suite("fold")(
+      test("option") {
+        val program = identity[Option[Int]].fold(constant(0), identity[Int].inc)
+        val seq     = Gen.fromIterable(
+          Seq(
+            Option.empty[Int] -> 0,
+            Option(1)         -> 2,
+            Option(2)         -> 3,
+          ),
+        )
+
+        checkAll(seq) { case (option, expected) =>
+          assertZIO(program.eval(option))(equalTo(expected))
+        }
+      },
+      test("either") {
+        val program = identity[Either[Int, Int]].fold(identity[Int].dec, identity[Int].inc)
+        val seq     = Gen.fromIterable(
+          Seq(
+            Left(1)  -> 0,
+            Right(1) -> 2,
+          ),
+        )
+
+        checkAll(seq) { case (option, expected) =>
+          assertZIO(program.eval(option))(equalTo(expected))
+        }
+      },
+    ),
+    suite("optional")(
+      test("isEmpty") {
+        check(Gen.option(Gen.int)) { optional =>
+          val res = constant(optional).isEmpty
+          assertZIO(res.eval {})(equalTo(optional.isEmpty))
+        }
+      },
+      test("isNonEmpty") {
+        check(Gen.option(Gen.int)) { optional =>
+          val res = constant(optional).nonEmpty
+          assertZIO(res.eval {})(equalTo(optional.nonEmpty))
+        }
+      },
+    ),
+    suite("either")(
+      test("isLeft") {
+        check(Gen.either(Gen.int, Gen.int)) { either =>
+          val res = constant(either).isLeft
+          assertZIO(res.eval {})(equalTo(either.isLeft))
+        }
+      },
+      test("isRight") {
+        check(Gen.either(Gen.int, Gen.int)) { either =>
+          val res = constant(either).isRight
+          assertZIO(res.eval {})(equalTo(either.isRight))
+        }
+      },
+    ),
+    suite("asString")(
+      test("asString") {
+        check(Gen.int) { int =>
+          val res = constant(int).asString
+          assertZIO(res.eval {})(equalTo(int.toString))
         }
       },
     ),

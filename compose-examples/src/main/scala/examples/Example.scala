@@ -4,7 +4,6 @@ import zio.{ZIO, ZIOAppDefault}
 import zio.schema.{DeriveSchema, Schema}
 import compose.macros.DeriveAccessors
 import compose._
-import compose.interpreter.Interpreter
 
 object Example extends ZIOAppDefault {
   import compose.Lambda._
@@ -40,7 +39,7 @@ object Example extends ZIOAppDefault {
         Fib.lens.b.get                  ->> Fib.lens.a.set,
         Fib.lens.a.get + Fib.lens.b.get ->> Fib.lens.b.set,
         Fib.lens.i.get.inc              ->> Fib.lens.i.set,
-      ).repeatWhile(Fib.lens.i.get =!= constant(20)) >>> Fib.lens.b.get
+      ).recurseWhile(Fib.lens.i.get =!= constant(20)) >>> Fib.lens.b.get
   }
 
   // testing if the sum of three numbers is greater than their product
@@ -55,12 +54,12 @@ object Example extends ZIOAppDefault {
       a      := input._1._1,
       b      := input._1._2,
       c      := input._2,
-      result := a.get + b.get > a.get * b.get,
+      result := a.get + b.get + c.get > a.get * b.get * c.get,
     ) *> result.get
   }
 
   // fibonacci using mutables scopes
-  def program8 = constant(10) >>> scope { implicit ctx =>
+  def program8 = scope { implicit ctx =>
     val a = Scope.make(0)
     val b = Scope.make(1)
     val n = Scope.make(0)
@@ -71,13 +70,53 @@ object Example extends ZIOAppDefault {
       a := b.get,
       b := n.get,
       i := i.get.inc,
-    ).doWhile { i.get < identity[Int] } *> n.get
+    ).repeatWhile { i.get < constant(10) } *> n.get
+  }
+
+  def guessANumber: Any ~> Unit = scope { implicit ctx =>
+    val name     = Scope.make("")
+    val guess    = Scope.make(-1)
+    val continue = Scope.make(false)
+    val secret   = Scope.make(-1)
+
+    val startGame: Any ~> Unit = stats(
+      // Prompt the user for a valid guess
+      readLine("Enter a number between 0-9: ").toInt
+        .fold(constant(-1), identity[Int])
+        .repeatUntil(id[Int].between(0, 9)) >>> guess.set,
+
+      // Set the secret number
+      randomInt(0, 9) >>> secret.set,
+
+      // Compare the guess to the secret number
+      (secret.get =:= guess.get).diverge(
+        isTrue = cs"${guess.get.asString} is correct!" >>> writeLine,
+        isFalse = cs"${guess.get.asString} is wrong! Secret was ${secret.get.asString}" >>> writeLine,
+      ),
+
+      // Prompt the user to continue or not
+      (readLine("Do you wish to continue (Y/n)? ") =:= constant("Y")) >>> continue.set,
+
+      // Repeat the game if the user wishes to continue
+    ).repeatWhile(continue.get)
+
+    // List of statements to execute
+    stats[Any, Unit](
+      // Prompt the user for their name
+      readLine("Whats your name? ") >>> name.set,
+
+      // Welcome the user to the game
+      name.get >>> cs"Welcome ${id[String]}!" >>> writeLine,
+
+      // Start the game
+      startGame,
+    )
   }
 
   override def run =
     for {
-      int <- Interpreter.eval(program6)
-      _   <- ZIO.succeed(println(int))
+      out <- Interpreter.eval(guessANumber)
+      _   <- ZIO.succeed(println(out))
     } yield ()
 
   case class Fib(a: Int, b: Int, i: Int)

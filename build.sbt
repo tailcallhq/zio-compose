@@ -4,7 +4,7 @@ import Dependencies._
 Global / semanticdbEnabled        := true
 Global / onChangedBuildSource     := ReloadOnSourceChanges
 Global / scalacOptions            := Seq(
-  "-Ywarn-unused:imports",
+  "-Ywarn-unused",
   "-Werror",
   "-feature",
   "-language:reflectiveCalls",
@@ -79,5 +79,5 @@ lazy val zioComposeExamples = project
   .settings(
     name           := "zio-compose-examples",
     publish / skip := true,
-    fork           := false,
+    fork           := true,
   )
