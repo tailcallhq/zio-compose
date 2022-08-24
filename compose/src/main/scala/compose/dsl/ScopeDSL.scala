@@ -14,27 +14,29 @@ trait ScopeDSL {
 
   sealed trait ScopeContext {
     self =>
-    def id: ContextId = ContextId(ScopeContext.id.incrementAndGet)
+    def id: ContextId
   }
 
   object ScopeContext {
-    private val id                             = new AtomicInteger(0)
-    private[compose] def apply(): ScopeContext = new ScopeContext {}
+    private val idGen                          = new AtomicInteger(0)
+    private[compose] def apply(): ScopeContext = new ScopeContext {
+      override val id = ContextId(idGen.incrementAndGet)
+    }
   }
 
   sealed trait Scope[A] {
     def :=[X](f: X ~> A): X ~> Unit = set <<< f
     def get: Any ~> A
     def set: A ~> Unit
+    def id: RefId
   }
 
   object Scope {
-    private val id = new AtomicInteger(0)
+    private val idGen = new AtomicInteger(0)
 
     def make[A](value: A)(implicit ctx: ScopeContext, schema: Schema[A]): Scope[A] =
-      new Scope[A] {
-        self =>
-        def id: RefId = RefId(Scope.id.incrementAndGet(), ctx.id)
+      new Scope[A] { self =>
+        lazy val id: RefId = RefId(idGen.incrementAndGet(), ctx.id)
 
         override def set: A ~> Unit = Lambda.make[A, Unit] {
           Scoped.SetScope(self.id, ctx.id)
