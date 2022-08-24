@@ -1,7 +1,7 @@
 package compose.dsl
 
 import compose.{lens, ~>, Interpreter, Lambda}
-import compose.Lambda.{constant, make}
+import compose.Lambda.{constant, attempt}
 import compose.ExecutionPlan._
 import compose.lens.Transformation
 import zio.schema.Schema
@@ -29,7 +29,9 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
 
   final def as[C](c: C)(implicit s: Schema[C]): A ~> C = self >>> constant(c)
 
-  final def asString[B1 >: B](implicit b: Schema[B1]): A ~> String = self >>> make[B, String] { Arrow.AsString(b.ast) }
+  final def asString[B1 >: B](implicit b: Schema[B1]): A ~> String = self >>> attempt[B, String] {
+    Arrow.AsString(b.ast)
+  }
 
   final def bind[A1 <: A](a: A1)(implicit ev: Schema[A1]): Any ~> B = Lambda.constant(a) >>> self
 
@@ -43,16 +45,16 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
     (self eq other).not
 
   final def pipe[C](other: B ~> C): A ~> C =
-    make[A, C] { Arrow.Pipe(self.compile, other.compile) }
+    attempt[A, C] { Arrow.Pipe(self.compile, other.compile) }
 
   final def toInt: A ~> Either[String, Int] =
-    self >>> make[Any, Either[String, Int]](Arrow.ToInt)
+    self >>> attempt[Any, Either[String, Int]](Arrow.ToInt)
 
   final def transform[I >: B, C](other: (C, I) ~> C): Transformation[A, C] =
     lens.Transformation[A, C, I](self, other)
 
   final def zip[A1 <: A, B1 >: B, B2](other: A1 ~> B2): A1 ~> (B1, B2) =
-    make[A1, (B1, B2)] { Arrow.Zip(self.compile, other.compile) }
+    attempt[A1, (B1, B2)] { Arrow.Zip(self.compile, other.compile) }
 
   final def zipLeft[A1 <: A, B1 >: B, B2](other: A1 ~> B2): A1 ~> B1 =
     ((self: A1 ~> B1) <*> other)._1
