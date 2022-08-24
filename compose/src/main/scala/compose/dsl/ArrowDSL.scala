@@ -53,6 +53,8 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
   final def transform[I >: B, C](other: (C, I) ~> C): Transformation[A, C] =
     lens.Transformation[A, C, I](self, other)
 
+  final def unit: A ~> Unit = self.as(())
+
   final def zip[A1 <: A, B1 >: B, B2](other: A1 ~> B2): A1 ~> (B1, B2) =
     attempt[A1, (B1, B2)] { Arrow.Zip(self.compile, other.compile) }
 

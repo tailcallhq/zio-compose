@@ -79,7 +79,7 @@ object Example extends ZIOAppDefault {
     val continue = Scope.make(false)
     val secret   = Scope.make(-1)
 
-    val startGame: Any ~> Unit = stats(
+    val startGame = stats(
       // Prompt the user for a valid guess
       readLine("Enter a number between 0-9: ").toInt
         .fold(constant(-1), identity[Int])
@@ -101,7 +101,7 @@ object Example extends ZIOAppDefault {
     ).repeatWhile(continue.get)
 
     // List of statements to execute
-    stats[Any, Unit](
+    stats(
       // Prompt the user for their name
       readLine("Whats your name? ") >>> name.set,
 
