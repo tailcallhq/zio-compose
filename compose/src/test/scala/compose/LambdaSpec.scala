@@ -1,14 +1,14 @@
 package compose
 
+import compose.macros.DeriveAccessors
 import zio.durationInt
 import zio.schema.{DeriveSchema, Schema}
 import zio.schema.Schema._
-import zio.test.{assertZIO, check, checkAll, Gen, ZIOSpecDefault, assert}
+import zio.test.{assert, assertZIO, check, checkAll, Gen, ZIOSpecDefault}
 import zio.test.Assertion.{equalTo, isTrue}
 import zio.test.TestAspect.timeout
 
 import scala.language.postfixOps
-import compose.macros.DeriveAccessors
 import zio.test.TestConsole
 
 object LambdaSpec extends ZIOSpecDefault {

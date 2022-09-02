@@ -26,9 +26,9 @@ object DeriveAccessors {
     val quotes = params match {
       case None         => throw new Error("No primary constructor found")
       case Some(params) =>
-        q"""        
+        q"""
         import _root_.compose.macros.DeriveAccessors.DerivedLambdaAccessor
-                
+
         new DerivedLambdaAccessor[${weakTypeOf[T]}] {
           type Lens = ${tq"(..${params.map(i => tq"_root_.compose.lens.LambdaLens[${tpe}, ${i.typeSignature}]")})"}
           override def lens: Lens = ${schema}.makeAccessors(_root_.compose.lens.LambdaAccessor).asInstanceOf[Lens]

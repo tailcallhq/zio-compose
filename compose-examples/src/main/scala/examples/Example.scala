@@ -2,8 +2,8 @@ package examples
 
 import zio.{ZIO, ZIOAppDefault}
 import zio.schema.{DeriveSchema, Schema}
-import compose.macros.DeriveAccessors
 import compose._
+import compose.macros.DeriveAccessors
 
 object Example extends ZIOAppDefault {
   import compose.Lambda._
