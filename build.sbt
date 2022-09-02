@@ -44,7 +44,7 @@ inThisBuild(
 
 // Projects
 lazy val root = (project in file("."))
-  .aggregate(zioCompose, zioComposeExamples)
+  .aggregate(zioCompose, zioComposeMacros, zioComposeExamples)
   .settings(name := "root", publish / skip := true)
 
 lazy val zioCompose = project
@@ -58,14 +58,24 @@ lazy val zioCompose = project
       ZIOSchemaDerivation,
       ZIOTest,
       ZIOTestSbt,
-      "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
     ),
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+  )
+  .dependsOn(zioComposeMacros)
+
+lazy val zioComposeMacros = project
+  .in(file("./compose-macros"))
+  .settings(
+    name                := "zio-compose-macros",
+    libraryDependencies := Seq(
+      ZIOSchema,
+      "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
+    ),
   )
 
 lazy val zioComposeExamples = project
   .in(file("./compose-examples"))
-  .dependsOn(zioCompose)
+  .dependsOn(zioCompose, zioComposeMacros)
   .settings(
     name           := "zio-compose-examples",
     publish / skip := true,
