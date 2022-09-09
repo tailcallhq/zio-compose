@@ -103,8 +103,8 @@ object LambdaSpec extends ZIOSpecDefault {
 
       checkAll(gen) { res => assertZIO(res.eval {})(isTrue) }
     },
-    test("stats") {
-      val res = constant(100) >>> stats(
+    test("seq") {
+      val res = constant(100) >>> seq(
         identity[Int] + constant(1),
         identity[Int] + constant(2),
         identity[Int] + constant(3),
@@ -348,6 +348,10 @@ object LambdaSpec extends ZIOSpecDefault {
         }
       },
     ),
+    test("address") {
+      val res = constant(1).address
+      assertZIO(res.eval {})(equalTo("24a21cdd"))
+    },
   ) @@ timeout(5 second)
 
   case class FooBar(foo: Int, bar: Int)

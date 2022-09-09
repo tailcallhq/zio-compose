@@ -151,6 +151,8 @@ object Interpreter {
         case Debugger.Show(plan, name)  =>
           val json = plan.json
           zio.Console.printLine(s"${name}: $json") *> evalDynamic(plan, input)
+
+        case Debugger.Address(plan) => ZIO.succeed(toDynamic(plan.binary.hashCode().toHexString))
       }
     }
 
@@ -256,7 +258,7 @@ object Interpreter {
       operation match {
         case Optical.GetPath(path) =>
           input match {
-            case DynamicValue.Record(values) =>
+            case DynamicValue.Record(_, values) =>
               @tailrec
               def loop(
                 path: List[String],
@@ -276,12 +278,12 @@ object Interpreter {
               }
 
               ZIO.fromEither(loop(path, values))
-            case _                           => ZIO.fail(new Exception("Select only works on records"))
+            case _                              => ZIO.fail(new Exception("Select only works on records"))
           }
 
         case Optical.SetPath(path) =>
           input match {
-            case DynamicValue.Tuple(DynamicValue.Record(values), input) =>
+            case DynamicValue.Tuple(DynamicValue.Record(id, values), input) =>
               def loop(
                 path: List[String],
                 values: ListMap[String, DynamicValue],
@@ -293,10 +295,10 @@ object Interpreter {
                     values.get(head) match {
                       case None    => Left(new Exception("Path not found"))
                       case Some(v) =>
-                        if (tail.isEmpty) Right(DynamicValue.Record(values + (head -> a)))
+                        if (tail.isEmpty) Right(DynamicValue.Record(id, values + (head -> a)))
                         else
                           loop(tail, v.asInstanceOf[DynamicValue.Record].values, a) map { value =>
-                            DynamicValue.Record(values + (head -> value))
+                            DynamicValue.Record(id, values + (head -> value))
                           }
                     }
                 }
