@@ -1,7 +1,7 @@
 package compose.dsl
 
 import compose.{lens, ~>, Interpreter, Lambda}
-import compose.Lambda.{constant, attempt}
+import compose.Lambda.{attempt, constant}
 import compose.ExecutionPlan._
 import compose.lens.Transformation
 import zio.schema.Schema
