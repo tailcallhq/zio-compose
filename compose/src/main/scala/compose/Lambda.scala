@@ -3,7 +3,6 @@ package compose
 import compose.dsl._
 import compose.lens.Transformation
 import ExecutionPlan._
-
 import zio.schema.Schema
 
 trait Lambda[-A, +B]
@@ -48,9 +47,9 @@ object Lambda extends ScopeDSL with ConsoleDSL with FoldDSL.Implicits with Strin
       Sources.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) }),
     )
 
-  def identity[A]: Lambda[A, A] = attempt[A, A] { Arrow.Identity }
-
   def id[A]: Lambda[A, A] = identity[A]
+
+  def identity[A]: Lambda[A, A] = attempt[A, A] { Arrow.Identity }
 
   def seq[A, B](f: A ~> B*): A ~> B = f.reduce(_ *> _)
 
@@ -61,6 +60,8 @@ object Lambda extends ScopeDSL with ConsoleDSL with FoldDSL.Implicits with Strin
       case (ab, transformation: Transformation.Constructor[A @unchecked, B @unchecked, Any @unchecked]) =>
         transformation(ab)
     }
+
+  def unit: Any ~> Unit = constant(())
 
   trait UnsafeAttempt[A, B] {
     def apply(plan: => ExecutionPlan): A ~> B = new ~>[A, B] {
