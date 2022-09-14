@@ -9,9 +9,8 @@ The basic idea behind having serializable programs is if code and data are on di
 moved** to the other before the code can be executed on the data.
 Typically, in big-data applications it's much more efficient to move code than the other way around.
 
-There are other use-cases that don't involve big-data where you would want a serializable program. For eg: Instead of
-reading a json or yaml configuration in your application, to decide which control flow to execute, you encode the
-control flow itself, send it over the wire to your application and execute that directly.
+There are other use-cases that don't involve big-data where you would want a serializable program. For eg: Building a rule engine,
+where the rules are implemented using a DSL and the DSL is serialized and sent to the server for execution.
 
 ZIO Compose intends to take care of such use cases. It intends to provide a complete DSL to write any kind of
 distributed computation using Scala in a type-safe manner. It's built on top of [ZIO Schema].
