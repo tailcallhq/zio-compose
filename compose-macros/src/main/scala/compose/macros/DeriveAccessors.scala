@@ -30,8 +30,8 @@ object DeriveAccessors {
         import _root_.compose.macros.DeriveAccessors.DerivedLambdaAccessor
                 
         new DerivedLambdaAccessor[${weakTypeOf[T]}] {
-          type Lens = ${tq"(..${params.map(i => tq"_root_.compose.lens.LambdaLens[${tpe}, ${i.typeSignature}]")})"}
-          override def lens: Lens = ${schema}.makeAccessors(_root_.compose.lens.LambdaAccessor).asInstanceOf[Lens]
+          type Lens = ${tq"(..${params.map(i => tq"_root_.compose.model.LambdaLens[${tpe}, ${i.typeSignature}]")})"}
+          override def lens: Lens = ${schema}.makeAccessors(_root_.compose.internal.LambdaAccessor).asInstanceOf[Lens]
           val ${pq"(..${params.map(i => i.name.encodedName)})"} = this.lens
         }
         """

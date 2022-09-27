@@ -1,4 +1,4 @@
-import compose.lens.LambdaLens
+import compose.model.LambdaLens
 
 package object compose {
   type ~>[-A, +B] = Lambda[A, B]

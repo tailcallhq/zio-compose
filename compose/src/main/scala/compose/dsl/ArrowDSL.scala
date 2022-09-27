@@ -1,9 +1,9 @@
 package compose.dsl
 
-import compose.{lens, ~>, Interpreter, Lambda}
+import compose.{model, ~>, Interpreter, Lambda}
 import compose.Lambda.{attempt, constant}
 import compose.ExecutionPlan._
-import compose.lens.Transformation
+import compose.model.Transformation
 import zio.schema.Schema
 import zio.Task
 
@@ -51,7 +51,7 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
     self >>> attempt[Any, Either[String, Int]](Arrow.ToInt)
 
   final def transform[I >: B, C](other: (C, I) ~> C): Transformation[A, C] =
-    lens.Transformation[A, C, I](self, other)
+    model.Transformation[A, C, I](self, other)
 
   final def unit: A ~> Unit = self.as(())
 

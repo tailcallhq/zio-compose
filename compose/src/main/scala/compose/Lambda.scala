@@ -1,7 +1,7 @@
 package compose
 
 import compose.dsl._
-import compose.lens.Transformation
+import compose.model.Transformation
 import ExecutionPlan._
 import zio.schema.Schema
 

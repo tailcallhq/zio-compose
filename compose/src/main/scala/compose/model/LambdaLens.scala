@@ -1,4 +1,4 @@
-package compose.lens
+package compose.model
 
 import compose.ExecutionPlan.Optical
 import compose.~>

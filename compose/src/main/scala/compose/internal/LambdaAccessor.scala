@@ -1,5 +1,6 @@
-package compose.lens
+package compose.internal
 
+import compose.model.LambdaLens
 import zio.schema.{AccessorBuilder, Schema}
 
 object LambdaAccessor extends AccessorBuilder {
