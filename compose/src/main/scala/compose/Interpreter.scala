@@ -60,8 +60,18 @@ object Interpreter {
         case operation: Optional      => optional(input, operation)
         case operation: EitherOne     => eitherOne(input, operation)
         case operation: Random        => random(input, operation)
+        case operation: Codec         => codec(input, operation)
       }
     }
+
+    private def codec(input: DynamicValue, operation: Codec): Task[DynamicValue] =
+      operation match {
+        case Codec.Encode      => ZIO.succeed(Schema[DynamicValue].toDynamic(input))
+        case Codec.Decode(ast) =>
+          val schema = ast.toSchema.asInstanceOf[Schema[Any]]
+          val value  = input.toTypedValue(Schema[DynamicValue]).flatMap(dv => dv.toTypedValue(schema))
+          ZIO.succeed(Schema.either(Schema[String], schema).toDynamic(value))
+      }
 
     private def random(input: DynamicValue, operation: Random): Task[DynamicValue] = {
       operation match {

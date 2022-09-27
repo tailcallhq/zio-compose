@@ -1,15 +1,14 @@
 package compose
 
+import compose.macros.DeriveAccessors
 import zio.durationInt
-import zio.schema.{DeriveSchema, Schema}
 import zio.schema.Schema._
-import zio.test.{assertZIO, check, checkAll, Gen, ZIOSpecDefault, assert}
-import zio.test.Assertion.{equalTo, isTrue}
+import zio.schema.{DeriveSchema, Schema}
+import zio.test.Assertion.{equalTo, isRight, isTrue}
 import zio.test.TestAspect.timeout
+import zio.test.{Gen, TestConsole, ZIOSpecDefault, assert, assertZIO, check, checkAll}
 
 import scala.language.postfixOps
-import compose.macros.DeriveAccessors
-import zio.test.TestConsole
 
 object LambdaSpec extends ZIOSpecDefault {
 
@@ -352,6 +351,22 @@ object LambdaSpec extends ZIOSpecDefault {
       val res = constant(1).address
       assertZIO(res.eval {})(equalTo("24a21cdd"))
     },
+    suite("codec")(
+      test("symmetric") {
+        def sym[A](a: A)(implicit schema: Schema[A]) =
+          assertZIO(constant(a).encode.decode[A].eval {})(isRight(equalTo(a)))
+
+        val seq = Seq(
+          sym(1),
+          sym(true),
+          sym("1"),
+          sym(Option(1)),
+          sym(FooBar(1, 2)),
+        )
+
+        checkAll(Gen.fromIterable(seq)) { a => a }
+      },
+    ),
   ) @@ timeout(5 second)
 
   case class FooBar(foo: Int, bar: Int)

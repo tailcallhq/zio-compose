@@ -134,4 +134,10 @@ object ExecutionPlan {
   object Random {
     case class NextInt(min: ExecutionPlan, max: ExecutionPlan) extends Random
   }
+
+  sealed trait Codec extends ExecutionPlan
+  object Codec {
+    case object Encode                extends Codec
+    case class Decode(ast: SchemaAst) extends Codec
+  }
 }

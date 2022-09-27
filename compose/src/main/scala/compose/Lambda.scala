@@ -15,7 +15,8 @@ trait Lambda[-A, +B]
     with OptionDSL[A, B]
     with EitherDSL[A, B]
     with LoopDSL[A, B]
-    with DebugDSL[A, B] { self =>
+    with DebugDSL[A, B]
+    with CodecDSL[A, B] { self =>
 
   final def ->>[I >: B, C](other: (C, I) ~> C): Transformation[A, C] =
     self transform other
