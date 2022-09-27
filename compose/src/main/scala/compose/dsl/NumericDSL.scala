@@ -1,9 +1,9 @@
 package compose.dsl
 
-import compose.~>
-import compose.Lambda.{constant, attempt}
-import compose.dsl.NumericDSL.IsNumeric
 import compose.ExecutionPlan.Numeric
+import compose.Lambda.constant
+import compose.dsl.NumericDSL.IsNumeric
+import compose.{Lambda, ~>}
 import zio.schema.Schema
 
 trait NumericDSL[-A, +B] { self: A ~> B =>
@@ -26,7 +26,7 @@ trait NumericDSL[-A, +B] { self: A ~> B =>
     self + other.negate
 
   final def +[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> B1 =
-    attempt[A1, B1](Numeric(Numeric.Add(self.compile, other.compile), num.kind))
+    Lambda.unsafe.attempt[A1, B1](Numeric(Numeric.Add(self.compile, other.compile), num.kind))
 
   final def *[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> B1 =
     self multiply other
@@ -41,13 +41,13 @@ trait NumericDSL[-A, +B] { self: A ~> B =>
     self - constant(ev.one)
 
   final def divide[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> B1 =
-    attempt[A1, B1](Numeric(Numeric.Divide(self.compile, other.compile), num.kind))
+    Lambda.unsafe.attempt[A1, B1](Numeric(Numeric.Divide(self.compile, other.compile), num.kind))
 
   final def gt[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> Boolean =
-    attempt[A1, Boolean](Numeric(Numeric.GreaterThan(self.compile, other.compile), num.kind))
+    Lambda.unsafe.attempt[A1, Boolean](Numeric(Numeric.GreaterThan(self.compile, other.compile), num.kind))
 
   final def gte[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> Boolean =
-    attempt[A1, Boolean](Numeric(Numeric.GreaterThanEqualTo(self.compile, other.compile), num.kind))
+    Lambda.unsafe.attempt[A1, Boolean](Numeric(Numeric.GreaterThanEqualTo(self.compile, other.compile), num.kind))
 
   final def inc[B1 >: B](implicit ev: IsNumeric[B1], s: Schema[B1]): A ~> B1 =
     self + constant(ev.one)
@@ -59,10 +59,10 @@ trait NumericDSL[-A, +B] { self: A ~> B =>
     (self gt other).not
 
   final def multiply[A1 <: A, B1 >: B](other: A1 ~> B1)(implicit num: IsNumeric[B1]): A1 ~> B1 =
-    attempt[A1, B1](Numeric(Numeric.Multiply(self.compile, other.compile), num.kind))
+    Lambda.unsafe.attempt[A1, B1](Numeric(Numeric.Multiply(self.compile, other.compile), num.kind))
 
   final def negate[B1 >: B](implicit num: IsNumeric[B1]): A ~> B1 = {
-    attempt[A, B1](Numeric(Numeric.Negate(self.compile), num.kind))
+    Lambda.unsafe.attempt[A, B1](Numeric(Numeric.Negate(self.compile), num.kind))
   }
 
 }

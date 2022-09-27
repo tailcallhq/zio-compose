@@ -31,9 +31,9 @@ trait Lambda[-A, +B]
 object Lambda extends ScopeDSL with ConsoleDSL with FoldDSL.Implicits with StringDSL.Implicits with RandomDSL {
 
   def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B =
-    attempt[Any, B] { Sources.Constant(schema.toDynamic(b)) }
+    Lambda.unsafe.attempt[Any, B] { Sources.Constant(schema.toDynamic(b)) }
 
-  def default[A](implicit schema: Schema[A]): Any ~> A = attempt[Any, A] {
+  def default[A](implicit schema: Schema[A]): Any ~> A = Lambda.unsafe.attempt[Any, A] {
     Sources
       .Default(schema.defaultValue match {
         case Left(cause)  => throw new Exception(cause)
@@ -44,13 +44,13 @@ object Lambda extends ScopeDSL with ConsoleDSL with FoldDSL.Implicits with Strin
   def fromMap[A, B](
     source: Map[A, B],
   )(implicit input: Schema[A], output: Schema[B]): Lambda[A, Option[B]] =
-    Lambda.attempt[A, Option[B]](
+    Lambda.unsafe.attempt[A, Option[B]](
       Sources.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) }),
     )
 
   def id[A]: Lambda[A, A] = identity[A]
 
-  def identity[A]: Lambda[A, A] = attempt[A, A] { Arrow.Identity }
+  def identity[A]: Lambda[A, A] = Lambda.unsafe.attempt[A, A] { Arrow.Identity }
 
   def seq[A, B](f: A ~> B*): A ~> B = f.reduce(_ *> _)
 
@@ -64,13 +64,16 @@ object Lambda extends ScopeDSL with ConsoleDSL with FoldDSL.Implicits with Strin
 
   def unit: Any ~> Unit = constant(())
 
-  trait UnsafeAttempt[A, B] {
-    def apply(plan: => ExecutionPlan): A ~> B = new ~>[A, B] {
-      override def compile: ExecutionPlan = plan
+  private[compose] object unsafe {
+    trait Attempt[A, B] {
+      def apply(plan: => ExecutionPlan): A ~> B = new ~>[A, B] {
+        override def compile: ExecutionPlan = plan
+      }
+    }
+
+    object attempt {
+      def apply[A, B]: Attempt[A, B] = new Attempt[A, B] {}
     }
   }
 
-  private[compose] object attempt {
-    def apply[A, B]: UnsafeAttempt[A, B] = new UnsafeAttempt[A, B] {}
-  }
 }

@@ -1,11 +1,11 @@
 package compose.dsl
 
-import compose.{model, ~>, Interpreter, Lambda}
-import compose.Lambda.{attempt, constant}
 import compose.ExecutionPlan._
+import compose.Lambda.constant
 import compose.model.Transformation
-import zio.schema.Schema
+import compose.{Interpreter, Lambda, model, ~>}
 import zio.Task
+import zio.schema.Schema
 
 trait ArrowDSL[-A, +B] { self: A ~> B =>
   final def =!=[A1 <: A, B1 >: B, B2](other: A1 ~> B2)(implicit ev: B1 =:= B2): A1 ~> Boolean =
@@ -29,7 +29,7 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
 
   final def as[C](c: C)(implicit s: Schema[C]): A ~> C = self >>> constant(c)
 
-  final def asString[B1 >: B](implicit b: Schema[B1]): A ~> String = self >>> attempt[B, String] {
+  final def asString[B1 >: B](implicit b: Schema[B1]): A ~> String = self >>> Lambda.unsafe.attempt[B, String] {
     Arrow.AsString(b.ast)
   }
 
@@ -45,10 +45,10 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
     (self eq other).not
 
   final def pipe[C](other: B ~> C): A ~> C =
-    attempt[A, C] { Arrow.Pipe(self.compile, other.compile) }
+    Lambda.unsafe.attempt[A, C] { Arrow.Pipe(self.compile, other.compile) }
 
   final def toInt: A ~> Either[String, Int] =
-    self >>> attempt[Any, Either[String, Int]](Arrow.ToInt)
+    self >>> Lambda.unsafe.attempt[Any, Either[String, Int]](Arrow.ToInt)
 
   final def transform[I >: B, C](other: (C, I) ~> C): Transformation[A, C] =
     model.Transformation[A, C, I](self, other)
@@ -56,7 +56,7 @@ trait ArrowDSL[-A, +B] { self: A ~> B =>
   final def unit: A ~> Unit = self.as(())
 
   final def zip[A1 <: A, B1 >: B, B2](other: A1 ~> B2): A1 ~> (B1, B2) =
-    attempt[A1, (B1, B2)] { Arrow.Zip(self.compile, other.compile) }
+    Lambda.unsafe.attempt[A1, (B1, B2)] { Arrow.Zip(self.compile, other.compile) }
 
   final def zipLeft[A1 <: A, B1 >: B, B2](other: A1 ~> B2): A1 ~> B1 =
     ((self: A1 ~> B1) <*> other)._1
