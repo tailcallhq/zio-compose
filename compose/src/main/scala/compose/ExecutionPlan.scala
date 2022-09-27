@@ -135,6 +135,11 @@ object ExecutionPlan {
     case class NextInt(min: ExecutionPlan, max: ExecutionPlan) extends Random
   }
 
+  sealed trait Remote extends ExecutionPlan
+  object Remote {
+    case object Http extends Remote
+  }
+
   sealed trait Codec extends ExecutionPlan
   object Codec {
     case object Encode                extends Codec

@@ -51,7 +51,7 @@ lazy val zioCompose = project
   .in(file("./compose"))
   .settings(
     name                := "zio-compose",
-    libraryDependencies := Seq(
+    libraryDependencies := Netty ++ Seq(
       ZIOCore,
       ZIOSchema,
       ZIOSchemaJson,

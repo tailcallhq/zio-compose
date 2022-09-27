@@ -1,6 +1,7 @@
 package compose
 
 import compose.macros.DeriveAccessors
+import compose.model.http.{Method, Request, Response}
 import zio.durationInt
 import zio.schema.Schema._
 import zio.schema.{DeriveSchema, Schema}
@@ -366,6 +367,24 @@ object LambdaSpec extends ZIOSpecDefault {
 
         checkAll(Gen.fromIterable(seq)) { a => a }
       },
+    ),
+    suite("remote")(
+      suite("http")(
+        test("get") {
+          val request = Request(url = "https://jsonplaceholder.typicode.com/posts/1")
+          val res     = constant(request) >>> Lambda.http >>> Response.lens.status.get
+          assertZIO(res.eval {})(equalTo(200))
+        },
+        test("post") {
+          val request = Request(
+            method = Method.Post,
+            url = "https://jsonplaceholder.typicode.com/posts",
+            body = Some("""{id: 1, title: "foo", body: "bar", userId: 1}"""),
+          )
+          val res     = constant(request) >>> Lambda.http >>> Response.lens.status.get
+          assertZIO(res.eval {})(equalTo(201))
+        },
+      ),
     ),
   ) @@ timeout(5 second)
 

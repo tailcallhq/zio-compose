@@ -1,9 +1,11 @@
 package compose
 
-import zio.{Task, UIO, ZIO}
-import zio.schema.{DynamicValue, Schema}
 import compose.ExecutionPlan.Scoped.{ContextId, RefId}
+import compose.internal.netty.HttpClient
+import compose.model.http.{Request, Response}
 import zio.schema.codec.JsonCodec
+import zio.schema.{DynamicValue, Schema}
+import zio.{Task, UIO, ZIO}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.ListMap
@@ -37,10 +39,13 @@ object Interpreter {
       res <- int.eval(f)
     } yield res
 
-  def inMemory: UIO[Interpreter] =
-    ScopeContext.inMemory[ContextId, RefId, DynamicValue].map(scope => new InMemoryInterpreter(scope))
+  def inMemory: UIO[Interpreter] = for {
+    scope <- ScopeContext.inMemory[ContextId, RefId, DynamicValue]
+    http  <- HttpClient.make
+  } yield new InMemoryInterpreter(scope, http)
 
-  final class InMemoryInterpreter(scope: ScopeContext[ContextId, RefId, DynamicValue]) extends Interpreter {
+  final class InMemoryInterpreter(scope: ScopeContext[ContextId, RefId, DynamicValue], client: HttpClient)
+      extends Interpreter {
     import ExecutionPlan._
 
     def evalDynamic(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
@@ -61,6 +66,7 @@ object Interpreter {
         case operation: EitherOne     => eitherOne(input, operation)
         case operation: Random        => random(input, operation)
         case operation: Codec         => codec(input, operation)
+        case operation: Remote        => remote(input, operation)
       }
     }
 
@@ -71,6 +77,19 @@ object Interpreter {
           val schema = ast.toSchema.asInstanceOf[Schema[Any]]
           val value  = input.toTypedValue(Schema[DynamicValue]).flatMap(dv => dv.toTypedValue(schema))
           ZIO.succeed(Schema.either(Schema[String], schema).toDynamic(value))
+      }
+
+    private def remote(input: DynamicValue, operation: Remote): Task[DynamicValue] =
+      operation match {
+        case Remote.Http =>
+          for {
+            req <- effect(input.toTypedValue(Schema[Request]))
+            res <- ZIO.async[Any, Nothing, Response] { cb =>
+              client.request(req.method, req.url, req.headers, req.body) { (status, headers, body) =>
+                cb(ZIO.succeed(Response(status, headers, new String(body))))
+              }
+            }
+          } yield Schema.toDynamic(res)
       }
 
     private def random(input: DynamicValue, operation: Random): Task[DynamicValue] = {
