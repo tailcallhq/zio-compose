@@ -6,17 +6,17 @@ import ExecutionPlan._
 import zio.schema.Schema
 
 trait Lambda[-A, +B]
-    extends ArrowDSL[A, B]
-    with NumericDSL[A, B]
-    with TupleDSL[A, B]
-    with BooleanDSL[A, B]
-    with StringDSL[A, B]
-    with FoldDSL[A, B]
-    with OptionDSL[A, B]
-    with EitherDSL[A, B]
-    with LoopDSL[A, B]
-    with DebugDSL[A, B]
-    with CodecDSL[A, B] { self =>
+    extends ArrowDSL.Op[A, B]
+    with NumericDSL.Op[A, B]
+    with TupleDSL.Op[A, B]
+    with BooleanDSL.Op[A, B]
+    with StringDSL.Op[A, B]
+    with FoldDSL.Op[A, B]
+    with OptionDSL.Op[A, B]
+    with EitherDSL.Op[A, B]
+    with LoopDSL.Op[A, B]
+    with DebugDSL.Op[A, B]
+    with CodecDSL.Op[A, B] { self =>
 
   final def ->>[I >: B, C](other: (C, I) ~> C): Transformation[A, C] =
     self transform other
@@ -29,12 +29,12 @@ trait Lambda[-A, +B]
 }
 
 object Lambda
-    extends ScopeDSL
-    with ConsoleDSL
+    extends ScopeDSL.Ctr
+    with ConsoleDSL.Ctr
     with FoldDSL.Implicits
     with StringDSL.Implicits
-    with RandomDSL
-    with RemoteDSL {
+    with RandomDSL.Ctr
+    with RemoteDSL.Ctr {
 
   def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B =
     Lambda.unsafe.attempt[Any, B] { Sources.Constant(schema.toDynamic(b)) }
