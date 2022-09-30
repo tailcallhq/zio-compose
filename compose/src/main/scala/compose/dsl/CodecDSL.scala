@@ -1,15 +1,20 @@
 package compose.dsl
 
 import compose.ExecutionPlan.Codec
+import compose.model.Decoder
+import compose.model.Decoder.HasDecoder
 import compose.{Lambda, ~>}
-import zio.schema
 import zio.schema.{DynamicValue, Schema}
 
 trait CodecDSL[-A, +B] { self: A ~> B =>
 
-  def decode[C](implicit s: Schema[C], ev: B <:< schema.DynamicValue): A ~> Either[String, C] =
-    self >>> Lambda.unsafe.attempt[B, Either[String, C]] { Codec.Decode(s.ast) }
+  def decode[C](implicit s: Schema[C], decoder: HasDecoder[B]): A ~> Either[String, C] =
+    self >>> Lambda.unsafe.attempt[B, Either[String, C]] {
+      Codec.Decode(s.ast, Schema[Decoder].toDynamic(decoder.decoder))
+    }
 
   def encode: A ~> DynamicValue = self >>> Lambda.unsafe.attempt[B, DynamicValue] { Codec.Encode }
 
 }
+
+object CodecDSL {}

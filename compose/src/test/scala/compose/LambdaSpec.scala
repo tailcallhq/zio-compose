@@ -371,9 +371,19 @@ object LambdaSpec extends ZIOSpecDefault {
     suite("remote")(
       suite("http")(
         test("get") {
-          val request = Request(url = "https://jsonplaceholder.typicode.com/posts/1")
-          val res     = constant(request) >>> Lambda.http >>> Response.lens.status.get
-          assertZIO(res.eval {})(equalTo(200))
+          val request  = Request(url = "https://jsonplaceholder.typicode.com/posts/1")
+          val res      = constant(request) >>> Lambda.http.decode[Post]
+          val expected = Post(
+            id = 1,
+            title = "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
+            body = """quia et suscipit
+                     |suscipit recusandae consequuntur expedita et cum
+                     |reprehenderit molestiae ut ut quas totam
+                     |nostrum rerum est autem sunt rem eveniet architecto""".stripMargin,
+            userId = 1,
+          )
+
+          assertZIO(res.eval {})(isRight(equalTo(expected)))
         },
         test("post") {
           val request = Request(
@@ -393,5 +403,11 @@ object LambdaSpec extends ZIOSpecDefault {
   object FooBar {
     implicit val schema: Schema[FooBar] = DeriveSchema.gen[FooBar]
     val accessors                       = DeriveAccessors.gen[FooBar]
+  }
+
+  case class Post(id: Int, title: String, body: String, userId: Int)
+
+  object Post {
+    implicit val schema: Schema[Post] = DeriveSchema.gen[Post]
   }
 }

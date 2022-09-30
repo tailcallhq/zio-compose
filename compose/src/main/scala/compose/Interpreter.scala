@@ -2,10 +2,12 @@ package compose
 
 import compose.ExecutionPlan.Scoped.{ContextId, RefId}
 import compose.internal.netty.HttpClient
+import compose.model.Decoder
+import compose.model.Decoder.HasDecoder
 import compose.model.http.{Request, Response}
 import zio.schema.codec.JsonCodec
 import zio.schema.{DynamicValue, Schema}
-import zio.{Task, UIO, ZIO}
+import zio.{Chunk, Task, UIO, ZIO}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.ListMap
@@ -72,11 +74,24 @@ object Interpreter {
 
     private def codec(input: DynamicValue, operation: Codec): Task[DynamicValue] =
       operation match {
-        case Codec.Encode      => ZIO.succeed(Schema[DynamicValue].toDynamic(input))
-        case Codec.Decode(ast) =>
-          val schema = ast.toSchema.asInstanceOf[Schema[Any]]
-          val value  = input.toTypedValue(Schema[DynamicValue]).flatMap(dv => dv.toTypedValue(schema))
-          ZIO.succeed(Schema.either(Schema[String], schema).toDynamic(value))
+        case Codec.Encode               => ZIO.succeed(Schema[DynamicValue].toDynamic(input))
+        case Codec.Decode(ast, decoder) =>
+          for {
+            dc <- effect(decoder.toTypedValue(Schema[Decoder]))
+          } yield dc match {
+            case decoder: Decoder.HasDecoder[_] =>
+              decoder match {
+                case HasDecoder.ResponseDecoder     =>
+                  val schema    = ast.toSchema.asInstanceOf[Schema[Any]]
+                  val jsonCodec = JsonCodec.decode(schema)
+                  val value     = input.toTypedValue(Schema[Response]).flatMap(res => jsonCodec(res.body))
+                  Schema.either(Schema[String], schema).toDynamic(value)
+                case HasDecoder.DynamicValueDecoder =>
+                  val schema = ast.toSchema.asInstanceOf[Schema[Any]]
+                  val value  = input.toTypedValue(Schema[DynamicValue]).flatMap(dv => dv.toTypedValue(schema))
+                  Schema.either(Schema[String], schema).toDynamic(value)
+              }
+          }
       }
 
     private def remote(input: DynamicValue, operation: Remote): Task[DynamicValue] =
@@ -86,7 +101,7 @@ object Interpreter {
             req <- effect(input.toTypedValue(Schema[Request]))
             res <- ZIO.async[Any, Nothing, Response] { cb =>
               client.request(req.method, req.url, req.headers, req.body) { (status, headers, body) =>
-                cb(ZIO.succeed(Response(status, headers, new String(body))))
+                cb(ZIO.succeed(Response(status, headers, Chunk.fromArray(body))))
               }
             }
           } yield Schema.toDynamic(res)

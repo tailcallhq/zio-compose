@@ -142,7 +142,7 @@ object ExecutionPlan {
 
   sealed trait Codec extends ExecutionPlan
   object Codec {
-    case object Encode                extends Codec
-    case class Decode(ast: SchemaAst) extends Codec
+    case object Encode                                       extends Codec
+    case class Decode(ast: SchemaAst, decoder: DynamicValue) extends Codec
   }
 }

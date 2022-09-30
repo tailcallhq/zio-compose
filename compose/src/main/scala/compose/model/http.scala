@@ -1,6 +1,7 @@
 package compose.model
 
 import compose.macros.DeriveAccessors
+import zio.Chunk
 import zio.schema.{DeriveSchema, Schema}
 
 object http {
@@ -31,7 +32,7 @@ object http {
     case object Delete extends Method
   }
 
-  case class Response(status: Int, headers: Map[String, String], body: String)
+  case class Response(status: Int, headers: Map[String, String], body: Chunk[Byte])
   object Response {
     implicit val schema: Schema[Response] = DeriveSchema.gen[Response]
     val lens                              = DeriveAccessors.gen[Response]
