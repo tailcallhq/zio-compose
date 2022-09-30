@@ -47,9 +47,7 @@ object Lambda
       })
   }
 
-  def fromMap[A, B](
-    source: Map[A, B],
-  )(implicit input: Schema[A], output: Schema[B]): Lambda[A, Option[B]] =
+  def fromMap[A, B](source: Map[A, B])(implicit input: Schema[A], output: Schema[B]): Lambda[A, Option[B]] =
     Lambda.unsafe.attempt[A, Option[B]](
       Sources.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) }),
     )
