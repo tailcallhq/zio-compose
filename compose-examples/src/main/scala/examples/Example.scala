@@ -82,7 +82,7 @@ object Example extends ZIOAppDefault {
     val startGame = stats(
       // Prompt the user for a valid guess
       readLine("Enter a number between 0-9: ").toInt
-        .fold(constant(-1), identity[Int])
+        .fold(constant(-1))(identity[Int])
         .repeatUntil(id[Int].between(0, 9)) >>> guess.set,
 
       // Set the secret number

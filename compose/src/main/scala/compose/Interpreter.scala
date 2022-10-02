@@ -29,11 +29,14 @@ trait Interpreter {
 }
 
 object Interpreter {
-  def effect[E, A](e: Either[String, A])(implicit trace: zio.Trace): Task[A] =
-    e match {
-      case Left(error) => ZIO.fail(new Exception(error))
-      case Right(a)    => ZIO.succeed(a)
+  def effect[E, A](e: => Either[String, A]): Task[A] = {
+    ZIO.suspendSucceed {
+      e match {
+        case Left(error) => ZIO.fail(new Exception(error))
+        case Right(a)    => ZIO.succeed(a)
+      }
     }
+  }
 
   def eval[B](f: Any ~> B)(implicit ev: Schema[B]): Task[B] =
     for {
@@ -219,6 +222,17 @@ object Interpreter {
               case _                              => ZIO.fail(new RuntimeException("Cannot fold on this input"))
             }
           } yield result
+
+        case Fold.FoldList(ast, seed, fun) =>
+          val schema = ast.toSchema.asInstanceOf[Schema[Any]]
+          for {
+            seed <- evalDynamic(seed, input)
+            list <- effect(input.toTypedValue(Schema.list(schema)))
+            res  <- ZIO.foldLeft(list)(seed) { (s, i) =>
+              val di = Schema.toDynamic(i)(schema)
+              evalDynamic(fun, DynamicValue.Tuple(s, di))
+            }
+          } yield res
       }
 
     private def logical(input: DynamicValue, operation: Logical): Task[DynamicValue] = {

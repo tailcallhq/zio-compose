@@ -6,8 +6,9 @@ import zio.{Chunk, ZIO}
 import zio.schema.ast.SchemaAst
 
 sealed trait ExecutionPlan { self =>
-  final def binary: Chunk[Byte] = JsonCodec.encode(ExecutionPlan.schema)(self)
-  final def json: String        = new String(binary.toArray)
+  final def binary: Chunk[Byte]                     = JsonCodec.encode(ExecutionPlan.schema)(self)
+  final def json: String                            = new String(binary.toArray)
+  private[compose] final def toLambda[A, B]: A ~> B = Lambda.unsafe.attempt[A, B](self)
 }
 
 object ExecutionPlan {
@@ -116,8 +117,9 @@ object ExecutionPlan {
 
   sealed trait Fold extends ExecutionPlan
   object Fold {
-    final case class FoldOption(isEmpty: ExecutionPlan, f: ExecutionPlan)  extends Fold
-    final case class FoldEither(left: ExecutionPlan, right: ExecutionPlan) extends Fold
+    final case class FoldOption(isEmpty: ExecutionPlan, f: ExecutionPlan)            extends Fold
+    final case class FoldEither(left: ExecutionPlan, right: ExecutionPlan)           extends Fold
+    final case class FoldList(ast: SchemaAst, seed: ExecutionPlan, f: ExecutionPlan) extends Fold
   }
 
   sealed trait Optional extends ExecutionPlan

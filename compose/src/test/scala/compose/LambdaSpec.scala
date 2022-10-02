@@ -285,7 +285,7 @@ object LambdaSpec extends ZIOSpecDefault {
     },
     suite("fold")(
       test("option") {
-        val program = identity[Option[Int]].fold(constant(0), identity[Int].inc)
+        val program = identity[Option[Int]].fold(constant(0))(identity[Int].inc)
         val seq     = Gen.fromIterable(
           Seq(
             Option.empty[Int] -> 0,
@@ -299,7 +299,7 @@ object LambdaSpec extends ZIOSpecDefault {
         }
       },
       test("either") {
-        val program = identity[Either[Int, Int]].fold(identity[Int].dec, identity[Int].inc)
+        val program = identity[Either[Int, Int]].fold(identity[Int].dec)(identity[Int].inc)
         val seq     = Gen.fromIterable(
           Seq(
             Left(1)  -> 0,
@@ -309,6 +309,22 @@ object LambdaSpec extends ZIOSpecDefault {
 
         checkAll(seq) { case (option, expected) =>
           assertZIO(program.eval(option))(equalTo(expected))
+        }
+      },
+      test("list") {
+        val sum = identity[List[Int]].fold(constant(0)) {
+          identity[(Int, Int)]._1 + identity[(Int, Int)]._2
+        }
+
+        val seq = Gen.fromIterable(
+          Seq(
+            List(1, 2, 3)   -> 6,
+            List.empty[Int] -> 0,
+          ),
+        )
+
+        checkAll(seq) { case (list, expected) =>
+          assertZIO(sum.eval(list))(equalTo(expected))
         }
       },
     ),

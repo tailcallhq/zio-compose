@@ -1,17 +1,16 @@
 package compose.dsl
 
 import compose.{ExecutionPlan, Lambda, ~>}
-
-import scala.util.Either
+import zio.schema.Schema
 
 object FoldDSL {
   trait Op[-A, +B] {
     self: A ~> B =>
-    def fold[L, R, C](l: L ~> C, r: R ~> C)(implicit ev: Fold[B, L, R, C]): A ~> C = self >>> ev.fold(l, r)
+    def fold[L, R, C](l: L ~> C)(r: R ~> C)(implicit ev: Fold[B, L, R, C]): A ~> C = self >>> ev.fold(l, r)
   }
 
-  sealed trait Fold[-B, +L, +R, -C] {
-    def fold[C1 <: C](l: L ~> C1, r: R ~> C1): B ~> C1
+  sealed trait Fold[-A, +L, +R, -B] {
+    def fold[B1 <: B](l: L ~> B1, r: R ~> B1): A ~> B1
   }
 
   trait Implicits {
@@ -28,6 +27,12 @@ object FoldDSL {
           ExecutionPlan.Fold.FoldEither(l.compile, r.compile)
         }
     }
+
+    implicit def foldSeq[T, S](implicit schema: Schema[T]): Fold[Seq[T], S, (S, T), S] =
+      new Fold[Seq[T], S, (S, T), S] {
+        override def fold[B1 <: S](l: S ~> B1, r: (S, T) ~> B1): Seq[T] ~> B1 =
+          Lambda.unsafe.attempt[Seq[T], B1] { ExecutionPlan.Fold.FoldList(schema.ast, l.compile, r.compile) }
+      }
   }
 
 }
