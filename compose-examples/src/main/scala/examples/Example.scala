@@ -4,6 +4,7 @@ import zio.{ZIO, ZIOAppDefault}
 import zio.schema.{DeriveSchema, Schema}
 import compose.macros.DeriveAccessors
 import compose._
+import compose.model.Ref
 
 object Example extends ZIOAppDefault {
   import compose.Lambda._
@@ -43,11 +44,11 @@ object Example extends ZIOAppDefault {
   }
 
   // testing if the sum of three numbers is greater than their product
-  def program7 = (constant(2) <*> constant(2) <*> constant(3)) >>> scope { implicit ctx =>
-    val a      = Scope.make(0)
-    val b      = Scope.make(0)
-    val c      = Scope.make(0)
-    val result = Scope.make(false)
+  def program7 = (constant(2) <*> constant(2) <*> constant(3)) >>> scope { implicit s =>
+    val a      = Ref.unsafeMake(0)
+    val b      = Ref.unsafeMake(0)
+    val c      = Ref.unsafeMake(0)
+    val result = Ref.unsafeMake(false)
     val input  = identity[((Int, Int), Int)]
 
     stats(
@@ -59,11 +60,11 @@ object Example extends ZIOAppDefault {
   }
 
   // fibonacci using mutables scopes
-  def program8 = scope { implicit ctx =>
-    val a = Scope.make(0)
-    val b = Scope.make(1)
-    val n = Scope.make(0)
-    val i = Scope.make(1)
+  def program8 = scope { implicit s =>
+    val a = Ref.unsafeMake(0)
+    val b = Ref.unsafeMake(1)
+    val n = Ref.unsafeMake(0)
+    val i = Ref.unsafeMake(1)
 
     stats(
       n := a.get + b.get,
@@ -73,11 +74,11 @@ object Example extends ZIOAppDefault {
     ).repeatWhile { i.get < constant(10) } *> n.get
   }
 
-  def guessANumber: Any ~> Unit = scope { implicit ctx =>
-    val name     = Scope.make("")
-    val guess    = Scope.make(-1)
-    val continue = Scope.make(false)
-    val secret   = Scope.make(-1)
+  def guessANumber: Any ~> Unit = scope { implicit s =>
+    val name     = Ref.unsafeMake("")
+    val guess    = Ref.unsafeMake(-1)
+    val continue = Ref.unsafeMake(false)
+    val secret   = Ref.unsafeMake(-1)
 
     val startGame = stats(
       // Prompt the user for a valid guess

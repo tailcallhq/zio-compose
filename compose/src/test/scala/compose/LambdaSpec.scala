@@ -1,6 +1,7 @@
 package compose
 
 import compose.macros.DeriveAccessors
+import compose.model.Ref
 import compose.model.http.{Method, Request, Response}
 import zio.durationInt
 import zio.schema.Schema._
@@ -125,12 +126,12 @@ object LambdaSpec extends ZIOSpecDefault {
     },
     suite("scope")(
       test("get") {
-        val res = scope { implicit ctx => Scope.make(1000).get }
+        val res = scope { implicit s => Ref.unsafeMake(1000).get }
         assertZIO(res.eval("OK!"))(equalTo(1000))
       },
       test("set") {
-        val res = scope { implicit ctx =>
-          val a = Scope.make(1000)
+        val res = scope { implicit s =>
+          val a = Ref.unsafeMake(1000)
 
           (a := constant(1)) *> a.get
         }

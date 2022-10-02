@@ -1,8 +1,7 @@
 package compose
 
-import compose.ExecutionPlan.Scoped.{ContextId, RefId}
 import compose.internal.netty.HttpClient
-import compose.model.Decoder
+import compose.model.{Decoder, Ref, Scope}
 import compose.model.Decoder.HasDecoder
 import compose.model.http.{Request, Response}
 import zio.schema.codec.JsonCodec
@@ -45,11 +44,11 @@ object Interpreter {
     } yield res
 
   def inMemory: UIO[Interpreter] = for {
-    scope <- ScopeContext.inMemory[ContextId, RefId, DynamicValue]
+    scope <- ScopeContext.inMemory[Scope.Id, Ref.Id, DynamicValue]
     http  <- HttpClient.make
   } yield new InMemoryInterpreter(scope, http)
 
-  final class InMemoryInterpreter(scope: ScopeContext[ContextId, RefId, DynamicValue], client: HttpClient)
+  final class InMemoryInterpreter(scope: ScopeContext[Scope.Id, Ref.Id, DynamicValue], client: HttpClient)
       extends Interpreter {
     import ExecutionPlan._
 
@@ -396,24 +395,24 @@ object Interpreter {
 
     private def scoped(input: DynamicValue, operation: Scoped): Task[DynamicValue] = {
       operation match {
-        case Scoped.SetScope(refId, ctxId) =>
+        case Scoped.SetScope(refId, scopeId) =>
           for {
-            _ <- scope.set(ctxId, refId, input)
+            _ <- scope.set(scopeId, refId, input)
           } yield toDynamic(())
 
-        case Scoped.GetScope(refId, ctxId, value) =>
+        case Scoped.GetScope(refId, scopeId, value) =>
           for {
-            option <- scope.get(ctxId, refId)
+            option <- scope.get(scopeId, refId)
             value  <- option match {
               case Some(value) => ZIO.succeed(value)
               case None        => ZIO.succeed(value)
             }
           } yield value
 
-        case Scoped.WithinScope(plan, ctxId) =>
+        case Scoped.WithinScope(plan, scopeId) =>
           for {
             result <- evalDynamic(plan, input)
-            _      <- scope.delete(ctxId)
+            _      <- scope.delete(scopeId)
           } yield result
       }
     }

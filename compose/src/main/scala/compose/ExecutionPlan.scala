@@ -1,9 +1,11 @@
 package compose
 
-import zio.schema.{DeriveSchema, DynamicValue, Schema}
-import zio.schema.codec.JsonCodec
-import zio.{Chunk, ZIO}
+import compose.model.Ref.Id
+import compose.model.Scope
 import zio.schema.ast.SchemaAst
+import zio.schema.codec.JsonCodec
+import zio.schema.{DeriveSchema, DynamicValue, Schema}
+import zio.{Chunk, ZIO}
 
 sealed trait ExecutionPlan { self =>
   final def binary: Chunk[Byte]                     = JsonCodec.encode(ExecutionPlan.schema)(self)
@@ -26,11 +28,9 @@ object ExecutionPlan {
 
   sealed trait Scoped extends ExecutionPlan
   object Scoped {
-    final case class SetScope(refId: RefId, ctxId: ContextId)                      extends Scoped
-    final case class GetScope(refId: RefId, ctxId: ContextId, value: DynamicValue) extends Scoped
-    final case class WithinScope(plan: ExecutionPlan, ctxId: ContextId)            extends Scoped
-    final case class ContextId(id: Int)
-    final case class RefId(id: Int, contextId: ContextId)
+    final case class SetScope(refId: Id, scopeId: Scope.Id)                      extends Scoped
+    final case class GetScope(refId: Id, scopeId: Scope.Id, value: DynamicValue) extends Scoped
+    final case class WithinScope(plan: ExecutionPlan, scopeId: Scope.Id)         extends Scoped
   }
 
   sealed trait Logical extends ExecutionPlan
