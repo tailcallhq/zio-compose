@@ -8,22 +8,13 @@ import java.util.concurrent.atomic.AtomicInteger
  * destroyed as soon as the scope ends. Scopes are
  * identified using an unique Id.
  */
-sealed trait Scope {
-  self =>
-  def unsafe: Scope.Unsafe
-}
+
+case class Scope(id: Int)
 
 object Scope {
-  final case class Id(id: Int)
   private val idGen = new AtomicInteger(0)
 
-  private[compose] def apply(): Scope = new Scope {
-    override val unsafe: Unsafe = new Unsafe {
-      override val id: Id = Id(idGen.incrementAndGet())
-    }
-  }
-
-  trait Unsafe {
-    def id: Id
+  object unsafe {
+    def make: Scope = Scope(idGen.incrementAndGet())
   }
 }

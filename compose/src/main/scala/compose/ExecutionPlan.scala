@@ -28,9 +28,9 @@ object ExecutionPlan {
 
   sealed trait Scoped extends ExecutionPlan
   object Scoped {
-    final case class SetScope(refId: Id, scopeId: Scope.Id)                      extends Scoped
-    final case class GetScope(refId: Id, scopeId: Scope.Id, value: DynamicValue) extends Scoped
-    final case class WithinScope(plan: ExecutionPlan, scopeId: Scope.Id)         extends Scoped
+    final case class Set(refId: Id, scope: Scope)                      extends Scoped
+    final case class Get(refId: Id, scope: Scope, value: DynamicValue) extends Scoped
+    final case class Using(plan: ExecutionPlan, scope: Scope)          extends Scoped
   }
 
   sealed trait Logical extends ExecutionPlan

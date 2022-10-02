@@ -246,15 +246,15 @@ Below we take an arbitrary example where have two numbers and we want to check i
 ```scala
 import Lambda._
 val program = scope { implicit ctx =>
-  val a = Scope(10)
-  val b = Scope(5)
-  val result = Scope(false)
+  val a = Ref.unsafe.make(10)
+  val b = Ref.unsafe.make(5)
+  val result = Ref.unsafe.make(false)
 
   (a.get + b.get) > (a.get * b.get) >>> result.set
 }
 ```
 
-A `Scope` is like a `ZRef` with `get` and `set` methods on it. It can be initialized with a default value.
+A `Ref` is like a `ZRef` with `get` and `set` methods on it. It can be initialized with a default value.
 However, it can only be initialized inside a `scope { }` block. The `{implicit ctx =>` provides context in which the scoped variable is available.
 
 ## Fibonacci

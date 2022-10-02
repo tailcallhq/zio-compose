@@ -13,37 +13,29 @@ import java.util.concurrent.atomic.AtomicInteger
  */
 sealed trait Ref[A] {
   final def :=[X](f: X ~> A): X ~> Unit = set <<< f
-
   def get: Any ~> A
-
   def set: A ~> Unit
-
-  private[compose] def unsafe: Ref.Unsafe
+  def id: Ref.Id
 }
 
 object Ref {
-
-  final case class Id(id: Int, scopeId: Scope.Id)
-
-  trait Unsafe {
-    def id: Id
-  }
+  final case class Id(id: Int, scope: Scope)
 
   private val idGen = new AtomicInteger(0)
 
-  def unsafeMake[A](value: A)(implicit scope: Scope, schema: Schema[A]): Ref[A] =
-    new Ref[A] {
-      self =>
-      override def set: A ~> Unit = Lambda.unsafe.attempt[A, Unit] {
-        Scoped.SetScope(self.unsafe.id, scope.unsafe.id)
-      }
+  object unsafe {
+    def make[A](value: A)(implicit scope: Scope, schema: Schema[A]): Ref[A] =
+      new Ref[A] { self =>
+        override def set: A ~> Unit = Lambda.unsafe.attempt[A, Unit] {
+          Scoped.Set(self.id, scope)
+        }
 
-      override def get: Any ~> A = Lambda.unsafe.attempt[Any, A] {
-        Scoped.GetScope(self.unsafe.id, scope.unsafe.id, schema.toDynamic(value))
-      }
+        override def get: Any ~> A = Lambda.unsafe.attempt[Any, A] {
+          Scoped.Get(self.id, scope, schema.toDynamic(value))
+        }
 
-      override lazy val unsafe: Unsafe = new Unsafe {
-        lazy val id: Id = Id(idGen.incrementAndGet(), scope.unsafe.id)
+        override val id: Id = Id(idGen.incrementAndGet(), scope)
       }
-    }
+  }
+
 }

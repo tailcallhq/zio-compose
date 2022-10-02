@@ -44,11 +44,11 @@ object Interpreter {
     } yield res
 
   def inMemory: UIO[Interpreter] = for {
-    scope <- ScopeContext.inMemory[Scope.Id, Ref.Id, DynamicValue]
+    scope <- ScopeContext.inMemory[Scope, Ref.Id, DynamicValue]
     http  <- HttpClient.make
   } yield new InMemoryInterpreter(scope, http)
 
-  final class InMemoryInterpreter(scope: ScopeContext[Scope.Id, Ref.Id, DynamicValue], client: HttpClient)
+  final class InMemoryInterpreter(scope: ScopeContext[Scope, Ref.Id, DynamicValue], client: HttpClient)
       extends Interpreter {
     import ExecutionPlan._
 
@@ -395,12 +395,12 @@ object Interpreter {
 
     private def scoped(input: DynamicValue, operation: Scoped): Task[DynamicValue] = {
       operation match {
-        case Scoped.SetScope(refId, scopeId) =>
+        case Scoped.Set(refId, scopeId) =>
           for {
             _ <- scope.set(scopeId, refId, input)
           } yield toDynamic(())
 
-        case Scoped.GetScope(refId, scopeId, value) =>
+        case Scoped.Get(refId, scopeId, value) =>
           for {
             option <- scope.get(scopeId, refId)
             value  <- option match {
@@ -409,7 +409,7 @@ object Interpreter {
             }
           } yield value
 
-        case Scoped.WithinScope(plan, scopeId) =>
+        case Scoped.Using(plan, scopeId) =>
           for {
             result <- evalDynamic(plan, input)
             _      <- scope.delete(scopeId)

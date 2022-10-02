@@ -8,8 +8,8 @@ object ScopeDSL {
 
   trait Ctr {
     def scope[A, B](f: Scope => A ~> B): A ~> B = Lambda.unsafe.attempt[A, B] {
-      val scope = Scope()
-      Scoped.WithinScope(f(scope).compile, scope.unsafe.id)
+      val scope = Scope.unsafe.make
+      Scoped.Using(f(scope).compile, scope)
     }
   }
 }
