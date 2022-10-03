@@ -413,6 +413,18 @@ object LambdaSpec extends ZIOSpecDefault {
         },
       ),
     ),
+    suite("some")(
+      test("some") {
+        val res = constant(1).some
+        assertZIO(res.eval {})(equalTo(Some(1)))
+      },
+    ),
+    suite("seqLike")(
+      test("find") {
+        val res = constant(List(1, 2, 3)).find(identity[Int] =:= constant(2))
+        assertZIO(res.eval {})(equalTo(Some(2)))
+      },
+    ),
   ) @@ timeout(5 second)
 
   case class FooBar(foo: Int, bar: Int)

@@ -52,7 +52,7 @@ object Interpreter {
       extends Interpreter {
     import ExecutionPlan._
 
-    def evalDynamic(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue] = {
+    def evalDynamic(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue]     = {
       plan match {
         case operation: Debugger      => debugger(input, operation)
         case operation: Textual       => textual(input, operation)
@@ -71,8 +71,21 @@ object Interpreter {
         case operation: Random        => random(input, operation)
         case operation: Codec         => codec(input, operation)
         case operation: Remote        => remote(input, operation)
+        case operation: ListLike      => seqLike(input, operation)
       }
     }
+    private def seqLike(input: DynamicValue, operation: ListLike): Task[DynamicValue] =
+      operation match {
+        case ListLike.Find(ast, cond) =>
+          val schema = ast.toSchema.asInstanceOf[Schema[Any]]
+          for {
+            list     <- effect(input.toTypedValue(Schema.list(schema)))
+            filtered <- ZIO.filter(list.map(any => schema.toDynamic(any))) { input => eval[Boolean](cond, input) }
+          } yield filtered.headOption match {
+            case Some(value) => DynamicValue.SomeValue(value)
+            case None        => DynamicValue.NoneValue
+          }
+      }
 
     private def codec(input: DynamicValue, operation: Codec): Task[DynamicValue] =
       operation match {
@@ -138,6 +151,7 @@ object Interpreter {
             case DynamicValue.SomeValue(_) => ZIO.succeed(toDynamic(false))
             case input                     => ZIO.fail(new RuntimeException(s"Not an optional value: ${input}"))
           }
+        case Optional.Some    => ZIO.succeed(DynamicValue.SomeValue(input))
       }
 
     private def arrowed(input: DynamicValue, operation: Arrow): Task[DynamicValue] = {
@@ -426,6 +440,7 @@ object Interpreter {
             case None        => DynamicValue.NoneValue
           })
         case Sources.Constant(value) => ZIO.succeed(value)
+        case Sources.Die             => ZIO.fail(new Exception("Die"))
       }
     }
 

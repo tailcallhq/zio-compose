@@ -16,7 +16,8 @@ trait Lambda[-A, +B]
     with EitherDSL.Op[A, B]
     with LoopDSL.Op[A, B]
     with DebugDSL.Op[A, B]
-    with CodecDSL.Op[A, B] { self =>
+    with CodecDSL.Op[A, B]
+    with ListDSL.Op[A, B] { self =>
 
   final def ->>[I >: B, C](other: (C, I) ~> C): Transformation[A, C] =
     self transform other
@@ -46,6 +47,8 @@ object Lambda
         case Right(value) => schema.toDynamic(value)
       })
   }
+
+  def die: Any ~> Nothing = Lambda.unsafe.attempt[Any, Nothing] { Sources.Die }
 
   def fromMap[A, B](source: Map[A, B])(implicit input: Schema[A], output: Schema[B]): Lambda[A, Option[B]] =
     Lambda.unsafe.attempt[A, Option[B]](

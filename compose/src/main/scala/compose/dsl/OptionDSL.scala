@@ -10,5 +10,7 @@ object OptionDSL {
       }
 
     def nonEmpty[C](implicit ev: B <:< Option[C]): A ~> Boolean = isEmpty.not
+
+    def some: A ~> Option[B] = self >>> Lambda.unsafe.attempt[B, Option[B]](ExecutionPlan.Optional.Some)
   }
 }

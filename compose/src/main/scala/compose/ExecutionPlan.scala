@@ -101,6 +101,7 @@ object ExecutionPlan {
     final case class Default(value: DynamicValue)                    extends Sources
     final case class FromMap(value: Map[DynamicValue, DynamicValue]) extends Sources
     final case class Constant(value: DynamicValue)                   extends Sources
+    final case object Die                                            extends Sources
   }
 
   sealed trait Console extends ExecutionPlan
@@ -125,6 +126,7 @@ object ExecutionPlan {
   sealed trait Optional extends ExecutionPlan
   object Optional {
     case object IsEmpty extends Optional
+    case object Some    extends Optional
   }
 
   sealed trait EitherOne extends ExecutionPlan
@@ -146,5 +148,10 @@ object ExecutionPlan {
   object Codec {
     case object Encode                                       extends Codec
     case class Decode(ast: SchemaAst, decoder: DynamicValue) extends Codec
+  }
+
+  sealed trait ListLike extends ExecutionPlan
+  object ListLike {
+    case class Find(ast: SchemaAst, cond: ExecutionPlan) extends ListLike
   }
 }
