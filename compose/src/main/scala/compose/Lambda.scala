@@ -71,7 +71,7 @@ object Lambda
 
   def unit: Any ~> Unit = constant(())
 
-  private[compose] object unsafe {
+  object unsafe {
     trait Attempt[A, B] {
       def apply(plan: => ExecutionPlan): A ~> B = new ~>[A, B] {
         override def compile: ExecutionPlan = plan
@@ -83,4 +83,5 @@ object Lambda
     }
   }
 
+  implicit def schema[A, B]: Schema[A ~> B] = Schema[ExecutionPlan].transform[A ~> B](_.toLambda[A, B], _.compile)
 }
