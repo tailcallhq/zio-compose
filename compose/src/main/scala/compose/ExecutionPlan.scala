@@ -8,9 +8,9 @@ import zio.schema.{DeriveSchema, DynamicValue, Schema}
 import zio.{Chunk, ZIO}
 
 sealed trait ExecutionPlan { self =>
-  final def binary: Chunk[Byte]                     = JsonCodec.encode(ExecutionPlan.schema)(self)
-  final def json: String                            = new String(binary.toArray)
-  private[compose] final def toLambda[A, B]: A ~> B = Lambda.unsafe.attempt[A, B](self)
+  final def binary: Chunk[Byte]    = JsonCodec.encode(ExecutionPlan.schema)(self)
+  final def json: String           = new String(binary.toArray)
+  final def toLambda[A, B]: A ~> B = Lambda.unsafe.attempt[A, B](self)
 }
 
 object ExecutionPlan {
