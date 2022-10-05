@@ -1,8 +1,9 @@
 package compose
 
+import compose.ExecutionPlan._
 import compose.dsl._
+import compose.internal.GraphQLSchema
 import compose.model.Transformation
-import ExecutionPlan._
 import zio.schema.Schema
 
 trait Lambda[-A, +B]
@@ -35,7 +36,8 @@ object Lambda
     with FoldDSL.Implicits
     with StringDSL.Implicits
     with RandomDSL.Ctr
-    with RemoteDSL.Ctr {
+    with RemoteDSL.Ctr
+    with GraphQLSchema.Implicits {
 
   def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B =
     Lambda.unsafe.attempt[Any, B] { Sources.Constant(schema.toDynamic(b)) }

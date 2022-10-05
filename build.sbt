@@ -58,6 +58,7 @@ lazy val zioCompose = project
       ZIOSchemaDerivation,
       ZIOTest,
       ZIOTestSbt,
+      Caliban,
     ),
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
   )
