@@ -6,23 +6,43 @@ import zio.Scope
 import zio.test.{Spec, TestEnvironment, ZIOSpecDefault, assertTrue}
 
 object GraphQLSchemaSpec extends ZIOSpecDefault {
-  case class Length(length: Any ~> Int)
 
   override def spec: Spec[TestEnvironment with Scope, Any] = suite("Endpoint")(
-    test("Any ~> Int") {
-      val length = Length(Lambda.constant(1))
-      val api    = graphQL(RootResolver(length))
+    suite("api.render")(
+      test("Any ~> Int") {
+        case class Foo(foo: Any ~> Int)
+        val length = Foo(Lambda.constant(1))
+        val api    = graphQL(RootResolver(length))
 
-      val query = """|schema {
-                     |  query: Length
-                     |}
-                     |
-                     |type Length {
-                     |  length: Int!
-                     |}
+        val query =
+          """|schema {
+             |  query: Foo
+             |}
+             |
+             |type Foo {
+             |  foo: Int!
+             |}
         """.stripMargin.trim
 
-      assertTrue(api.render == query)
-    },
+        assertTrue(api.render == query)
+      },
+      test("Int ~> Int") {
+        case class Foo(foo: Int ~> Int)
+        val length = Foo(Lambda.constant(1).inc)
+        val api    = graphQL(RootResolver(length))
+
+        val query =
+          """|schema {
+             |  query: Foo
+             |}
+             |
+             |type Foo {
+             |  foo(value: Int!): Int!
+             |}
+        """.stripMargin.trim
+
+        assertTrue(api.render == query)
+      },
+    ),
   )
 }
