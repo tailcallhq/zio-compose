@@ -20,8 +20,6 @@ object DeriveAccessors {
 
     val tpe = weakTypeOf[T]
 
-    println()
-
     val params = tpe.typeSymbol.asClass.primaryConstructor.asMethod.paramLists.headOption
     val quotes = params match {
       case None         => throw new Error("No primary constructor found")

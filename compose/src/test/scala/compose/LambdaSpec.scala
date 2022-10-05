@@ -126,12 +126,12 @@ object LambdaSpec extends ZIOSpecDefault {
     },
     suite("scope")(
       test("get") {
-        val res = scope { implicit s => Ref.unsafe.make(1000).get }
+        val res = scope { implicit s => Ref.make("value", 1000).get }
         assertZIO(res.eval("OK!"))(equalTo(1000))
       },
       test("set") {
         val res = scope { implicit s =>
-          val a = Ref.unsafe.make(1000)
+          val a = Ref.make("value", 1000)
 
           (a := constant(1)) *> a.get
         }

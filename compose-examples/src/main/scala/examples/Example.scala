@@ -45,10 +45,10 @@ object Example extends ZIOAppDefault {
 
   // testing if the sum of three numbers is greater than their product
   def program7 = (constant(2) <*> constant(2) <*> constant(3)) >>> scope { implicit s =>
-    val a      = Ref.unsafe.make(0)
-    val b      = Ref.unsafe.make(0)
-    val c      = Ref.unsafe.make(0)
-    val result = Ref.unsafe.make(false)
+    val a      = Ref.make("a", 0)
+    val b      = Ref.make("b", 0)
+    val c      = Ref.make(key = "c", 0)
+    val result = Ref.make("result", false)
     val input  = identity[((Int, Int), Int)]
 
     stats(
@@ -61,10 +61,10 @@ object Example extends ZIOAppDefault {
 
   // fibonacci using mutables scopes
   def program8 = scope { implicit s =>
-    val a = Ref.unsafe.make(0)
-    val b = Ref.unsafe.make(1)
-    val n = Ref.unsafe.make(0)
-    val i = Ref.unsafe.make(1)
+    val a = Ref.make("a", 0)
+    val b = Ref.make("b", 1)
+    val n = Ref.make("n", 0)
+    val i = Ref.make("i", 1)
 
     stats(
       n := a.get + b.get,
@@ -75,10 +75,10 @@ object Example extends ZIOAppDefault {
   }
 
   def guessANumber: Any ~> Unit = scope { implicit s =>
-    val name     = Ref.unsafe.make("")
-    val guess    = Ref.unsafe.make(-1)
-    val continue = Ref.unsafe.make(false)
-    val secret   = Ref.unsafe.make(-1)
+    val name     = Ref.make("name", "")
+    val guess    = Ref.make("guess", -1)
+    val continue = Ref.make("continue", false)
+    val secret   = Ref.make("secret", -1)
 
     val startGame = stats(
       // Prompt the user for a valid guess
