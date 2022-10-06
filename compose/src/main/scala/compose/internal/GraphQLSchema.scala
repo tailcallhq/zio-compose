@@ -17,6 +17,7 @@ object GraphQLSchema {
   trait Implicits {
     implicit def any2A[R, B](implicit schemaB: Schema[B], ev: CalibanSchema[R, B]): CalibanSchema[R, Any ~> B] =
       new CalibanSchema[R, Any ~> B] {
+        override def optional: Boolean = ev.optional
 
         override protected[this] def toType(isInput: Boolean, isSubscription: Boolean): __Type =
           ev.toType_(isInput, isSubscription)
@@ -74,6 +75,8 @@ object GraphQLSchema {
             )
           }
         }
+
+        override def optional: Boolean = cSchemaB.optional
       }
   }
 }

@@ -3,16 +3,31 @@ package compose
 import caliban.GraphQL.graphQL
 import caliban.RootResolver
 import zio.Scope
+import zio.schema.Schema
 import zio.test.{Spec, TestEnvironment, ZIOSpecDefault, assertTrue}
 
 object GraphQLSchemaSpec extends ZIOSpecDefault {
 
+  def !![A, B](implicit schema: Schema[B]): A ~> B = Lambda.identity[A] >>> Lambda.default[B]
+
   override def spec: Spec[TestEnvironment with Scope, Any] = suite("Endpoint")(
     suite("api.render")(
-      test("Any ~> Int") {
-        case class Foo(foo: Any ~> Int)
-        val length = Foo(Lambda.constant(1))
-        val api    = graphQL(RootResolver(length))
+      test("render") {
+
+        case class Foo(
+          a1: Any ~> Int,
+          a2: Int ~> Int,
+          a3: Option[String] ~> Option[Int],
+          a4: (String, Int, Boolean) ~> Int,
+        )
+
+        val foo = Foo(
+          !![Any, Int],
+          !![Int, Int],
+          !![Option[String], Option[Int]],
+          !![(String, Int, Boolean), Int],
+        )
+        val api = graphQL(RootResolver(foo))
 
         val query =
           """|schema {
@@ -20,24 +35,10 @@ object GraphQLSchemaSpec extends ZIOSpecDefault {
              |}
              |
              |type Foo {
-             |  foo: Int!
-             |}
-        """.stripMargin.trim
-
-        assertTrue(api.render == query)
-      },
-      test("Int ~> Int") {
-        case class Foo(foo: Int ~> Int)
-        val length = Foo(Lambda.constant(1).inc)
-        val api    = graphQL(RootResolver(length))
-
-        val query =
-          """|schema {
-             |  query: Foo
-             |}
-             |
-             |type Foo {
-             |  foo(value: Int!): Int!
+             |  a1: Int!
+             |  a2(value: Int!): Int!
+             |  a3(value: String): Int
+             |  a4(_1: String!, _2: Int!, _3: Boolean!): Int!
              |}
         """.stripMargin.trim
 
