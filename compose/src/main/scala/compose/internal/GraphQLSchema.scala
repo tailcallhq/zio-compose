@@ -3,8 +3,8 @@ package compose.internal
 import caliban.CalibanError.ExecutionError
 import caliban.InputValue
 import caliban.introspection.adt.{__InputValue, __Type, __TypeKind}
-import caliban.schema.{ArgBuilder, Step}
 import caliban.schema.Step.{FunctionStep, QueryStep}
+import caliban.schema.{ArgBuilder, Step}
 import compose.~>
 import zio.query.ZQuery
 import zio.schema.Schema
