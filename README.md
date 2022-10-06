@@ -9,7 +9,8 @@ The basic idea behind having serializable programs is if code and data are on di
 moved** to the other before the code can be executed on the data.
 Typically, in big-data applications it's much more efficient to move code than the other way around.
 
-There are other use-cases that don't involve big-data where you would want a serializable program. For eg: Building a rule engine,
+There are other use-cases that don't involve big-data where you would want a serializable program. For eg: Building a
+rule engine,
 where the rules are implemented using a DSL and the DSL is serialized and sent to the server for execution.
 
 ZIO Compose intends to take care of such use cases. It intends to provide a complete DSL to write any kind of
@@ -28,15 +29,15 @@ libraryDependencies += "com.tusharmath" %% "zio-compose" % version
 # Getting started
 
 - [Getting started](#getting-started)
-  - [Lambda](#lambda)
-  - [Serialization](#serialization)
-  - [Conditional](#conditional)
-  - [Piping](#piping)
-  - [Lenses](#lenses)
-  - [Transformations](#transformations)
-  - [Looping](#looping)
-  - [Scopes](#scopes)
-  - [Fibonacci](#fibonacci)
+    - [Lambda](#lambda)
+    - [Serialization](#serialization)
+    - [Conditional](#conditional)
+    - [Piping](#piping)
+    - [Lenses](#lenses)
+    - [Transformations](#transformations)
+    - [Looping](#looping)
+    - [Scopes](#scopes)
+    - [Fibonacci](#fibonacci)
 
 1. Here is a simple program that adds two numbers -
 
@@ -110,8 +111,8 @@ Two lambdas can be composed using the `pipe` or `compose` operator. For eg: if t
 lambda `l2: B ~> C` then they can be composed using the pipe operator as —
 
 ```scala
-val l1: A ~> B  = ???
-val l2: B ~> C  = ???
+val l1: A ~> B = ???
+val l2: B ~> C = ???
 val l12: A ~> C = A >>> B
 ```
 
@@ -127,6 +128,7 @@ import zio.schema._
 import compose.macros.DeriveAccessors
 
 case class User(firstName: String, lastName: String, age: Int)
+
 object User {
 
   // Derive the Schema
@@ -138,11 +140,12 @@ object User {
 ```
 
 The `schema` field inside of `User` provides access to the meta-data and structure of the type `User`.
-Whereas `lens` internally uses `schema` to navigate through an instance to lookup or update it's fields in a type-safe manner. Let's see that in action —
+Whereas `lens` internally uses `schema` to navigate through an instance to lookup or update it's fields in a type-safe
+manner. Let's see that in action —
 
 ```scala
 val user: Any ~> User = constant(User("John", "Doe", 23))
-val age: User ~> Int  = User.lens.age.get
+val age: User ~> Int = User.lens.age.get
 val program: Any ~> Int = user >>> age
 ```
 
@@ -157,40 +160,49 @@ val user: Any ~> User = constant(User("John", "Doe", 23))
 val program: Any ~> User = (user <*> constant(12)) >>> User.lens.age.set
 ```
 
-The `set` methods on lens is a binary function, so it needs two arguments - 1. The whole object which needs to be updated and 2. the value it needs to set. In our case `age.set` would have a type like this - `(User, Int) ~> User`. That's why we use the `<*>` operator (alias to `zip`) to combine the two inputs and send it to the `set` function.
+The `set` methods on lens is a binary function, so it needs two arguments - 1. The whole object which needs to be
+updated and 2. the value it needs to set. In our case `age.set` would have a type like this - `(User, Int) ~> User`.
+That's why we use the `<*>` operator (alias to `zip`) to combine the two inputs and send it to the `set` function.
 
 ## Transformations
 
-Transformations from one type to another are easily possible using the lens API, however it can become a bit verbose and boilerplate sometimes.
-ZIO Compose provides a DSL to simplify transformations. Here is an example of converting `User` to `Customer`, we start by defining the types, schema and it's lens.
+Transformations from one type to another are easily possible using the lens API, however it can become a bit verbose and
+boilerplate sometimes.
+ZIO Compose provides a DSL to simplify transformations. Here is an example of converting `User` to `Customer`, we start
+by defining the types, schema and it's lens.
 
 ```scala
 case class Customer(name: String, age: Int, allowed: Boolean)
+
 object Customer {
   implicit val schema = DeriveSchema.gen[Customer]
   val lens = DeriveAccessors.gen[Customer]
 }
 ```
 
-We then take each field of the user, perform some transformations on the field themselves and then set it in a customer. A transformation can be defined using the `->>` operator.
+We then take each field of the user, perform some transformations on the field themselves and then set it in a customer.
+A transformation can be defined using the `->>` operator.
 
 ```scala
-val t1: User ~> Customer = (User.lens.age.get + constant(10)) ->> Customer.lens.age.set,
+val t1: User ~> Customer = (User.lens.age.get + constant(10)) ->> Customer.lens.age.set
+,
 ```
 
-A `Transformation`, is nothing but a pair of a getter and setter. We can combine multiple transformations using the `transform` operator -
+A `Transformation`, is nothing but a pair of a getter and setter. We can combine multiple transformations using
+the `transform` operator -
 
 ```scala
 import Lambda._
 
 val user2Customer: User ~> Customer = transform(
-  (User.lens.age.get + constant(10))                                     ->> Customer.lens.age.set,
+  (User.lens.age.get + constant(10)) ->> Customer.lens.age.set,
   (User.lens.firstName.get ++ constant(" ") ++ Person.lens.lastName.get) ->> Customer.lens.name.set,
-  (User.lens.age.get > constant(18))                                     ->> Customer.lens.isAllowed.set,
+  (User.lens.age.get > constant(18)) ->> Customer.lens.isAllowed.set,
 )
 ```
 
-The final output of the transformation is a function from `User ~> Customer`. We can then pipe in an actual user instance to produce a customer as follows —
+The final output of the transformation is a function from `User ~> Customer`. We can then pipe in an actual user
+instance to produce a customer as follows —
 
 ```scala
 val program: Any ~> Customer = constant(User("John", "Doe", 20)) >>> user2Customer
@@ -199,19 +211,22 @@ val program: Any ~> Customer = constant(User("John", "Doe", 20)) >>> user2Custom
 ## Looping
 
 With ZIO Compose one can loop over a lambda in multiple ways. For eg:
-Let's say I want to add all numbers between 0 to 10. We can do this by creating a type `Sum` which maintains intermediary state of our program like this —
+Let's say I want to add all numbers between 0 to 10. We can do this by creating a type `Sum` which maintains
+intermediary state of our program like this —
 
 ```scala
 import compose.macros.DeriveSchema
 
 case class Sum(count: Int, result: Int)
+
 object Sum {
   implicit val schema = DeriveSchema.gen[Sum]
   val lens = DeriveAccessor.gen[Sum]
 }
 ```
 
-Then we make a lambda of type `Sum ~> Sum` to represent one iteration of our loop. In the iteration we perform two operations -
+Then we make a lambda of type `Sum ~> Sum` to represent one iteration of our loop. In the iteration we perform two
+operations -
 
 1. Increase the value of `count` by one.
 2. Add the value of `count` to `result`.
@@ -220,7 +235,7 @@ Then we make a lambda of type `Sum ~> Sum` to represent one iteration of our loo
 import Lambda._
 
 val iteration: Sum ~> Sum = transform(
-  Sum.lens.count.get.inc                   ->> Sum.lens.count.set,
+  Sum.lens.count.get.inc ->> Sum.lens.count.set,
   Sum.lens.result.get + Sum.lens.count.get ->> Sum.lens.result.set
 )
 ```
@@ -240,22 +255,27 @@ val program: Any ~> Int = sum >>> Sum.lens.result.get
 ## Scopes
 
 Scopes allows us to define and update variables within a given context.
-They turn out to be pretty handy when we want to share some data across different part of our program without having to pass it using `pipe`.
-Below we take an arbitrary example where have two numbers and we want to check if their sum is greater than their product.
+They turn out to be pretty handy when we want to share some data across different part of our program without having to
+pass it using `pipe`.
+Below we take an arbitrary example where have two numbers and we want to check if their sum is greater than their
+product.
 
 ```scala
 import Lambda._
+
 val program = scope { implicit ctx =>
-  val a = Ref.unsafe.make(10)
-  val b = Ref.unsafe.make(5)
-  val result = Ref.unsafe.make(false)
+  val a = Ref.make(key = "a", value = 10)
+  val b = Ref.make(key = "b", value = 5)
+  val result = Ref.make(key = "result", value = false)
 
   (a.get + b.get) > (a.get * b.get) >>> result.set
 }
 ```
 
-A `Ref` is like a `ZRef` with `get` and `set` methods on it. It can be initialized with a default value.
-However, it can only be initialized inside a `scope { }` block. The `{implicit ctx =>` provides context in which the scoped variable is available.
+A `Ref` is like a `ZRef` with `get` and `set` methods on it.
+It needs a unique key within the scope of it's usage and a default value at the time of initialization.
+However, it can only be initialized inside a `scope { }` block. The `{implicit ctx =>` provides context in which the
+scoped variable is available.
 
 ## Fibonacci
 
@@ -266,6 +286,7 @@ import compose._
 import zio.schema._
 
 case class Fib(a: Int, b: Int, i: Int)
+
 object Fib {
   implicit val schema: Schema[Fib] = DeriveSchema.gen[Fib]
   val lens = DeriveAccessor.gen[Fib]
@@ -273,9 +294,9 @@ object Fib {
 
 def fib = constant(Fib(0, 1, 0)) >>>
   transform(
-    Fib.lens.b.get                  ->> Fib.lens.a.set,
+    Fib.lens.b.get ->> Fib.lens.a.set,
     Fib.lens.a.get + Fib.lens.b.get ->> Fib.lens.b.set,
-    Fib.lens.i.get.inc              ->> Fib.lens.i.set,
+    Fib.lens.i.get.inc ->> Fib.lens.i.set,
   ).repeatWhile(Fib.lens.i.get =!= constant(20)) >>> Fib.lens.b.get
 ```
 
