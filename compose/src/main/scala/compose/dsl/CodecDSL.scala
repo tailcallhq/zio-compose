@@ -15,9 +15,7 @@ object CodecDSL {
         Codec.Decode(s.ast, Schema[Decoder].toDynamic(decoder.decoder))
       }
 
-    def encode: A ~> DynamicValue = self >>> Lambda.unsafe.attempt[B, DynamicValue] {
-      Codec.Encode
-    }
+    def encode: A ~> DynamicValue = self >>> Lambda.unsafe.attempt[B, DynamicValue] { Codec.Encode }
 
   }
 }

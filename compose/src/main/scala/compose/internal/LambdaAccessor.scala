@@ -14,5 +14,8 @@ object LambdaAccessor extends AccessorBuilder {
 
   override def makePrism[F, S, A](sum: Schema.Enum[S], term: Schema.Case[A, S]): Prism[F, S, A] = ()
 
-  override def makeTraversal[S, A](collection: Schema.Collection[S, A], element: Schema[A]): Traversal[S, A] = ???
+  override def makeTraversal[S, A](
+    collection: Schema.Collection[S, A],
+    element: Schema[A],
+  ): Traversal[S, A] = ???
 }

@@ -6,7 +6,8 @@ import zio.schema.{DeriveSchema, DynamicValue, Schema}
 sealed trait Decoder
 
 object Decoder {
-  sealed trait HasDecoder[-A] extends Decoder { self =>
+  sealed trait HasDecoder[-A] extends Decoder {
+    self =>
     def decoder: Decoder = self
   }
 

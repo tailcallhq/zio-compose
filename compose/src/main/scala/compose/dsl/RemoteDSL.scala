@@ -6,8 +6,6 @@ import compose.{Lambda, ~>}
 
 object RemoteDSL {
   trait Ctr {
-    final def http: Request ~> Response = Lambda.unsafe.attempt[Request, Response] {
-      Remote.Http
-    }
+    final def http: Request ~> Response = Lambda.unsafe.attempt[Request, Response] { Remote.Http }
   }
 }

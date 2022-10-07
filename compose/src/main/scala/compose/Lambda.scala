@@ -17,10 +17,10 @@ trait Lambda[-A, +B]
     with LoopDSL.Op[A, B]
     with DebugDSL.Op[A, B]
     with CodecDSL.Op[A, B]
-    with ListDSL.Op[A, B] { self =>
+    with ListDSL.Op[A, B] {
+  self =>
 
-  final def ->>[I >: B, C](other: (C, I) ~> C): Transformation[A, C] =
-    self transform other
+  final def ->>[I >: B, C](other: (C, I) ~> C): Transformation[A, C] = self transform other
 
   def compile: ExecutionPlan
 
@@ -37,23 +37,24 @@ object Lambda
     with RandomDSL.Ctr
     with RemoteDSL.Ctr {
 
-  def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B =
-    Lambda.unsafe.attempt[Any, B] { Sources.Constant(schema.toDynamic(b)) }
+  def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B = Lambda.unsafe
+    .attempt[Any, B] { Sources.Constant(schema.toDynamic(b)) }
 
   def default[A](implicit schema: Schema[A]): Any ~> A = Lambda.unsafe.attempt[Any, A] {
-    Sources
-      .Default(schema.defaultValue match {
-        case Left(cause)  => throw new Exception(cause)
-        case Right(value) => schema.toDynamic(value)
-      })
+    Sources.Default(schema.defaultValue match {
+      case Left(cause)  => throw new Exception(cause)
+      case Right(value) => schema.toDynamic(value)
+    })
   }
 
   def die: Any ~> Nothing = Lambda.unsafe.attempt[Any, Nothing] { Sources.Die }
 
-  def fromMap[A, B](source: Map[A, B])(implicit input: Schema[A], output: Schema[B]): Lambda[A, Option[B]] =
-    Lambda.unsafe.attempt[A, Option[B]](
-      Sources.FromMap(source.map { case (a, b) => (input.toDynamic(a), output.toDynamic(b)) }),
-    )
+  def fromMap[A, B](
+    source: Map[A, B],
+  )(implicit input: Schema[A], output: Schema[B]): Lambda[A, Option[B]] = Lambda.unsafe
+    .attempt[A, Option[B]](Sources.FromMap(source.map { case (a, b) =>
+      (input.toDynamic(a), output.toDynamic(b))
+    }))
 
   def id[A]: Lambda[A, A] = identity[A]
 
@@ -65,8 +66,8 @@ object Lambda
 
   def transform[A, B](transformations: Transformation[A, B]*)(implicit s: Schema[B]): A ~> B =
     transformations.foldLeft[A ~> B](default[B]) {
-      case (ab, transformation: Transformation.Constructor[A @unchecked, B @unchecked, Any @unchecked]) =>
-        transformation(ab)
+      case (ab, ctor: Transformation.Constructor[A @unchecked, B @unchecked, Any @unchecked]) =>
+        ctor(ab)
     }
 
   def unit: Any ~> Unit = constant(())
@@ -83,5 +84,6 @@ object Lambda
     }
   }
 
-  implicit def schema[A, B]: Schema[A ~> B] = Schema[ExecutionPlan].transform[A ~> B](_.toLambda[A, B], _.compile)
+  implicit def schema[A, B]: Schema[A ~> B] = Schema[ExecutionPlan]
+    .transform[A ~> B](_.toLambda[A, B], _.compile)
 }

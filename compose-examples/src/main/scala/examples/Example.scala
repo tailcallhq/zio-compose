@@ -13,10 +13,7 @@ object Example extends ZIOAppDefault {
   def program1: Any ~> Int = constant(1) + constant(2)
 
   // conditionally execute one of the two programs
-  def program2 = constant(true).diverge(
-    isTrue = constant("Yes"),
-    isFalse = constant("No"),
-  )
+  def program2 = constant(true).diverge(isTrue = constant("Yes"), isFalse = constant("No"))
 
   // numeric comparison
   def program3 = constant(10) > constant(2)
@@ -30,7 +27,7 @@ object Example extends ZIOAppDefault {
   def program5 = constant(Person("Tushar", "Mathur", 50)) >>> transform(
     (Person.lens.age.get + constant(10))                                     ->> User.lens.age.set,
     (Person.lens.firstName.get ++ constant(" ") ++ Person.lens.lastName.get) ->> User.lens.name.set,
-    (Person.lens.age.get > constant(18))                                     ->> User.lens.isAllowed.set,
+    (Person.lens.age.get > constant(18)) ->> User.lens.isAllowed.set,
   )
 
   // calculating fib(20)
@@ -66,12 +63,9 @@ object Example extends ZIOAppDefault {
     val n = Ref.make("n", 0)
     val i = Ref.make("i", 1)
 
-    stats(
-      n := a.get + b.get,
-      a := b.get,
-      b := n.get,
-      i := i.get.inc,
-    ).repeatWhile { i.get < constant(10) } *> n.get
+    stats(n := a.get + b.get, a := b.get, b := n.get, i := i.get.inc).repeatWhile {
+      i.get < constant(10)
+    } *> n.get
   }
 
   def guessANumber: Any ~> Unit = scope { implicit s =>
@@ -82,8 +76,7 @@ object Example extends ZIOAppDefault {
 
     val startGame = stats(
       // Prompt the user for a valid guess
-      readLine("Enter a number between 0-9: ").toInt
-        .fold(constant(-1))(identity[Int])
+      readLine("Enter a number between 0-9: ").toInt.fold(constant(-1))(identity[Int])
         .repeatUntil(id[Int].between(0, 9)) >>> guess.set,
 
       // Set the secret number
@@ -92,7 +85,8 @@ object Example extends ZIOAppDefault {
       // Compare the guess to the secret number
       (secret.get =:= guess.get).diverge(
         isTrue = cs"${guess.get.asString} is correct!" >>> writeLine,
-        isFalse = cs"${guess.get.asString} is wrong! Secret was ${secret.get.asString}" >>> writeLine,
+        isFalse =
+          cs"${guess.get.asString} is wrong! Secret was ${secret.get.asString}" >>> writeLine,
       ),
 
       // Prompt the user to continue or not
@@ -114,11 +108,10 @@ object Example extends ZIOAppDefault {
     )
   }
 
-  override def run =
-    for {
-      out <- Interpreter.eval(guessANumber)
-      _   <- ZIO.succeed(println(out))
-    } yield ()
+  override def run = for {
+    out <- Interpreter.eval(guessANumber)
+    _   <- ZIO.succeed(println(out))
+  } yield ()
 
   case class Fib(a: Int, b: Int, i: Int)
 

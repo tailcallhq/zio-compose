@@ -7,7 +7,8 @@ import zio.schema.codec.JsonCodec
 import zio.schema.{DeriveSchema, DynamicValue, Schema}
 import zio.{Chunk, ZIO}
 
-sealed trait ExecutionPlan { self =>
+sealed trait ExecutionPlan {
+  self =>
   final def binary: Chunk[Byte]    = JsonCodec.encode(ExecutionPlan.schema)(self)
   final def json: String           = new String(binary.toArray)
   final def toLambda[A, B]: A ~> B = Lambda.unsafe.attempt[A, B](self)
@@ -15,8 +16,7 @@ sealed trait ExecutionPlan { self =>
 
 object ExecutionPlan {
 
-  def from(json: String): ZIO[Any, Exception, ExecutionPlan] =
-    from(Chunk.fromArray(json.getBytes))
+  def from(json: String): ZIO[Any, Exception, ExecutionPlan] = from(Chunk.fromArray(json.getBytes))
 
   def from(chunk: Chunk[Byte]): ZIO[Any, Exception, ExecutionPlan] =
     JsonCodec.decode(ExecutionPlan.schema)(chunk) match {
@@ -35,11 +35,12 @@ object ExecutionPlan {
 
   sealed trait Logical extends ExecutionPlan
   object Logical {
-    final case class And(left: ExecutionPlan, right: ExecutionPlan)                              extends Logical
-    final case class Or(left: ExecutionPlan, right: ExecutionPlan)                               extends Logical
-    final case class Not(plan: ExecutionPlan)                                                    extends Logical
-    final case class Equals(left: ExecutionPlan, right: ExecutionPlan)                           extends Logical
-    final case class Diverge(cond: ExecutionPlan, ifTrue: ExecutionPlan, ifFalse: ExecutionPlan) extends Logical
+    final case class And(left: ExecutionPlan, right: ExecutionPlan)    extends Logical
+    final case class Or(left: ExecutionPlan, right: ExecutionPlan)     extends Logical
+    final case class Not(plan: ExecutionPlan)                          extends Logical
+    final case class Equals(left: ExecutionPlan, right: ExecutionPlan) extends Logical
+    final case class Diverge(cond: ExecutionPlan, ifTrue: ExecutionPlan, ifFalse: ExecutionPlan)
+        extends Logical
   }
 
   final case class Numeric(operation: Numeric.Operation, kind: Numeric.Kind) extends ExecutionPlan
