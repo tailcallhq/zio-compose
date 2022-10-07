@@ -1,4 +1,4 @@
-package compose.internal
+package compose.graphql
 
 import caliban.CalibanError.ExecutionError
 import caliban.InputValue
@@ -13,8 +13,7 @@ object GraphQLSchema {
 
   type CalibanSchema[-R, A] = caliban.schema.Schema[R, A]
   val CalibanSchema: caliban.schema.Schema.type = caliban.schema.Schema
-
-  trait Implicits {
+  object Implicits {
     implicit def any2A[R, B](implicit schemaB: Schema[B], ev: CalibanSchema[R, B]): CalibanSchema[R, Any ~> B] =
       new CalibanSchema[R, Any ~> B] {
         override def optional: Boolean = ev.optional
@@ -33,8 +32,9 @@ object GraphQLSchema {
       cSchemaB: CalibanSchema[R, Any ~> B],
     ): CalibanSchema[R, A ~> B] =
       new CalibanSchema[R, A ~> B] {
-        private lazy val inputType                 = cSchemaA.toType_(true)
-        private val unwrappedArgumentName          = "value"
+        private lazy val inputType        = cSchemaA.toType_(true)
+        private val unwrappedArgumentName = "value"
+
         override def arguments: List[__InputValue] = {
           inputType.inputFields.getOrElse(
             handleInput(List.empty[__InputValue])(

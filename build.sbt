@@ -11,6 +11,7 @@ Global / scalacOptions            := Seq(
 )
 Global / scalaVersion             := "2.13.8"
 ThisBuild / versionScheme         := Some("early-semver")
+ThisBuild / testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
 ThisBuild / githubWorkflowTargetTags ++= Seq("v*")
 ThisBuild / githubWorkflowPublishTargetBranches += RefPredicate.StartsWith(Ref.Tag("v"))
 ThisBuild / githubWorkflowPublish := Seq(WorkflowStep.Sbt(List("ci-release")))
@@ -44,7 +45,7 @@ inThisBuild(
 
 // Projects
 lazy val root = (project in file("."))
-  .aggregate(zioCompose, zioComposeMacros, zioComposeExamples)
+  .aggregate(zioCompose, zioComposeMacros, zioComposeExamples, zioComposeGraphQL)
   .settings(name := "root", publish / skip := true)
 
 lazy val zioCompose = project
@@ -60,7 +61,6 @@ lazy val zioCompose = project
       ZIOTestSbt,
       Caliban,
     ),
-    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
   )
   .dependsOn(zioComposeMacros)
 
@@ -80,4 +80,21 @@ lazy val zioComposeExamples = project
   .settings(
     name           := "zio-compose-examples",
     publish / skip := true,
+  )
+
+lazy val zioComposeGraphQL = project
+  .in(file("./compose-graphql"))
+  .dependsOn(zioCompose, zioComposeMacros)
+  .settings(
+    name                := "zio-compose-graphql",
+    publish / skip      := true,
+    libraryDependencies := Netty ++ Seq(
+      ZIOCore,
+      ZIOSchema,
+      ZIOSchemaJson,
+      ZIOSchemaDerivation,
+      ZIOTest,
+      ZIOTestSbt,
+      Caliban,
+    ),
   )

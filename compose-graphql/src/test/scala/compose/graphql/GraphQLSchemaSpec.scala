@@ -1,12 +1,15 @@
-package compose
+package compose.graphql
 
 import caliban.GraphQL.graphQL
 import caliban.RootResolver
+import compose.{Lambda, ~>}
 import zio.Scope
 import zio.schema.{DeriveSchema, Schema}
 import zio.test.{Spec, TestEnvironment, ZIOSpecDefault, assertTrue}
 
 object GraphQLSchemaSpec extends ZIOSpecDefault {
+
+  import GraphQLSchema.Implicits._
 
   def !![A, B]: A ~> B = Lambda.unsafe.attempt[A, B](???)
 
