@@ -9,7 +9,7 @@ Global / scalacOptions            := Seq(
   "-feature",
   "-language:reflectiveCalls",
 )
-Global / scalaVersion             := "2.13.8"
+Global / scalaVersion             := "2.13.10"
 ThisBuild / versionScheme         := Some("early-semver")
 ThisBuild / testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
 ThisBuild / githubWorkflowTargetTags ++= Seq("v*")
