@@ -1,5 +1,10 @@
-![workflow](https://github.com/tusharmath/graphql-compose/actions/workflows/ci.yml/badge.svg)
-![latest version](https://maven-badges.herokuapp.com/maven-central/com.tusharmath/zio-compose_2.13/badge.svg?style=plastic)
+![badge-workflow]
+![badge-sonatype-releases]
+![badge-sonatype-snapshots]
+
+[badge-workflow]: https://github.com/tusharmath/graphql-compose/actions/workflows/ci.yml/badge.svg
+[badge-sonatype-releases]: https://img.shields.io/nexus/r/https/oss.sonatype.org/com.tusharmath/zio-compose_2.13.svg "Sonatype Releases"
+[badge-sonatype-snapshots]: https://img.shields.io/nexus/s/https/oss.sonatype.org/com.tusharmath/zio-compose_2.13.svg "Sonatype Snapshots"
 
 ZIO Compose is a library that helps you write programs that can be serialized and sent over the wire.
 
@@ -29,15 +34,15 @@ libraryDependencies += "com.tusharmath" %% "zio-compose" % version
 # Getting started
 
 - [Getting started](#getting-started)
-    - [Lambda](#lambda)
-    - [Serialization](#serialization)
-    - [Conditional](#conditional)
-    - [Piping](#piping)
-    - [Lenses](#lenses)
-    - [Transformations](#transformations)
-    - [Looping](#looping)
-    - [Scopes](#scopes)
-    - [Fibonacci](#fibonacci)
+  - [Lambda](#lambda)
+  - [Serialization](#serialization)
+  - [Conditional](#conditional)
+  - [Piping](#piping)
+  - [Lenses](#lenses)
+  - [Transformations](#transformations)
+  - [Looping](#looping)
+  - [Scopes](#scopes)
+  - [Fibonacci](#fibonacci)
 
 1. Here is a simple program that adds two numbers -
 
