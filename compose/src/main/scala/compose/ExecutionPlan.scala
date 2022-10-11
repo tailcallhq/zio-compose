@@ -102,7 +102,7 @@ object ExecutionPlan {
     final case class Default(value: DynamicValue)                    extends Sources
     final case class FromMap(value: Map[DynamicValue, DynamicValue]) extends Sources
     final case class Constant(value: DynamicValue)                   extends Sources
-    final case object Die                                            extends Sources
+    case object Die                                                  extends Sources
   }
 
   sealed trait Console extends ExecutionPlan
