@@ -6,8 +6,8 @@ val scala3 = "3.2.0"
 // Flags
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
-Global / scalacOptions := Seq("-Ywarn-unused", "-Werror", "-feature", "-language:reflectiveCalls")
-Global / scalaVersion  := scala2
+Global / scalacOptions        := ScalaOptions(scalaVersion.value)
+Global / scalaVersion         := scala2
 
 ThisBuild / crossScalaVersions    := Seq(scala2, scala3)
 ThisBuild / versionScheme         := Some("early-semver")
