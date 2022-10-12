@@ -2,7 +2,7 @@ object Dependencies {
   import sbt._
   val zioVersion       = "2.0.2"
   val zioSchemaVersion = "0.2.1"
-  val nettyVersions    = "4.1.82.Final"
+  val nettyVersions    = "4.1.83.Final"
   val calibanVersion   = "2.0.1"
 
   val ZIOCore             = "dev.zio"               %% "zio"                   % zioVersion
