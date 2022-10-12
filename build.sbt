@@ -7,7 +7,7 @@ val scala3 = "3.2.0"
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 Global / scalacOptions        := ScalaOptions(scalaVersion.value)
-Global / scalaVersion         := scala2
+Global / scalaVersion         := scala3
 
 ThisBuild / crossScalaVersions    := Seq(scala2, scala3)
 ThisBuild / versionScheme         := Some("early-semver")
@@ -54,7 +54,7 @@ lazy val zioCompose = project.in(file("./compose")).settings(
 
 lazy val zioComposeMacros = project.in(file("./compose-macros")).settings(
   name                := "zio-compose-macros",
-  libraryDependencies := Seq(ZIOSchema) ++ {
+  libraryDependencies := Seq(ZIOSchema, PPRint) ++ {
     CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((2, _)) => Seq("org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided)
       case _            => Seq.empty

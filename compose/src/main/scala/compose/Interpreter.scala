@@ -51,6 +51,7 @@ object Interpreter {
     scope: ScopeContext[Scope, Ref.Id, DynamicValue],
     client: HttpClient,
   ) extends Interpreter {
+    interpreter =>
     import ExecutionPlan._
 
     def evalDynamic(plan: ExecutionPlan, input: DynamicValue): Task[DynamicValue]     = {
@@ -82,7 +83,7 @@ object Interpreter {
           for {
             list     <- effect(input.toTypedValue(Schema.list(schema)))
             filtered <- ZIO.filter(list.map(any => schema.toDynamic(any))) { input =>
-              eval[Boolean](cond, input)
+              interpreter.eval[Boolean](cond, input)
             }
           } yield filtered.headOption match {
             case Some(value) => DynamicValue.SomeValue(value)
@@ -125,8 +126,8 @@ object Interpreter {
     private def random(input: DynamicValue, operation: Random): Task[DynamicValue] = {
       operation match {
         case Random.NextInt(min, max) => for {
-            min <- eval[Int](min, input)
-            max <- eval[Int](max, input)
+            min <- interpreter.eval[Int](min, input)
+            max <- interpreter.eval[Int](max, input)
             rnd <- zio.Random.nextIntBetween(min, max)
           } yield toDynamic(rnd)
       }
@@ -239,15 +240,15 @@ object Interpreter {
     private def logical(input: DynamicValue, operation: Logical): Task[DynamicValue] = {
       operation match {
         case Logical.And(left, right) => for {
-            left  <- eval[Boolean](left, input)
-            right <- eval[Boolean](right, input)
+            left  <- interpreter.eval[Boolean](left, input)
+            right <- interpreter.eval[Boolean](right, input)
           } yield toDynamic { left && right }
         case Logical.Or(left, right)  => for {
-            left  <- eval[Boolean](left, input)
-            right <- eval[Boolean](right, input)
+            left  <- interpreter.eval[Boolean](left, input)
+            right <- interpreter.eval[Boolean](right, input)
           } yield toDynamic { left || right }
 
-        case Logical.Not(plan) => for { bool <- eval[Boolean](plan, input) } yield toDynamic(!bool)
+        case Logical.Not(plan) => for { bool <- interpreter.eval[Boolean](plan, input) } yield toDynamic(!bool)
 
         case Logical.Equals(left, right) => for {
             left  <- evalDynamic(left, input)
@@ -255,7 +256,7 @@ object Interpreter {
           } yield toDynamic(left == right)
 
         case Logical.Diverge(cond, ifTrue, ifFalse) => for {
-            cond   <- eval[Boolean](cond, input)
+            cond   <- interpreter.eval[Boolean](cond, input)
             result <- if (cond) evalDynamic(ifTrue, input) else evalDynamic(ifFalse, input)
           } yield result
       }
@@ -269,26 +270,26 @@ object Interpreter {
       kind match {
         case Numeric.Kind.IntNumber => operation match {
             case Numeric.Add(left, right)                => for {
-                a <- eval[Int](left, input)
-                b <- eval[Int](right, input)
+                a <- interpreter.eval[Int](left, input)
+                b <- interpreter.eval[Int](right, input)
               } yield toDynamic(a + b)
             case Numeric.Multiply(left, right)           => for {
-                a <- eval[Int](left, input)
-                b <- eval[Int](right, input)
+                a <- interpreter.eval[Int](left, input)
+                b <- interpreter.eval[Int](right, input)
               } yield toDynamic(a * b)
             case Numeric.Divide(left, right)             => for {
-                a <- eval[Int](left, input)
-                b <- eval[Int](right, input)
+                a <- interpreter.eval[Int](left, input)
+                b <- interpreter.eval[Int](right, input)
               } yield toDynamic(a / b)
             case Numeric.GreaterThan(left, right)        => for {
-                a <- eval[Int](left, input)
-                b <- eval[Int](right, input)
+                a <- interpreter.eval[Int](left, input)
+                b <- interpreter.eval[Int](right, input)
               } yield toDynamic(a > b)
             case Numeric.GreaterThanEqualTo(left, right) => for {
-                a <- eval[Int](left, input)
-                b <- eval[Int](right, input)
+                a <- interpreter.eval[Int](left, input)
+                b <- interpreter.eval[Int](right, input)
               } yield toDynamic(a >= b)
-            case Numeric.Negate(plan) => for { a <- eval[Int](plan, input) } yield toDynamic(-a)
+            case Numeric.Negate(plan) => for { a <- interpreter.eval[Int](plan, input) } yield toDynamic(-a)
           }
       }
     }
@@ -349,7 +350,7 @@ object Interpreter {
           def loop(input: DynamicValue): Task[DynamicValue] = {
             for {
               output <- evalDynamic(f, input)
-              isTrue <- eval[Boolean](cond, output)
+              isTrue <- interpreter.eval[Boolean](cond, output)
               result <- if (isTrue) loop(output) else ZIO.succeed(output)
             } yield result
           }
@@ -360,7 +361,7 @@ object Interpreter {
           def loop: Task[DynamicValue] = {
             for {
               output <- evalDynamic(f, input)
-              isTrue <- eval[Boolean](cond, output)
+              isTrue <- interpreter.eval[Boolean](cond, output)
               result <- if (isTrue) loop else ZIO.succeed(output)
             } yield result
           }
@@ -405,35 +406,35 @@ object Interpreter {
     private def textual(input: DynamicValue, operation: Textual): Task[DynamicValue] = {
       operation match {
         case Textual.Length(plan) => for {
-            str <- eval[String](plan, input)
+            str <- interpreter.eval[String](plan, input)
           } yield toDynamic(str.length)
 
         case Textual.UpperCase(plan) => for {
-            str <- eval[String](plan, input)
+            str <- interpreter.eval[String](plan, input)
           } yield toDynamic(str.toUpperCase)
 
         case Textual.LowerCase(plan) => for {
-            str <- eval[String](plan, input)
+            str <- interpreter.eval[String](plan, input)
           } yield toDynamic(str.toLowerCase)
 
         case Textual.StartsWith(self, other) => for {
-            str1 <- eval[String](self, input)
-            str2 <- eval[String](other, input)
+            str1 <- interpreter.eval[String](self, input)
+            str2 <- interpreter.eval[String](other, input)
           } yield toDynamic(str1.startsWith(str2))
 
         case Textual.EndsWith(self, other) => for {
-            str1 <- eval[String](self, input)
-            str2 <- eval[String](other, input)
+            str1 <- interpreter.eval[String](self, input)
+            str2 <- interpreter.eval[String](other, input)
           } yield toDynamic(str1.endsWith(str2))
 
         case Textual.Contains(self, other) => for {
-            str1 <- eval[String](self, input)
-            str2 <- eval[String](other, input)
+            str1 <- interpreter.eval[String](self, input)
+            str2 <- interpreter.eval[String](other, input)
           } yield toDynamic(str1.contains(str2))
 
         case Textual.Concat(self, other) => for {
-            str1 <- eval[String](self, input)
-            str2 <- eval[String](other, input)
+            str1 <- interpreter.eval[String](self, input)
+            str2 <- interpreter.eval[String](other, input)
           } yield toDynamic(str1 ++ str2)
       }
     }

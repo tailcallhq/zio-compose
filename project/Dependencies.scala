@@ -1,7 +1,7 @@
 object Dependencies {
   import sbt._
   val zioVersion       = "2.0.2"
-  val zioSchemaVersion = "0.2.1"
+  val zioSchemaVersion = "0.2.1+1-d80ef99a+20221011-1602-SNAPSHOT"
   val nettyVersions    = "4.1.82.Final"
   val calibanVersion   = "2.0.1"
 
@@ -12,15 +12,16 @@ object Dependencies {
   val ZIOSchemaJson       = "dev.zio"               %% "zio-schema-json"       % zioSchemaVersion
   val ZIOSchemaDerivation = "dev.zio"               %% "zio-schema-derivation" % zioSchemaVersion
   val Caliban             = "com.github.ghostdogpr" %% "caliban"               % calibanVersion
-  val Netty               =
-    Seq(
-      "io.netty" % "netty-codec-http"              % nettyVersions,
-      "io.netty" % "netty-handler-proxy"           % nettyVersions,
-      "io.netty" % "netty-transport-native-epoll"  % nettyVersions,
-      "io.netty" % "netty-transport-native-epoll"  % nettyVersions % Runtime classifier "linux-x86_64",
-      "io.netty" % "netty-transport-native-epoll"  % nettyVersions % Runtime classifier "linux-aarch_64",
-      "io.netty" % "netty-transport-native-kqueue" % nettyVersions,
-      "io.netty" % "netty-transport-native-kqueue" % nettyVersions % Runtime classifier "osx-x86_64",
-      "io.netty" % "netty-transport-native-kqueue" % nettyVersions % Runtime classifier "osx-aarch_64",
-    )
+  val PPRint              = "com.lihaoyi"           %% "pprint"                % "0.7.0"
+  
+  val Netty               = Seq(
+    "io.netty" % "netty-codec-http"             % nettyVersions,
+    "io.netty" % "netty-handler-proxy"          % nettyVersions,
+    "io.netty" % "netty-transport-native-epoll" % nettyVersions,
+    "io.netty" % "netty-transport-native-epoll" % nettyVersions % Runtime classifier "linux-x86_64",
+    "io.netty" % "netty-transport-native-epoll" % nettyVersions % Runtime classifier "linux-aarch_64",
+    "io.netty" % "netty-transport-native-kqueue" % nettyVersions,
+    "io.netty" % "netty-transport-native-kqueue" % nettyVersions % Runtime classifier "osx-x86_64",
+    "io.netty" % "netty-transport-native-kqueue" % nettyVersions % Runtime classifier "osx-aarch_64",
+  )
 }
