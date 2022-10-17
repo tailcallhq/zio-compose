@@ -1,8 +1,9 @@
 package compose.graphql
 
+import compose.graphql.Ast.FieldType.NamedFieldType
 import compose.graphql.Ast.{Field, FieldType, InputValue, ObjectType}
-import zio.schema.{Schema, StandardType, TypeId}
 import zio.schema.TypeId.{Nominal, Structural}
+import zio.schema.{Schema, StandardType, TypeId}
 
 import scala.collection.mutable
 
@@ -90,13 +91,52 @@ case object AstGenerator {
   def getFieldType(schema: Schema[_]): FieldType = {
     def loop(schema: Schema[_], isRequired: Boolean): FieldType = {
       reduceSchema(schema) match {
-        case Schema.Optional(schema, _)           => loop(schema, false)
-        case Schema.Sequence(schemaA, _, _, _, _) => getFieldType(schemaA).asList
-            .asRequiredWhen(isRequired)
-        case schema: Schema.Record[_]             => FieldType.NamedFieldType(getName(schema.id))
-            .asRequiredWhen(isRequired)
-        case Schema.Primitive(standardType, _)    => FieldType.from(standardType)
-            .asRequiredWhen(isRequired)
+        case Schema.Optional(schema, _) => loop(schema, false)
+
+        case Schema.Sequence(schemaA, _, _, _, _) =>
+          val fieldType = FieldType.ListFieldType(getFieldType(schemaA))
+          if (isRequired) FieldType.RequiredFieldType(fieldType) else fieldType
+
+        case schema: Schema.Record[_] =>
+          val fieldType = FieldType.NamedFieldType(getName(schema.id))
+          if (isRequired) FieldType.RequiredFieldType(fieldType) else fieldType
+
+        case Schema.Primitive(standardType, _) =>
+          import StandardType._
+          val fieldType = standardType match {
+            case BigDecimalType        => NamedFieldType("BigDecimal")
+            case BigIntegerType        => NamedFieldType("BigInteger")
+            case BinaryType            => NamedFieldType("Binary")
+            case BoolType              => NamedFieldType("Boolean")
+            case ByteType              => NamedFieldType("Byte")
+            case CharType              => NamedFieldType("Char")
+            case DayOfWeekType         => NamedFieldType("DayOfWeek")
+            case DoubleType            => NamedFieldType("Float")
+            case DurationType          => NamedFieldType("Duration")
+            case FloatType             => NamedFieldType("Float")
+            case InstantType(_)        => NamedFieldType("Instant")
+            case IntType               => NamedFieldType("Int")
+            case LocalDateTimeType(_)  => NamedFieldType("LocalDateTime")
+            case LocalDateType(_)      => NamedFieldType("LocalDate")
+            case LocalTimeType(_)      => NamedFieldType("LocalTime")
+            case LongType              => NamedFieldType("Long")
+            case MonthDayType          => NamedFieldType("MonthDay")
+            case MonthType             => NamedFieldType("Month")
+            case OffsetDateTimeType(_) => NamedFieldType("OffsetDateTime")
+            case OffsetTimeType(_)     => NamedFieldType("OffsetTime")
+            case PeriodType            => NamedFieldType("Period")
+            case ShortType             => NamedFieldType("Short")
+            case StringType            => NamedFieldType("String")
+            case UnitType              => NamedFieldType("Unit")
+            case UUIDType              => NamedFieldType("ID")
+            case YearMonthType         => NamedFieldType("YearMonth")
+            case YearType              => NamedFieldType("Year")
+            case ZonedDateTimeType(_)  => NamedFieldType("ZonedDateTime")
+            case ZoneIdType            => NamedFieldType("ZoneId")
+            case ZoneOffsetType        => NamedFieldType("ZoneOffset")
+          }
+
+          if (isRequired) FieldType.RequiredFieldType(fieldType) else fieldType
 
         // Unhandled
         //      case Schema.Tuple(_, _, _)                => ???
@@ -109,7 +149,7 @@ case object AstGenerator {
         //      case Schema.Meta(ast, annotations)                         => ???
         //      case Schema.SemiDynamic(defaultValue, annotations)         => ???
         //      case Schema.EitherSchema(left, right, annotations)         => ???
-        case schema                               => throw new MatchError(schema)
+        case schema                            => throw new MatchError(schema)
       }
     }
 
