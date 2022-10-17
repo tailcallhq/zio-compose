@@ -47,7 +47,7 @@ object GraphQLSpec extends ZIOSpecDefault {
   }
 
   def spec = suite("GraphQLSpec")(suite("schema")(test("render") {
-    val connection = Connection.arg("root", die[Unit, Root])
+    val connection = GraphQL.arg("root", die[Unit, Root])
     val graphQL    = AstGenerator.gen(connection)
 
     val actual   = graphQL.encode
