@@ -3,62 +3,124 @@ package compose.graphql
 import zio.schema.TypeId.{Nominal, Structural}
 import zio.schema.{Schema, StandardType, TypeId}
 
-import scala.annotation.tailrec
 import scala.collection.mutable
 
+/**
+ * GraphQL is the AST used to represent a GraphQL query,
+ * mutation, subscription or schema. The AST can be
+ * generated in two ways viz. from a string. and from a list
+ * of connections.
+ */
 sealed trait GraphQL {
-  self =>
-
   def encode: String
 }
 
 object GraphQL {
 
-  case class Document(definitions: Seq[Definitions]) extends GraphQL {
-    override def encode: String = s"\n${definitions.map(_.encode).mkString("\n")}\n"
+  final case class Document(definitions: Seq[Definitions]) extends GraphQL {
+    override def encode: String =
+      s"\n${definitions.sortBy { case ObjectType(name, _) => name }.map(_.encode).mkString("\n")}\n"
   }
 
   sealed trait Definitions extends GraphQL
 
-  case class ObjectType(name: String, fields: List[Field]) extends Definitions {
+  final case class ObjectType(name: String, fields: List[Field]) extends Definitions {
     override def encode: String =
       s"type $name {\n${fields.map(s => "  " + s.encode).mkString("\n")}\n}"
   }
 
-  case class Field(
-    name: String,
-    arguments: List[InputValue],
-    fieldType: NamedType,
-    isList: Boolean,
-    isOptional: Boolean,
-  ) extends GraphQL {
+  final case class Field(name: String, arguments: List[InputValue], fieldType: FieldType)
+      extends GraphQL {
+    self =>
     override def encode: String = {
       val args = if (arguments.isEmpty) "" else s"(${arguments.map(_.encode).mkString(", ")})"
-      val tpe  = if (isList) s"[${fieldType.encode}]" else fieldType.encode
-      val opt  = if (isOptional) "" else "!"
-      s"$name$args: $tpe$opt"
+      val tpe  = fieldType.encode
+      s"$name$args: $tpe"
+    }
+
+    def asRequired: Field                    = self.copy(fieldType = fieldType.asRequired)
+    def asList: Field                        = self.copy(fieldType = fieldType.asList)
+    def asRequiredWhen(cond: Boolean): Field = if (cond) asRequired else self
+    def asListWhen(cond: Boolean): Field     = if (cond) asList else self
+  }
+
+  sealed trait FieldType extends GraphQL {
+    self =>
+    final def asRequired: FieldType                    = FieldType.RequiredFieldType(self)
+    final def asList: FieldType                        = FieldType.ListFieldType(self)
+    final def asRequiredWhen(cond: Boolean): FieldType = if (cond) asRequired else self
+    final def asListWhen(cond: Boolean): FieldType     = if (cond) asList else self
+  }
+  object FieldType {
+    final case class NamedFieldType(name: String) extends FieldType {
+      override def encode: String = name
+    }
+
+    final case class RequiredFieldType(tpe: FieldType) extends FieldType {
+      override def encode: String = s"${tpe.encode}!"
+    }
+
+    final case class ListFieldType(tpe: FieldType) extends FieldType {
+      override def encode: String = s"[${tpe.encode}]"
+    }
+
+    def from(standardType: StandardType[_]): NamedFieldType = {
+      import StandardType._
+      standardType match {
+        case BigDecimalType        => NamedFieldType("BigDecimal")
+        case BigIntegerType        => NamedFieldType("BigInteger")
+        case BinaryType            => NamedFieldType("Binary")
+        case BoolType              => NamedFieldType("Boolean")
+        case ByteType              => NamedFieldType("Byte")
+        case CharType              => NamedFieldType("Char")
+        case DayOfWeekType         => NamedFieldType("DayOfWeek")
+        case DoubleType            => NamedFieldType("Float")
+        case DurationType          => NamedFieldType("Duration")
+        case FloatType             => NamedFieldType("Float")
+        case InstantType(_)        => NamedFieldType("Instant")
+        case IntType               => NamedFieldType("Int")
+        case LocalDateTimeType(_)  => NamedFieldType("LocalDateTime")
+        case LocalDateType(_)      => NamedFieldType("LocalDate")
+        case LocalTimeType(_)      => NamedFieldType("LocalTime")
+        case LongType              => NamedFieldType("Long")
+        case MonthDayType          => NamedFieldType("MonthDay")
+        case MonthType             => NamedFieldType("Month")
+        case OffsetDateTimeType(_) => NamedFieldType("OffsetDateTime")
+        case OffsetTimeType(_)     => NamedFieldType("OffsetTime")
+        case PeriodType            => NamedFieldType("Period")
+        case ShortType             => NamedFieldType("Short")
+        case StringType            => NamedFieldType("String")
+        case UnitType              => NamedFieldType("Unit")
+        case UUIDType              => NamedFieldType("ID")
+        case YearMonthType         => NamedFieldType("YearMonth")
+        case YearType              => NamedFieldType("Year")
+        case ZonedDateTimeType(_)  => NamedFieldType("ZonedDateTime")
+        case ZoneIdType            => NamedFieldType("ZoneId")
+        case ZoneOffsetType        => NamedFieldType("ZoneOffset")
+      }
     }
   }
 
-  case class NamedType(name: String) extends GraphQL {
-    override def encode: String = name
-  }
-
-  case class InputValue(name: String, fieldType: NamedType, isList: Boolean, isOptional: Boolean)
-      extends GraphQL {
+  final case class InputValue(name: String, fieldType: FieldType) extends GraphQL {
     override def encode: String = {
-      val tpe = if (isList) s"[${fieldType.encode}]" else fieldType.encode
-      val opt = if (isOptional) "" else "!"
-      s"$name: $tpe$opt"
+      val tpe = fieldType.encode
+      s"$name: $tpe"
     }
   }
 
-  def isOption(schema: Schema[_]): Boolean = schema match {
-    case Schema.Optional(_, _) => true
-    case _                     => false
+  def reduceSchema[A](schema: Schema[A]): Schema[A] = schema match {
+    case Schema.Lazy(schema0) => schema0()
+    case schema               => schema
   }
 
-  def isList(schema: Schema[_]): Boolean = schema match {
+  def isOption(schema: Schema[_]): Boolean = {
+    reduceSchema(schema) match {
+      case _: Schema.Optional[_] => true
+      case _                     => false
+    }
+  }
+
+  def isList(schema: Schema[_]): Boolean = reduceSchema(schema) match {
     case Schema.Sequence(_, _, _, _, _) => true
     case _                              => false
   }
@@ -70,38 +132,28 @@ object GraphQL {
 
   def getArguments(schema: Schema[_]): List[InputValue] = schema match {
     case schema: Schema.Record[_] => schema.structure.map { field =>
-        InputValue(
-          field.label,
-          getNamedType(field.schema),
-          isList(field.schema),
-          isOption(field.schema),
-        )
+        InputValue(field.label, getFieldType(field.schema))
       }.toList
 
-    case schema @ Schema.Primitive(_, _) =>
-      InputValue("value", getNamedType(schema), isList(schema), isOption(schema)) :: Nil
-    case _                               => Nil
+    case schema @ Schema.Primitive(standardType, _) if standardType != StandardType.UnitType =>
+      InputValue("value", getFieldType(schema)) :: Nil
+    case _                                                                                   => Nil
   }
 
-  def getFields(schema: Schema.Record[_]): List[Field] = schema.structure.map(field =>
-    Field(
-      field.label,
-      Nil,
-      getNamedType(field.schema),
-      isList(field.schema),
-      isOption(field.schema),
-    ),
-  ).toList
+  def getFields(schema: Schema.Record[_]): List[Field] = schema.structure.map { field =>
+    Field(field.label, Nil, getFieldType(field.schema))
+  }.toList
 
   def getObjectType(schema: Schema[_]): Seq[ObjectType] = {
-    schema match {
+    reduceSchema(schema) match {
       case Schema.Optional(schema, _) => getObjectType(schema)
 
       case Schema.Sequence(schemaA, _, _, _, _) => getObjectType(schemaA)
 
       case schema: Schema.Record[_] =>
         val children = schema.structure.map(_.schema).filter(isRecord).flatMap(getObjectType)
-        children ++ Seq(ObjectType(getName(schema.id), getFields(schema)))
+        val fields   = Seq(ObjectType(getName(schema.id), getFields(schema)))
+        children ++ fields
 
       case Schema.Primitive(_, _) => Seq(ObjectType("Query", Nil))
 
@@ -136,65 +188,34 @@ object GraphQL {
     }
   }
 
-  @tailrec
-  def getNamedType(schema: Schema[_]): NamedType = {
-    schema match {
-      case Schema.Optional(schema, _) => getNamedType(schema)
+  def getFieldType(schema: Schema[_]): FieldType = {
+    def loop(schema: Schema[_], isRequired: Boolean): FieldType = {
+      reduceSchema(schema) match {
+        case Schema.Optional(schema, _)           => loop(schema, false)
+        case Schema.Sequence(schemaA, _, _, _, _) => getFieldType(schemaA).asList
+            .asRequiredWhen(isRequired)
+        case schema: Schema.Record[_]             => FieldType.NamedFieldType(getName(schema.id))
+            .asRequiredWhen(isRequired)
+        case Schema.Primitive(standardType, _)    => FieldType.from(standardType)
+            .asRequiredWhen(isRequired)
 
-      case Schema.Sequence(schemaA, _, _, _, _) => getNamedType(schemaA)
-
-      case schema: Schema.Record[_] => NamedType(schema.id.name)
-
-      case Schema.Lazy(schema0) => getNamedType(schema0())
-
-      case Schema.Primitive(standardType, _) =>
-        import StandardType._
-        standardType match {
-          case CharType              => NamedType("Char")
-          case MonthDayType          => NamedType("MonthDay")
-          case OffsetDateTimeType(_) => NamedType("OffsetDateTime")
-          case StringType            => NamedType("String")
-          case DurationType          => NamedType("Duration")
-          case UUIDType              => NamedType("UUID")
-          case ByteType              => NamedType("Byte")
-          case DayOfWeekType         => NamedType("DayOfWeek")
-          case InstantType(_)        => NamedType("Instant")
-          case ZonedDateTimeType(_)  => NamedType("ZonedDateTime")
-          case YearType              => NamedType("Year")
-          case MonthType             => NamedType("Month")
-          case BigDecimalType        => NamedType("BigDecimal")
-          case UnitType              => NamedType("Unit")
-          case BinaryType            => NamedType("Binary")
-          case BoolType              => NamedType("Bool")
-          case IntType               => NamedType("Int")
-          case LocalDateType(_)      => NamedType("LocalDate")
-          case DoubleType            => NamedType("Double")
-          case LongType              => NamedType("Long")
-          case LocalDateTimeType(_)  => NamedType("LocalDateTime")
-          case ZoneIdType            => NamedType("ZoneId")
-          case FloatType             => NamedType("Float")
-          case BigIntegerType        => NamedType("BigInteger")
-          case YearMonthType         => NamedType("YearMonth")
-          case OffsetTimeType(_)     => NamedType("OffsetTime")
-          case PeriodType            => NamedType("Period")
-          case ZoneOffsetType        => NamedType("ZoneOffset")
-          case ShortType             => NamedType("Short")
-          case LocalTimeType(_)      => NamedType("LocalTime")
-        }
-
-      // Unhandled
-//      case Schema.Tuple(left, right, annotations)                => ???
-//      case Schema.Fail(message, annotations)                     => ???
-//      case Schema.MapSchema(ks, vs, annotations)                 => ???
-//      case Schema.SetSchema(as, annotations)                     => ???
-//      case schema: Schema.Enum[_]                                => ???
-//      case Schema.Dynamic(annotations)                           => ???
-//      case Schema.Transform(schema, f, g, annotations, identity) => ???
-//      case Schema.Meta(ast, annotations)                         => ???
-//      case Schema.SemiDynamic(defaultValue, annotations)         => ???
-//      case Schema.EitherSchema(left, right, annotations)         => ???
-      case schema                            => throw new MatchError(schema)
+        // Unhandled
+        //      case Schema.Tuple(_, _, _)                => ???
+        //      case Schema.Fail(message, annotations)                     => ???
+        //      case Schema.MapSchema(ks, vs, annotations)                 => ???
+        //      case Schema.SetSchema(as, annotations)                     => ???
+        //      case schema: Schema.Enum[_]                                => ???
+        //      case Schema.Dynamic(annotations)                           => ???
+        //      case Schema.Transform(schema, _, _, _, _)                  => ???
+        //      case Schema.Meta(ast, annotations)                         => ???
+        //      case Schema.SemiDynamic(defaultValue, annotations)         => ???
+        //      case Schema.EitherSchema(left, right, annotations)         => ???
+        case schema                               => throw new MatchError(schema)
+      }
     }
+
+    loop(schema, true)
+
   }
 
   def getTypeDefinitions(connections: Seq[Connection]): Seq[GraphQL.ObjectType] = {
@@ -203,7 +224,7 @@ object GraphQL {
     connections.foreach { case Connection.Cons(name, arg, from, to, _) =>
       val fromName      = getObjectType(from)
       val toName        = getObjectType(to)
-      val conField      = Field(name, getArguments(arg), getNamedType(to), isList(to), isOption(to))
+      val conField      = Field(name, getArguments(arg), getFieldType(to))
       val conObjectType = ObjectType(getName(from), conField :: Nil)
       definitions.addAll(fromName).addAll(toName).add(conObjectType)
     }
@@ -228,4 +249,6 @@ object GraphQL {
   def from(connections: Seq[Connection]): GraphQL = {
     GraphQL.Document(getTypeDefinitions(connections))
   }
+
+  def from(connection: Connection): GraphQL = { from(Seq(connection)) }
 }
