@@ -22,7 +22,7 @@ object GraphQLSpec extends ZIOSpecDefault {
     a2: Option[String],
     a3: Option[Boolean],
     a4: Option[Double],
-    a5: Option[Option[Int]]
+    a5: Option[Option[Int]],
   )
 
   final case class Sequences(
@@ -48,7 +48,7 @@ object GraphQLSpec extends ZIOSpecDefault {
 
   def spec = suite("GraphQLSpec")(suite("schema")(test("render") {
     val connection = Connection.arg("root", die[Unit, Root])
-    val graphQL    = GraphQL.from(connection)
+    val graphQL    = AstGenerator.gen(connection)
 
     val actual   = graphQL.encode
     val expected = """
