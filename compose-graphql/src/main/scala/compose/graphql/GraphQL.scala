@@ -4,7 +4,7 @@ import compose.{Lambda, ~>}
 import zio.schema.Schema
 
 /**
- * A `Connection` represents a connection between two nodes
+ * A `GraphQL` represents a connection between two nodes
  * in a graph.
  */
 sealed trait GraphQL
