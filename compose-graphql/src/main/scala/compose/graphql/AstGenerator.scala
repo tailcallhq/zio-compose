@@ -117,10 +117,10 @@ case object AstGenerator {
 
   }
 
-  def getTypeDefinitions(connections: Seq[Connection]): Seq[Ast.ObjectType] = {
+  def getTypeDefinitions(connections: Seq[GraphQL]): Seq[Ast.ObjectType] = {
     val definitions = mutable.Set.empty[Ast.ObjectType]
 
-    connections.foreach { case Connection.Cons(name, arg, from, to, _) =>
+    connections.foreach { case GraphQL.Cons(name, arg, from, to, _) =>
       val fromName      = getObjectType(from)
       val toName        = getObjectType(to)
       val conField      = Field(name, getArguments(arg), getFieldType(to))
@@ -145,7 +145,7 @@ case object AstGenerator {
     merged.values.toSeq
   }
 
-  def gen(connections: Seq[Connection]): Ast = { Ast.Document(getTypeDefinitions(connections)) }
+  def gen(connections: Seq[GraphQL]): Ast = { Ast.Document(getTypeDefinitions(connections)) }
 
-  def gen(connection: Connection): Ast = { gen(Seq(connection)) }
+  def gen(connection: GraphQL): Ast = { gen(Seq(connection)) }
 }
