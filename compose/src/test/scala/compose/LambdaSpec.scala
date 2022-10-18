@@ -50,14 +50,7 @@ object LambdaSpec extends ZIOSpecDefault {
     test("diverge") {
       val program = (identity[Int] < constant(10)).diverge(identity[Int].inc, identity[Int].dec)
 
-      val gen = Gen.fromIterable(
-        Seq(
-          1  -> 2,
-          2  -> 3,
-          12 -> 11,
-          14 -> 13,
-        ),
-      )
+      val gen = Gen.fromIterable(Seq(1 -> 2, 2 -> 3, 12 -> 11, 14 -> 13))
 
       checkAll(gen) { case (input, expected) =>
         val res = constant(input) >>> program
@@ -93,14 +86,12 @@ object LambdaSpec extends ZIOSpecDefault {
       assertZIO(res.eval {})(equalTo(1024))
     },
     test("comparisons") {
-      val gen = Gen.fromIterable(
-        Seq(
-          constant(1) < constant(2),
-          constant(2) <= constant(2),
-          constant(2) > constant(1),
-          constant(2) >= constant(2),
-        ),
-      )
+      val gen = Gen.fromIterable(Seq(
+        constant(1) < constant(2),
+        constant(2) <= constant(2),
+        constant(2) > constant(1),
+        constant(2) >= constant(2),
+      ))
 
       checkAll(gen) { res => assertZIO(res.eval {})(isTrue) }
     },
@@ -183,14 +174,12 @@ object LambdaSpec extends ZIOSpecDefault {
     ),
     suite("string")(
       test("concat") {
-        val gen = Gen.fromIterable(
-          Seq(
-            (constant("A") ++ constant("B"))                           -> "AB",
-            (constant("A") >>> (identity[String] ++ constant("B")))    -> "AB",
-            (constant("A") >>> (identity[String] ++ identity[String])) -> "AA",
-            (constant("B") >>> (constant("A") ++ identity[String]))    -> "AB",
-          ),
-        )
+        val gen = Gen.fromIterable(Seq(
+          (constant("A") ++ constant("B"))                           -> "AB",
+          (constant("A") >>> (identity[String] ++ constant("B")))    -> "AB",
+          (constant("A") >>> (identity[String] ++ identity[String])) -> "AA",
+          (constant("B") >>> (constant("A") ++ identity[String]))    -> "AB",
+        ))
         checkAll(gen) { case (str, expected) => assertZIO(str.eval {})(equalTo(expected)) }
       },
       test("length") {
@@ -227,32 +216,26 @@ object LambdaSpec extends ZIOSpecDefault {
         }
       },
       test("interpolator") {
-        val gen = Gen.fromIterable(
-          Seq(
-            cs"${constant("A")}${constant("B")}${constant("C")}"                          -> "ABC",
-            (constant("A") >>> cs"${id[String]}")                                         -> "A",
-            (constant("B") >>> cs"A${id[String]}C")                                       -> "ABC",
-            (constant("B") >>> cs"A${id[String]}-${id[String].lowerCase}-${id[String]}C") -> "AB-b-BC",
-          ),
-        )
-        checkAll(gen) { case (actual, expected) =>
-          assertZIO(actual.eval {})(equalTo(expected))
-        }
+        val gen = Gen.fromIterable(Seq(
+          cs"${constant("A")}${constant("B")}${constant("C")}"                          -> "ABC",
+          (constant("A") >>> cs"${id[String]}")                                         -> "A",
+          (constant("B") >>> cs"A${id[String]}C")                                       -> "ABC",
+          (constant("B") >>> cs"A${id[String]}-${id[String].lowerCase}-${id[String]}C") -> "AB-b-BC",
+        ))
+        checkAll(gen) { case (actual, expected) => assertZIO(actual.eval {})(equalTo(expected)) }
       },
     ),
-    suite("logical")(
-      test("and, or, not") {
-        val boolean  = Gen.fromIterable(Seq(true, false))
-        val boolean2 = boolean <*> boolean
-        val andSeq   = boolean2.map { case (b1, b2) => (constant(b1) && constant(b2)) -> (b1 && b2) }
-        val orSeq    = boolean2.map { case (b1, b2) => (constant(b1) || constant(b2)) -> (b1 || b2) }
-        val notSeq   = boolean.map(b => constant(b).not -> !b)
+    suite("logical")(test("and, or, not") {
+      val boolean  = Gen.fromIterable(Seq(true, false))
+      val boolean2 = boolean <*> boolean
+      val andSeq   = boolean2.map { case (b1, b2) => (constant(b1) && constant(b2)) -> (b1 && b2) }
+      val orSeq    = boolean2.map { case (b1, b2) => (constant(b1) || constant(b2)) -> (b1 || b2) }
+      val notSeq   = boolean.map(b => constant(b).not -> !b)
 
-        checkAll(andSeq ++ orSeq ++ notSeq) { case (lambda, expected) =>
-          assertZIO(lambda.eval {})(equalTo(expected))
-        }
-      },
-    ),
+      checkAll(andSeq ++ orSeq ++ notSeq) { case (lambda, expected) =>
+        assertZIO(lambda.eval {})(equalTo(expected))
+      }
+    }),
     suite("numeric")(
       test("integer comparison") {
         val int  = Gen.int
@@ -294,27 +277,19 @@ object LambdaSpec extends ZIOSpecDefault {
       },
     ),
     test("toInt") {
-      val seq = Gen.fromIterable(
-        Seq[(Any ~> Either[String, Int], Either[String, Int])](
-          constant("1").toInt   -> Right(1),
-          constant("-1").toInt  -> Right(-1),
-          constant("").toInt    -> Left("Cannot convert to Int"),
-          constant("0.1").toInt -> Left("Cannot convert to Int"),
-          constant("1.1").toInt -> Left("Cannot convert to Int"),
-        ),
-      )
+      val seq = Gen.fromIterable(Seq[(Any ~> Either[String, Int], Either[String, Int])](
+        constant("1").toInt   -> Right(1),
+        constant("-1").toInt  -> Right(-1),
+        constant("").toInt    -> Left("Cannot convert to Int"),
+        constant("0.1").toInt -> Left("Cannot convert to Int"),
+        constant("1.1").toInt -> Left("Cannot convert to Int"),
+      ))
       checkAll(seq) { case (isInt, expected) => assertZIO(isInt.eval {})(equalTo(expected)) }
     },
     suite("fold")(
       test("option") {
         val program = identity[Option[Int]].fold(constant(0))(identity[Int].inc)
-        val seq     = Gen.fromIterable(
-          Seq(
-            Option.empty[Int] -> 0,
-            Option(1)         -> 2,
-            Option(2)         -> 3,
-          ),
-        )
+        val seq     = Gen.fromIterable(Seq(Option.empty[Int] -> 0, Option(1) -> 2, Option(2) -> 3))
 
         checkAll(seq) { case (option, expected) =>
           assertZIO(program.eval(option))(equalTo(expected))
@@ -322,32 +297,19 @@ object LambdaSpec extends ZIOSpecDefault {
       },
       test("either") {
         val program = identity[Either[Int, Int]].fold(identity[Int].dec)(identity[Int].inc)
-        val seq     = Gen.fromIterable(
-          Seq(
-            Left(1)  -> 0,
-            Right(1) -> 2,
-          ),
-        )
+        val seq     = Gen.fromIterable(Seq(Left(1) -> 0, Right(1) -> 2))
 
         checkAll(seq) { case (option, expected) =>
           assertZIO(program.eval(option))(equalTo(expected))
         }
       },
       test("list") {
-        val sum = identity[List[Int]].fold(constant(0)) {
-          identity[(Int, Int)]._1 + identity[(Int, Int)]._2
-        }
+        val sum = identity[List[Int]]
+          .fold(constant(0)) { identity[(Int, Int)]._1 + identity[(Int, Int)]._2 }
 
-        val seq = Gen.fromIterable(
-          Seq(
-            List(1, 2, 3)   -> 6,
-            List.empty[Int] -> 0,
-          ),
-        )
+        val seq = Gen.fromIterable(Seq(List(1, 2, 3) -> 6, List.empty[Int] -> 0))
 
-        checkAll(seq) { case (list, expected) =>
-          assertZIO(sum.eval(list))(equalTo(expected))
-        }
+        checkAll(seq) { case (list, expected) => assertZIO(sum.eval(list))(equalTo(expected)) }
       },
     ),
     suite("optional")(
@@ -378,74 +340,58 @@ object LambdaSpec extends ZIOSpecDefault {
         }
       },
     ),
-    suite("asString")(
-      test("asString") {
-        check(Gen.int) { int =>
-          val res = constant(int).asString
-          assertZIO(res.eval {})(equalTo(int.toString))
-        }
-      },
-    ),
+    suite("asString")(test("asString") {
+      check(Gen.int) { int =>
+        val res = constant(int).asString
+        assertZIO(res.eval {})(equalTo(int.toString))
+      }
+    }),
     test("address") {
       val res = constant(1).address
       assertZIO(res.eval {})(equalTo("24a21cdd"))
     },
-    suite("codec")(
-      test("symmetric") {
-        def sym[A](a: A)(implicit schema: Schema[A]) =
-          assertZIO(constant(a).encode.decode[A].eval {})(isRight(equalTo(a)))
+    suite("codec")(test("symmetric") {
+      def sym[A](a: A)(implicit schema: Schema[A]) =
+        assertZIO(constant(a).encode.decode[A].eval {})(isRight(equalTo(a)))
 
-        val seq = Seq(
-          sym(1),
-          sym(true),
-          sym("1"),
-          sym(Option(1)),
-          sym(FooBar(1, 2)),
+      val seq = Seq(sym(1), sym(true), sym("1"), sym(Option(1)), sym(FooBar(1, 2)))
+
+      checkAll(Gen.fromIterable(seq)) { a => a }
+    }),
+    suite("remote")(suite("http")(
+      test("get") {
+        val request  = Request(url = "https://jsonplaceholder.typicode.com/posts/1")
+        val res      = constant(request) >>> Lambda.http.decode[Post]
+        val expected = Post(
+          id = 1,
+          title = "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
+          body = """quia et suscipit
+                   |suscipit recusandae consequuntur expedita et cum
+                   |reprehenderit molestiae ut ut quas totam
+                   |nostrum rerum est autem sunt rem eveniet architecto""".stripMargin,
+          userId = 1,
         )
 
-        checkAll(Gen.fromIterable(seq)) { a => a }
+        assertZIO(res.eval {})(isRight(equalTo(expected)))
       },
-    ),
-    suite("remote")(
-      suite("http")(
-        test("get") {
-          val request  = Request(url = "https://jsonplaceholder.typicode.com/posts/1")
-          val res      = constant(request) >>> Lambda.http.decode[Post]
-          val expected = Post(
-            id = 1,
-            title = "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
-            body = """quia et suscipit
-                     |suscipit recusandae consequuntur expedita et cum
-                     |reprehenderit molestiae ut ut quas totam
-                     |nostrum rerum est autem sunt rem eveniet architecto""".stripMargin,
-            userId = 1,
-          )
-
-          assertZIO(res.eval {})(isRight(equalTo(expected)))
-        },
-        test("post") {
-          val request = Request(
-            method = Method.Post,
-            url = "https://jsonplaceholder.typicode.com/posts",
-            body = Some("""{id: 1, title: "foo", body: "bar", userId: 1}"""),
-          )
-          val res     = constant(request) >>> Lambda.http >>> Response.lens.status.get
-          assertZIO(res.eval {})(equalTo(201))
-        },
-      ),
-    ),
-    suite("some")(
-      test("some") {
-        val res = constant(1).some
-        assertZIO(res.eval {})(equalTo(Some(1)))
+      test("post") {
+        val request = Request(
+          method = Method.Post,
+          url = "https://jsonplaceholder.typicode.com/posts",
+          body = Some("""{id: 1, title: "foo", body: "bar", userId: 1}"""),
+        )
+        val res     = constant(request) >>> Lambda.http >>> Response.lens.status.get
+        assertZIO(res.eval {})(equalTo(201))
       },
-    ),
-    suite("seqLike")(
-      test("find") {
-        val res = constant(List(1, 2, 3)).find(identity[Int] =:= constant(2))
-        assertZIO(res.eval {})(equalTo(Some(2)))
-      },
-    ),
+    )),
+    suite("some")(test("some") {
+      val res = constant(1).some
+      assertZIO(res.eval {})(equalTo(Some(1)))
+    }),
+    suite("seqLike")(test("find") {
+      val res = constant(List(1, 2, 3)).find(identity[Int] =:= constant(2))
+      assertZIO(res.eval {})(equalTo(Some(2)))
+    }),
   ) @@ timeout(5 second)
 
   case class FooBar(foo: Int, bar: Int)
