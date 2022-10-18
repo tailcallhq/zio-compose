@@ -8,7 +8,7 @@ object AstPrinter {
 
     case definitions: Ast.Definitions => definitions match {
         case Definitions.ObjectType(name, fields) =>
-          s"type $name {\n${fields.map(_.encode).mkString("\n")}\n}"
+          s"type $name {\n  ${fields.map(_.encode).mkString("\n  ")}\n}"
       }
 
     case Ast.Field(name, arguments, fieldType) =>
