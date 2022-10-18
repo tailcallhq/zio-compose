@@ -24,9 +24,16 @@ object GraphQL {
     to: Schema[To],
   ): GraphQL = Cons(name, arg, from, to, resolve)
 
-  def arg[A, B](name: String, ab: A ~> B)(implicit from: Schema[A], to: Schema[B]): GraphQL =
-    GraphQL[A, Unit, B](name, Lambda.identity[(A, Unit)]._1 >>> ab)
+  def arg[Arg, To](name: String, ab: Arg ~> To)(implicit
+    from: Schema[Arg],
+    to: Schema[To],
+  ): GraphQL = GraphQL[Arg, Unit, To](name, Lambda.identity[(Arg, Unit)]._1 >>> ab)
 
-  def from[A, B](name: String, ab: A ~> B)(implicit from: Schema[A], to: Schema[B]): GraphQL =
-    GraphQL[Unit, A, B](name, Lambda.identity[(Unit, A)]._2 >>> ab)
+  def from[From, To](name: String, ab: From ~> To)(implicit
+    from: Schema[From],
+    to: Schema[To],
+  ): GraphQL = GraphQL[Unit, From, To](name, Lambda.identity[(Unit, From)]._2 >>> ab)
+
+  def root[To](name: String, ab: Any ~> To)(implicit to: Schema[To]): GraphQL =
+    GraphQL[Unit, Unit, To](name, Lambda.identity[(Unit, Unit)]._2 >>> ab)
 }

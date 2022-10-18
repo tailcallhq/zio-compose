@@ -19,10 +19,10 @@ object Ast {
   }
 
   object Definitions {
-    final case class ObjectType(name: String, fields: List[Field]) extends Definitions
-    final case class Field(name: String, arguments: List[InputValue], fieldType: Type)
+    final case class ObjectType(name: String, fields: Seq[Field]) extends Definitions
+    final case class Field(name: String, arguments: Seq[InputValue], fieldType: Type)
         extends Definitions
-    final case class InputValue(name: String, fieldType: Type)     extends Definitions
+    final case class InputValue(name: String, fieldType: Type)    extends Definitions
   }
 
   sealed trait Type extends Ast

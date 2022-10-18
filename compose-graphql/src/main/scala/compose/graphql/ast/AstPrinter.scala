@@ -8,12 +8,14 @@ object AstPrinter {
 
     case definitions: Definitions => definitions match {
         case Definitions.ObjectType(name, fields) =>
-          s"type $name {\n  ${fields.map(_.encode).mkString("\n  ")}\n}"
+          s"type $name {\n  ${fields.sortBy(_.name).map(_.encode).mkString("\n  ")}\n}"
 
         case Definitions.InputValue(name, fieldType) => s"$name: ${fieldType.encode}"
 
         case Definitions.Field(name, arguments, fieldType) =>
-          val args = if (arguments.isEmpty) "" else s"(${arguments.map(_.encode).mkString(", ")})"
+          val args =
+            if (arguments.isEmpty) ""
+            else s"(${arguments.sortBy(_.name).map(_.encode).mkString(", ")})"
           val tpe  = fieldType.encode
           s"$name$args: $tpe"
       }

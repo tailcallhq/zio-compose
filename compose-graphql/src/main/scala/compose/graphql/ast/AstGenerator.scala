@@ -17,12 +17,12 @@ case object AstGenerator {
 
     case schema @ Schema.Primitive(standardType, _) if standardType != StandardType.UnitType =>
       Definitions.InputValue("value", getFieldType(schema)) :: Nil
-    case _                                                                                   => Nil
+
+    case _ => Nil
   }
 
-  def getFields(schema: Schema.Record[_]): List[Definitions.Field] = schema.structure.map { field =>
-    Definitions.Field(field.label, Nil, getFieldType(field.schema))
-  }.toList
+  def getFields(schema: Schema.Record[_]): List[Definitions.Field] = schema.structure
+    .map(field => Definitions.Field(field.label, Nil, getFieldType(field.schema))).toList
 
   def getObjectType(schema: Schema[_]): Seq[Definitions.ObjectType] = {
     schema.eval match {
@@ -168,6 +168,4 @@ case object AstGenerator {
   }
 
   def gen(connections: Seq[GraphQL]): Ast = { Ast.Document(getTypeDefinitions(connections)) }
-
-  def gen(connection: GraphQL): Ast = { gen(Seq(connection)) }
 }
