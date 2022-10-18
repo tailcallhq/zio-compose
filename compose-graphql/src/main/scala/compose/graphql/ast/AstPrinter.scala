@@ -4,10 +4,11 @@ object AstPrinter {
   import Ast._
   def render(self: Ast): String = self match {
     case Ast.Document(definitions) =>
-      s"\n${definitions.sortBy { case Ast.ObjectType(name, _) => name }.map(_.encode).mkString("\n")}\n"
+      s"\n${definitions.sortBy { case Definitions.ObjectType(name, _) => name }.map(_.encode).mkString("\n")}\n"
 
     case definitions: Ast.Definitions => definitions match {
-        case ObjectType(name, fields) => s"type $name {\n${fields.map(_.encode).mkString("\n")}\n}"
+        case Definitions.ObjectType(name, fields) =>
+          s"type $name {\n${fields.map(_.encode).mkString("\n")}\n}"
       }
 
     case Ast.Field(name, arguments, fieldType) =>

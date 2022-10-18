@@ -2,7 +2,7 @@ package compose.graphql.ast
 
 import compose.graphql.GraphQL
 import compose.graphql.ast.Ast.FieldType.NamedFieldType
-import compose.graphql.ast.Ast.{Field, FieldType, InputValue, ObjectType}
+import compose.graphql.ast.Ast.{Definitions, Field, FieldType, InputValue}
 import zio.schema.TypeId.{Nominal, Structural}
 import zio.schema.{Schema, StandardType, TypeId}
 
@@ -45,7 +45,7 @@ case object AstGenerator {
     Field(field.label, Nil, getFieldType(field.schema))
   }.toList
 
-  def getObjectType(schema: Schema[_]): Seq[ObjectType] = {
+  def getObjectType(schema: Schema[_]): Seq[Definitions.ObjectType] = {
     reduceSchema(schema) match {
       case Schema.Optional(schema, _) => getObjectType(schema)
 
@@ -53,10 +53,10 @@ case object AstGenerator {
 
       case schema: Schema.Record[_] =>
         val children = schema.structure.map(_.schema).filter(isRecord).flatMap(getObjectType)
-        val fields   = Seq(ObjectType(getName(schema.id), getFields(schema)))
+        val fields   = Seq(Definitions.ObjectType(getName(schema.id), getFields(schema)))
         children ++ fields
 
-      case Schema.Primitive(_, _) => Seq(ObjectType("Query", Nil))
+      case Schema.Primitive(_, _) => Seq(Definitions.ObjectType("Query", Nil))
 
       // Unhandled
       //      case Schema.Tuple(left, right, annotations)                => ???
@@ -158,28 +158,30 @@ case object AstGenerator {
 
   }
 
-  def getTypeDefinitions(connections: Seq[GraphQL]): Seq[Ast.ObjectType] = {
-    val definitions = mutable.Set.empty[Ast.ObjectType]
+  def getTypeDefinitions(connections: Seq[GraphQL]): Seq[Definitions.ObjectType] = {
+    val definitions = mutable.Set.empty[Definitions.ObjectType]
 
     connections.foreach { case GraphQL.Cons(name, arg, from, to, _) =>
       val fromName      = getObjectType(from)
       val toName        = getObjectType(to)
       val conField      = Field(name, getArguments(arg), getFieldType(to))
-      val conObjectType = ObjectType(getName(from), conField :: Nil)
+      val conObjectType = Definitions.ObjectType(getName(from), conField :: Nil)
       definitions.addAll(fromName).addAll(toName).add(conObjectType)
     }
 
     mergeTypeDefinitions(definitions.toSeq)
   }
 
-  def mergeTypeDefinitions(typeDefinitions: Seq[ObjectType]): Seq[ObjectType] = {
-    val merged = mutable.Map.empty[String, ObjectType]
+  def mergeTypeDefinitions(
+    typeDefinitions: Seq[Definitions.ObjectType],
+  ): Seq[Definitions.ObjectType] = {
+    val merged = mutable.Map.empty[String, Definitions.ObjectType]
 
     typeDefinitions.foreach { definition =>
       merged.get(definition.name) match {
-        case Some(ObjectType(name, fields)) => merged
-            .put(name, ObjectType(name, fields ++ definition.fields))
-        case None                           => merged.put(definition.name, definition)
+        case Some(Definitions.ObjectType(name, fields)) => merged
+            .put(name, Definitions.ObjectType(name, fields ++ definition.fields))
+        case None                                       => merged.put(definition.name, definition)
       }
     }
 
