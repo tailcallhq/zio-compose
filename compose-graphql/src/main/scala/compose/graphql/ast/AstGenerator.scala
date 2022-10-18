@@ -1,6 +1,7 @@
 package compose.graphql.ast
 
 import compose.graphql.GraphQL
+import compose.graphql.SchemaExtensions.Extensions
 import compose.graphql.ast.Ast.Type.Named
 import compose.graphql.ast.Ast.{Definitions, Type}
 import zio.schema.TypeId.{Nominal, Structural}
@@ -9,28 +10,6 @@ import zio.schema.{Schema, StandardType, TypeId}
 import scala.collection.mutable
 
 case object AstGenerator {
-  def reduceSchema[A](schema: Schema[A]): Schema[A] = schema match {
-    case Schema.Lazy(schema0) => schema0()
-    case schema               => schema
-  }
-
-  def isOption(schema: Schema[_]): Boolean = {
-    reduceSchema(schema) match {
-      case _: Schema.Optional[_] => true
-      case _                     => false
-    }
-  }
-
-  def isList(schema: Schema[_]): Boolean = reduceSchema(schema) match {
-    case Schema.Sequence(_, _, _, _, _) => true
-    case _                              => false
-  }
-
-  def isRecord(schema: Schema[_]): Boolean = schema match {
-    case _: Schema.Record[_] => true
-    case _                   => false
-  }
-
   def getArguments(schema: Schema[_]): List[Definitions.InputValue] = schema match {
     case schema: Schema.Record[_] => schema.structure.map { field =>
         Definitions.InputValue(field.label, getFieldType(field.schema))
@@ -46,13 +25,13 @@ case object AstGenerator {
   }.toList
 
   def getObjectType(schema: Schema[_]): Seq[Definitions.ObjectType] = {
-    reduceSchema(schema) match {
+    schema.eval match {
       case Schema.Optional(schema, _) => getObjectType(schema)
 
       case Schema.Sequence(schemaA, _, _, _, _) => getObjectType(schemaA)
 
       case schema: Schema.Record[_] =>
-        val children = schema.structure.map(_.schema).filter(isRecord).flatMap(getObjectType)
+        val children = schema.structure.map(_.schema).filter(_.isRecord).flatMap(getObjectType)
         val fields   = Seq(Definitions.ObjectType(getName(schema.id), getFields(schema)))
         children ++ fields
 
@@ -91,7 +70,7 @@ case object AstGenerator {
 
   def getFieldType(schema: Schema[_]): Type = {
     def loop(schema: Schema[_], isRequired: Boolean): Type = {
-      reduceSchema(schema) match {
+      schema.eval match {
         case Schema.Optional(schema, _) => loop(schema, false)
 
         case Schema.Sequence(schemaA, _, _, _, _) =>
