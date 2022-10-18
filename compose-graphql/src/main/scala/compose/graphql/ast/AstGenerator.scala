@@ -1,8 +1,8 @@
 package compose.graphql.ast
 
 import compose.graphql.GraphQL
-import compose.graphql.ast.Ast.FieldType.NamedFieldType
-import compose.graphql.ast.Ast.{Definitions, Field, FieldType, InputValue}
+import compose.graphql.ast.Ast.Type.Named
+import compose.graphql.ast.Ast.{Definitions, Type}
 import zio.schema.TypeId.{Nominal, Structural}
 import zio.schema.{Schema, StandardType, TypeId}
 
@@ -31,18 +31,18 @@ case object AstGenerator {
     case _                   => false
   }
 
-  def getArguments(schema: Schema[_]): List[InputValue] = schema match {
+  def getArguments(schema: Schema[_]): List[Definitions.InputValue] = schema match {
     case schema: Schema.Record[_] => schema.structure.map { field =>
-        InputValue(field.label, getFieldType(field.schema))
+        Definitions.InputValue(field.label, getFieldType(field.schema))
       }.toList
 
     case schema @ Schema.Primitive(standardType, _) if standardType != StandardType.UnitType =>
-      InputValue("value", getFieldType(schema)) :: Nil
+      Definitions.InputValue("value", getFieldType(schema)) :: Nil
     case _                                                                                   => Nil
   }
 
-  def getFields(schema: Schema.Record[_]): List[Field] = schema.structure.map { field =>
-    Field(field.label, Nil, getFieldType(field.schema))
+  def getFields(schema: Schema.Record[_]): List[Definitions.Field] = schema.structure.map { field =>
+    Definitions.Field(field.label, Nil, getFieldType(field.schema))
   }.toList
 
   def getObjectType(schema: Schema[_]): Seq[Definitions.ObjectType] = {
@@ -89,55 +89,55 @@ case object AstGenerator {
     }
   }
 
-  def getFieldType(schema: Schema[_]): FieldType = {
-    def loop(schema: Schema[_], isRequired: Boolean): FieldType = {
+  def getFieldType(schema: Schema[_]): Type = {
+    def loop(schema: Schema[_], isRequired: Boolean): Type = {
       reduceSchema(schema) match {
         case Schema.Optional(schema, _) => loop(schema, false)
 
         case Schema.Sequence(schemaA, _, _, _, _) =>
-          val fieldType = FieldType.ListFieldType(getFieldType(schemaA))
-          if (isRequired) FieldType.RequiredFieldType(fieldType) else fieldType
+          val fieldType = Type.List(getFieldType(schemaA))
+          if (isRequired) Type.NotNull(fieldType) else fieldType
 
         case schema: Schema.Record[_] =>
-          val fieldType = FieldType.NamedFieldType(getName(schema.id))
-          if (isRequired) FieldType.RequiredFieldType(fieldType) else fieldType
+          val fieldType = Type.Named(getName(schema.id))
+          if (isRequired) Type.NotNull(fieldType) else fieldType
 
         case Schema.Primitive(standardType, _) =>
           import StandardType._
           val fieldType = standardType match {
-            case BigDecimalType        => NamedFieldType("BigDecimal")
-            case BigIntegerType        => NamedFieldType("BigInteger")
-            case BinaryType            => NamedFieldType("Binary")
-            case BoolType              => NamedFieldType("Boolean")
-            case ByteType              => NamedFieldType("Byte")
-            case CharType              => NamedFieldType("Char")
-            case DayOfWeekType         => NamedFieldType("DayOfWeek")
-            case DoubleType            => NamedFieldType("Float")
-            case DurationType          => NamedFieldType("Duration")
-            case FloatType             => NamedFieldType("Float")
-            case InstantType(_)        => NamedFieldType("Instant")
-            case IntType               => NamedFieldType("Int")
-            case LocalDateTimeType(_)  => NamedFieldType("LocalDateTime")
-            case LocalDateType(_)      => NamedFieldType("LocalDate")
-            case LocalTimeType(_)      => NamedFieldType("LocalTime")
-            case LongType              => NamedFieldType("Long")
-            case MonthDayType          => NamedFieldType("MonthDay")
-            case MonthType             => NamedFieldType("Month")
-            case OffsetDateTimeType(_) => NamedFieldType("OffsetDateTime")
-            case OffsetTimeType(_)     => NamedFieldType("OffsetTime")
-            case PeriodType            => NamedFieldType("Period")
-            case ShortType             => NamedFieldType("Short")
-            case StringType            => NamedFieldType("String")
-            case UnitType              => NamedFieldType("Unit")
-            case UUIDType              => NamedFieldType("ID")
-            case YearMonthType         => NamedFieldType("YearMonth")
-            case YearType              => NamedFieldType("Year")
-            case ZonedDateTimeType(_)  => NamedFieldType("ZonedDateTime")
-            case ZoneIdType            => NamedFieldType("ZoneId")
-            case ZoneOffsetType        => NamedFieldType("ZoneOffset")
+            case BigDecimalType        => Named("BigDecimal")
+            case BigIntegerType        => Named("BigInteger")
+            case BinaryType            => Named("Binary")
+            case BoolType              => Named("Boolean")
+            case ByteType              => Named("Byte")
+            case CharType              => Named("Char")
+            case DayOfWeekType         => Named("DayOfWeek")
+            case DoubleType            => Named("Float")
+            case DurationType          => Named("Duration")
+            case FloatType             => Named("Float")
+            case InstantType(_)        => Named("Instant")
+            case IntType               => Named("Int")
+            case LocalDateTimeType(_)  => Named("LocalDateTime")
+            case LocalDateType(_)      => Named("LocalDate")
+            case LocalTimeType(_)      => Named("LocalTime")
+            case LongType              => Named("Long")
+            case MonthDayType          => Named("MonthDay")
+            case MonthType             => Named("Month")
+            case OffsetDateTimeType(_) => Named("OffsetDateTime")
+            case OffsetTimeType(_)     => Named("OffsetTime")
+            case PeriodType            => Named("Period")
+            case ShortType             => Named("Short")
+            case StringType            => Named("String")
+            case UnitType              => Named("Unit")
+            case UUIDType              => Named("ID")
+            case YearMonthType         => Named("YearMonth")
+            case YearType              => Named("Year")
+            case ZonedDateTimeType(_)  => Named("ZonedDateTime")
+            case ZoneIdType            => Named("ZoneId")
+            case ZoneOffsetType        => Named("ZoneOffset")
           }
 
-          if (isRequired) FieldType.RequiredFieldType(fieldType) else fieldType
+          if (isRequired) Type.NotNull(fieldType) else fieldType
 
         // Unhandled
         //      case Schema.Tuple(_, _, _)                => ???
@@ -164,7 +164,7 @@ case object AstGenerator {
     connections.foreach { case GraphQL.Cons(name, arg, from, to, _) =>
       val fromName      = getObjectType(from)
       val toName        = getObjectType(to)
-      val conField      = Field(name, getArguments(arg), getFieldType(to))
+      val conField      = Definitions.Field(name, getArguments(arg), getFieldType(to))
       val conObjectType = Definitions.ObjectType(getName(from), conField :: Nil)
       definitions.addAll(fromName).addAll(toName).add(conObjectType)
     }
