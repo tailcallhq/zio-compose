@@ -1,7 +1,8 @@
-package compose.graphql
+package compose.graphql.ast
 
-import compose.graphql.Ast.FieldType.NamedFieldType
-import compose.graphql.Ast.{Field, FieldType, InputValue, ObjectType}
+import compose.graphql.GraphQL
+import compose.graphql.ast.Ast.FieldType.NamedFieldType
+import compose.graphql.ast.Ast.{Field, FieldType, InputValue, ObjectType}
 import zio.schema.TypeId.{Nominal, Structural}
 import zio.schema.{Schema, StandardType, TypeId}
 
