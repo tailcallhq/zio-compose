@@ -9,7 +9,7 @@ import compose.~>
 import zio.query.ZQuery
 import zio.schema.Schema
 
-object GraphQLSchema {
+object CalibanLambdaSchema {
 
   type CalibanSchema[-R, A] = caliban.schema.Schema[R, A]
   val CalibanSchema: caliban.schema.Schema.type = caliban.schema.Schema

@@ -7,9 +7,9 @@ import zio.Scope
 import zio.schema.{DeriveSchema, Schema}
 import zio.test.{Spec, TestEnvironment, ZIOSpecDefault, assertTrue}
 
-object GraphQLSchemaSpec extends ZIOSpecDefault {
+object CalibanLambdaSchemaSpec extends ZIOSpecDefault {
 
-  import GraphQLSchema.Implicits._
+  import CalibanLambdaSchema.Implicits._
 
   final case class Bar(a1: String, a2: Int)
 
