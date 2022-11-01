@@ -67,10 +67,10 @@ object GraphQLSpec extends ZIOSpecDefault {
                      |  a5: Int
                      |}
                      |type GraphQLSpecRoot {
+                     |  optionalSequences: GraphQLSpecOptionalSequences!
                      |  optionals: GraphQLSpecOptionals!
                      |  scalars: GraphQLSpecScalars!
                      |  sequences: GraphQLSpecSequences!
-                     |  optionalSequences: GraphQLSpecOptionalSequences!
                      |}
                      |type GraphQLSpecScalars {
                      |  a1: Int!
