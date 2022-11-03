@@ -6,10 +6,7 @@ package compose.graphql.ast
  * generated in two ways viz. from a string. and from a list
  * of connections.
  */
-sealed trait Ast {
-  self =>
-  final def encode: String = AstPrinter.render(self)
-}
+sealed trait Ast
 
 object Ast {
   final case class Document(definitions: Seq[Definitions]) extends Ast

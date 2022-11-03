@@ -1,11 +1,11 @@
 package compose.graphql
 
-import compose.graphql.ast.AstGenerator
+import compose.graphql.ast.{AstGenerator, AstPrinter}
 import compose.{Lambda, ~>}
 import zio.schema.{DeriveSchema, Schema}
 import zio.test.{ZIOSpecDefault, assertTrue}
 
-object GraphQLSpec extends ZIOSpecDefault {
+object ConnectionSpec$ extends ZIOSpecDefault {
 
   def die[A, B]: A ~> B = Lambda.die
 
@@ -48,11 +48,10 @@ object GraphQLSpec extends ZIOSpecDefault {
   }
 
   def spec = suite("GraphQLSpec")(suite("schema")(test("render") {
-    val connection = GraphQL.arg("root", die[Unit, Root])
+    val connection = Connection.arg("root", die[Unit, Root])
     val graphQL    = AstGenerator.gen(Seq(connection))
-
-    val actual   = graphQL.encode
-    val expected = """
+    val actual     = AstPrinter.render(graphQL)
+    val expected   = """
                      |type GraphQLSpecOptionalSequences {
                      |  a1: [Int!]
                      |  a2: [Int]

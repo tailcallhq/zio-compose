@@ -1,6 +1,6 @@
 package compose.graphql.ast
 
-import compose.graphql.GraphQL
+import compose.graphql.Connection
 import compose.graphql.SchemaExtensions.Extensions
 import compose.graphql.ast.Ast.Type.Named
 import compose.graphql.ast.Ast.{Definitions, Type}
@@ -137,10 +137,10 @@ case object AstGenerator {
 
   }
 
-  def getTypeDefinitions(connections: Seq[GraphQL]): Seq[Definitions.ObjectType] = {
+  def getTypeDefinitions(connections: Seq[Connection]): Seq[Definitions.ObjectType] = {
     val definitions = mutable.Set.empty[Definitions.ObjectType]
 
-    connections.foreach { case GraphQL.Cons(name, arg, from, to, _) =>
+    connections.foreach { case Connection.Cons(name, arg, from, to, _) =>
       val fromName      = getObjectType(from)
       val toName        = getObjectType(to)
       val conField      = Definitions.Field(name, getArguments(arg), getFieldType(to))
@@ -167,5 +167,5 @@ case object AstGenerator {
     merged.values.toSeq
   }
 
-  def gen(connections: Seq[GraphQL]): Ast = { Ast.Document(getTypeDefinitions(connections)) }
+  def gen(connections: Seq[Connection]): Ast = { Ast.Document(getTypeDefinitions(connections)) }
 }

@@ -1,6 +1,6 @@
 package compose.graphql
 
-import compose.graphql.ast.AstGenerator
+import compose.graphql.ast.{AstGenerator, AstPrinter}
 import compose.{Lambda, ~>}
 import zio.Scope
 import zio.test.{Spec, TestEnvironment, ZIOSpecDefault, assertTrue}
@@ -28,20 +28,20 @@ object JsonPlaceholderSpec extends ZIOSpecDefault {
   override def spec
     : Spec[TestEnvironment with Scope, Any] = suite("JsonPlaceholderSpec")(test("schema") {
 
-    val graphQL = AstGenerator.gen(List(
-      GraphQL.root("posts", fetch.posts),
-      GraphQL.root("users", fetch.users),
-      GraphQL.from("albums", fetch.userAlbums),
-      GraphQL.from("comments", fetch.postComments),
-      GraphQL.from("comments", fetch.userComments),
-      GraphQL.from("photos", fetch.albumPhotos),
-      GraphQL.from("posts", fetch.userPosts),
-      GraphQL.from("user", fetch.albumUser),
-      GraphQL.from("user", fetch.postUser),
-      GraphQL.from("album", fetch.photoAlbum),
+    val connection = AstGenerator.gen(List(
+      Connection.root("posts", fetch.posts),
+      Connection.root("users", fetch.users),
+      Connection.from("albums", fetch.userAlbums),
+      Connection.from("comments", fetch.postComments),
+      Connection.from("comments", fetch.userComments),
+      Connection.from("photos", fetch.albumPhotos),
+      Connection.from("posts", fetch.userPosts),
+      Connection.from("user", fetch.albumUser),
+      Connection.from("user", fetch.postUser),
+      Connection.from("album", fetch.photoAlbum),
     ))
 
-    val actual = graphQL.encode
+    val actual = AstPrinter.render(connection)
 
     val expected = """
                      |type Address {
