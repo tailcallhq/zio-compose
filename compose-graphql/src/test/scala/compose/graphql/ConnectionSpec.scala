@@ -5,7 +5,7 @@ import compose.{Lambda, ~>}
 import zio.schema.{DeriveSchema, Schema}
 import zio.test.{ZIOSpecDefault, assertTrue}
 
-object ConnectionSpec$ extends ZIOSpecDefault {
+object ConnectionSpec extends ZIOSpecDefault {
 
   def die[A, B]: A ~> B = Lambda.die
 
