@@ -73,25 +73,16 @@ object JsonPlaceholder {
   }
 
   object fetch {
-    def users: Any ~> List[User] = Lambda.die
-
-    def posts: Any ~> List[Post] = Lambda.die
-
-    def postUser: Post ~> User = Lambda.die
-
-    def userPosts: User ~> List[Post] = Lambda.die
-
-    def userAlbums: User ~> List[Album] = Lambda.die
-
-    def albumPhotos: Album ~> List[Photo] = Lambda.die
-
+    def users: Any ~> List[User]            = Lambda.die
+    def posts: Any ~> List[Post]            = Lambda.die
+    def postUser: Post ~> User              = Lambda.die
+    def userPosts: User ~> List[Post]       = Lambda.die
+    def userAlbums: User ~> List[Album]     = Lambda.die
+    def albumPhotos: Album ~> List[Photo]   = Lambda.die
     def postComments: Post ~> List[Comment] = Lambda.die
-
-    def albumUser: Album ~> User = Lambda.die
-
+    def albumUser: Album ~> User            = Lambda.die
     def userComments: User ~> List[Comment] = Lambda.die
-
-    def photoAlbum: Photo ~> Album = Lambda.die
+    def photoAlbum: Photo ~> Album          = Lambda.die
   }
 
   val ast: Ast = AstGenerator.gen(List(

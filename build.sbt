@@ -43,7 +43,6 @@ lazy val zioCompose = project.in(file("./compose")).settings(
     ZIOSchemaDerivation,
     ZIOTest,
     ZIOTestSbt,
-    Caliban,
   ),
 ).dependsOn(zioComposeMacros)
 
@@ -70,7 +69,6 @@ lazy val zioComposeGraphQL = project.in(file("./compose-graphql"))
       ZIOSchemaDerivation,
       ZIOTest,
       ZIOTestSbt,
-      Caliban,
       PPrint,
     ),
   )
