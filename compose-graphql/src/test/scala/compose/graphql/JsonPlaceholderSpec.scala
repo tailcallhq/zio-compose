@@ -1,6 +1,6 @@
 package compose.graphql
 
-import compose.graphql.ast.AstPrinter
+import compose.graphql.ast.{AstPrinter}
 import zio.Scope
 import zio.test.{Spec, TestEnvironment, ZIOSpecDefault, assertTrue}
 
@@ -15,68 +15,68 @@ object JsonPlaceholderSpec extends ZIOSpecDefault {
     suite("JsonPlaceholderSpec")(test("schema") {
       val actual   = AstPrinter.render(JsonPlaceholder.ast)
       val expected = """
-                       |type Address {
+                       |type JsonPlaceholderAddress {
                        |  city: String!
-                       |  geo: Geo!
+                       |  geo: JsonPlaceholderGeo!
                        |  street: String!
                        |  suite: String!
                        |  zipcode: String!
                        |}
-                       |type Album {
+                       |type JsonPlaceholderAlbum {
                        |  id: Int!
-                       |  photos: [Photo!]!
+                       |  photos: [JsonPlaceholderPhoto!]!
                        |  title: String!
-                       |  user: User!
+                       |  user: JsonPlaceholderUser!
                        |  userId: Int!
                        |}
-                       |type Comment {
+                       |type JsonPlaceholderComment {
                        |  body: String!
                        |  email: String!
                        |  id: Int!
                        |  name: String!
                        |  postId: Int!
                        |}
-                       |type Company {
+                       |type JsonPlaceholderCompany {
                        |  bs: String!
                        |  catchPhrase: String!
                        |  name: String!
                        |}
-                       |type Geo {
+                       |type JsonPlaceholderGeo {
                        |  lat: String!
                        |  lng: String!
                        |}
-                       |type Photo {
-                       |  album: Album!
+                       |type JsonPlaceholderPhoto {
+                       |  album: JsonPlaceholderAlbum!
                        |  albumId: Int!
                        |  id: Int!
                        |  thumbnailUrl: String!
                        |  title: String!
                        |  url: String!
                        |}
-                       |type Post {
+                       |type JsonPlaceholderPost {
                        |  body: String!
-                       |  comments: [Comment!]!
+                       |  comments: [JsonPlaceholderComment!]!
                        |  id: Int!
                        |  title: String!
-                       |  user: User!
+                       |  user: JsonPlaceholderUser!
                        |  userId: Int!
                        |}
-                       |type Query {
-                       |  posts: [Post!]!
-                       |  users: [User!]!
-                       |}
-                       |type User {
-                       |  address: Address!
-                       |  albums: [Album!]!
-                       |  comments: [Comment!]!
-                       |  company: Company!
+                       |type JsonPlaceholderUser {
+                       |  address: JsonPlaceholderAddress!
+                       |  albums: [JsonPlaceholderAlbum!]!
+                       |  comments: [JsonPlaceholderComment!]!
+                       |  company: JsonPlaceholderCompany!
                        |  email: String!
                        |  id: Int!
                        |  name: String!
                        |  phone: String!
-                       |  posts: [Post!]!
+                       |  posts: [JsonPlaceholderPost!]!
                        |  username: String!
                        |  website: String!
+                       |}
+                       |type Query {
+                       |  posts: [JsonPlaceholderPost!]!
+                       |  users: [JsonPlaceholderUser!]!
                        |}
                        |""".stripMargin
       assertTrue(actual == expected)

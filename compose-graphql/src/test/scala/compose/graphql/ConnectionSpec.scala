@@ -43,51 +43,51 @@ object ConnectionSpec extends ZIOSpecDefault {
     optionalSequences: OptionalSequences,
   )
 
-  object Root {
-    implicit val schema: Schema[Root] = DeriveSchema.gen[Root]
-  }
+  implicit val optionalSchema: Schema[Optionals] = DeriveSchema.gen[Optionals]
+  implicit val scalarSchema: Schema[Scalars]     = DeriveSchema.gen[Scalars]
+  implicit val schema: Schema[Root]              = DeriveSchema.gen[Root]
 
-  def spec = suite("GraphQLSpec")(suite("schema")(test("render") {
+  def spec = suite("ConnectionSpec")(suite("schema")(test("render") {
     val connection = Connection.arg("root", die[Unit, Root])
     val graphQL    = AstGenerator.gen(Seq(connection))
     val actual     = AstPrinter.render(graphQL)
     val expected   = """
-                     |type GraphQLSpecOptionalSequences {
+                     |type ConnectionSpecOptionalSequences {
                      |  a1: [Int!]
                      |  a2: [Int]
                      |  a3: [Int]!
                      |  a4: [[Int!]]!
                      |}
-                     |type GraphQLSpecOptionals {
+                     |type ConnectionSpecOptionals {
                      |  a1: Int
                      |  a2: String
                      |  a3: Boolean
                      |  a4: Float
                      |  a5: Int
                      |}
-                     |type GraphQLSpecRoot {
-                     |  optionalSequences: GraphQLSpecOptionalSequences!
-                     |  optionals: GraphQLSpecOptionals!
-                     |  scalars: GraphQLSpecScalars!
-                     |  sequences: GraphQLSpecSequences!
+                     |type ConnectionSpecRoot {
+                     |  optionalSequences: ConnectionSpecOptionalSequences!
+                     |  optionals: ConnectionSpecOptionals!
+                     |  scalars: ConnectionSpecScalars!
+                     |  sequences: ConnectionSpecSequences!
                      |}
-                     |type GraphQLSpecScalars {
+                     |type ConnectionSpecScalars {
                      |  a1: Int!
                      |  a2: String!
                      |  a3: Boolean!
                      |  a4: Float!
                      |}
-                     |type GraphQLSpecSequences {
+                     |type ConnectionSpecSequences {
                      |  a1: [Int!]!
                      |  a2: [String!]!
                      |  a3: [Boolean!]!
                      |  a4: [Float!]!
-                     |  a5: [GraphQLSpecScalars!]!
-                     |  a6: [GraphQLSpecOptionals!]!
+                     |  a5: [ConnectionSpecScalars!]!
+                     |  a6: [ConnectionSpecOptionals!]!
                      |  a7: [[Int!]!]!
                      |}
                      |type Query {
-                     |  root: GraphQLSpecRoot!
+                     |  root: ConnectionSpecRoot!
                      |}
                      |""".stripMargin
 
