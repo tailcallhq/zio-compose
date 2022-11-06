@@ -5,6 +5,7 @@ import compose.graphql.Connection
 import compose.graphql.{Ast, AstGenerator}
 import compose.macros.DeriveAccessors
 import zio.schema.{DeriveSchema, Schema}
+import zio.Chunk
 
 object JsonPlaceholder {
   final case class Post(userId: Int, id: Int, title: String, body: String)
@@ -85,7 +86,7 @@ object JsonPlaceholder {
     def photoAlbum: Photo ~> Album          = Lambda.die
   }
 
-  val ast: Ast = AstGenerator.gen(List(
+  val ast: Ast = AstGenerator.gen(Chunk(
     Connection.root("posts", fetch.posts),
     Connection.root("users", fetch.users),
     Connection.from("albums", fetch.userAlbums),

@@ -3,28 +3,8 @@ package compose.graphql
 import zio.parser.Syntax
 import zio.Chunk
 
-sealed trait Query {
-  self =>
-  def encode: String = ???
-}
-
 object Query {
-  object Empty                                                                extends Query
-  final case class Field(name: String, selection: Chunk[Field] = Chunk.empty) extends Query
-  sealed trait Definition
-  object Definition {
-    final case class OperationDefinition(
-      operation: Operation,
-      name: Option[String],
-      selectionSet: Chunk[Field],
-    )
-  }
-  sealed trait Operation
-  object Operation  {
-    case object Query        extends Operation
-    case object Mutation     extends Operation
-    case object Subscription extends Operation
-  }
+  import Ast._
 
   private lazy val emptySpace  = (Syntax.char('\n') | Syntax.char(' ')).repeat.unit(Chunk {})
   private lazy val emptySpace0 = (Syntax.char('\n') | Syntax.char(' ')).repeat0.unit(Chunk {})

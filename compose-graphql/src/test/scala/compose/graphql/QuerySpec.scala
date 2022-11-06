@@ -4,12 +4,12 @@ import compose.graphql.Query
 import zio.Chunk
 
 object QuerySpec extends ZIOSpecDefault {
-  import Query._
+  import Ast._
   def spec = {
     suite("QuerySpec")(test("parse") {
       val actual = Query.querySyntax.parseString("query { a { b c d } b {c d} c { e { f } } }")
 
-      val expected = Query.Definition.OperationDefinition(
+      val expected = Definition.OperationDefinition(
         operation = Operation.Query,
         None,
         selectionSet = Chunk(

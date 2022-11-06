@@ -6,14 +6,14 @@ object AstPrinter {
     case Ast.Document(definitions) =>
       s"\n${definitions.sortBy(_.name).map(AstPrinter.render(_)).mkString("\n")}\n"
 
-    case definitions: Definitions => definitions match {
-        case Definitions.ObjectTypeDefinition(name, fields) =>
+    case definitions: Definition => definitions match {
+        case Definition.ObjectTypeDefinition(name, fields) =>
           s"type $name {\n  ${fields.sortBy(_.name).map(AstPrinter.render(_)).mkString("\n  ")}\n}"
 
-        case Definitions.InputValueDefinition(name, fieldType) =>
+        case Definition.InputValueDefinition(name, fieldType) =>
           s"$name: ${AstPrinter.render(fieldType)}"
 
-        case Definitions.FieldDefinition(name, arguments, fieldType) =>
+        case Definition.FieldDefinition(name, arguments, fieldType) =>
           val args =
             if (arguments.isEmpty) ""
             else s"(${arguments.sortBy(_.name).map(AstPrinter.render(_)).mkString(", ")})"
