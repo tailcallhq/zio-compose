@@ -3,7 +3,7 @@ package compose.graphql
 import zio.parser.Syntax
 import zio.Chunk
 
-object Query {
+object GraphQLParser {
   import Ast._
 
   private lazy val emptySpace  = (Syntax.char('\n') | Syntax.char(' ')).repeat.unit(Chunk {})
