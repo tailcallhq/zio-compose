@@ -16,16 +16,20 @@ object Ast {
   }
 
   object Definitions {
-    final case class ObjectType(name: String, fields: Seq[Field]) extends Definitions
-    final case class Field(name: String, arguments: Seq[InputValue], fieldType: Type)
+    final case class ObjectTypeDefinition(name: String, fields: Seq[FieldDefinition])
         extends Definitions
-    final case class InputValue(name: String, fieldType: Type)    extends Definitions
+    final case class FieldDefinition(
+      name: String,
+      arguments: Seq[InputValueDefinition],
+      fieldType: Type,
+    ) extends Definitions
+    final case class InputValueDefinition(name: String, fieldType: Type) extends Definitions
   }
 
   sealed trait Type extends Ast
   object Type {
-    final case class Named(name: String) extends Type
-    final case class NotNull(tpe: Type)  extends Type
-    final case class List(tpe: Type)     extends Type
+    final case class NamedType(name: String) extends Type
+    final case class NotNullType(tpe: Type)  extends Type
+    final case class ListType(tpe: Type)     extends Type
   }
 }

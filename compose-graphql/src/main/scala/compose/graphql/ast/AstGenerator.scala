@@ -2,7 +2,7 @@ package compose.graphql.ast
 
 import compose.graphql.Connection
 import compose.graphql.SchemaExtensions.Extensions
-import compose.graphql.ast.Ast.Type.Named
+import compose.graphql.ast.Ast.Type.NamedType
 import compose.graphql.ast.Ast.{Definitions, Type}
 import zio.schema.TypeId.{Nominal, Structural}
 import zio.schema.{Schema, StandardType, TypeId}
@@ -10,21 +10,21 @@ import zio.schema.{Schema, StandardType, TypeId}
 import scala.collection.mutable
 
 case object AstGenerator {
-  def getArguments(schema: Schema[_]): List[Definitions.InputValue] = schema match {
+  def getArguments(schema: Schema[_]): List[Definitions.InputValueDefinition] = schema match {
     case schema: Schema.Record[_] => schema.structure.map { field =>
-        Definitions.InputValue(field.label, getFieldType(field.schema))
+        Definitions.InputValueDefinition(field.label, getFieldType(field.schema))
       }.toList
 
     case schema @ Schema.Primitive(standardType, _) if standardType != StandardType.UnitType =>
-      Definitions.InputValue("value", getFieldType(schema)) :: Nil
+      Definitions.InputValueDefinition("value", getFieldType(schema)) :: Nil
 
     case _ => Nil
   }
 
-  def getFields(schema: Schema.Record[_]): List[Definitions.Field] = schema.structure
-    .map(field => Definitions.Field(field.label, Nil, getFieldType(field.schema))).toList
+  def getFields(schema: Schema.Record[_]): List[Definitions.FieldDefinition] = schema.structure
+    .map(field => Definitions.FieldDefinition(field.label, Nil, getFieldType(field.schema))).toList
 
-  def getObjectType(schema: Schema[_]): Seq[Definitions.ObjectType] = {
+  def getObjectType(schema: Schema[_]): Seq[Definitions.ObjectTypeDefinition] = {
     schema.eval match {
       case Schema.Optional(schema, _) => getObjectType(schema)
 
@@ -32,10 +32,10 @@ case object AstGenerator {
 
       case schema: Schema.Record[_] =>
         val children = schema.structure.map(_.schema).filter(_.isRecord).flatMap(getObjectType)
-        val fields   = Seq(Definitions.ObjectType(getName(schema.id), getFields(schema)))
+        val fields   = Seq(Definitions.ObjectTypeDefinition(getName(schema.id), getFields(schema)))
         children ++ fields
 
-      case Schema.Primitive(_, _) => Seq(Definitions.ObjectType("Query", Nil))
+      case Schema.Primitive(_, _) => Seq(Definitions.ObjectTypeDefinition("Query", Nil))
 
       // Unhandled
       //      case Schema.Tuple(left, right, annotations)                => ???
@@ -74,49 +74,49 @@ case object AstGenerator {
         case Schema.Optional(schema, _) => loop(schema, false)
 
         case Schema.Sequence(schemaA, _, _, _, _) =>
-          val fieldType = Type.List(getFieldType(schemaA))
-          if (isRequired) Type.NotNull(fieldType) else fieldType
+          val fieldType = Type.ListType(getFieldType(schemaA))
+          if (isRequired) Type.NotNullType(fieldType) else fieldType
 
         case schema: Schema.Record[_] =>
-          val fieldType = Type.Named(getName(schema.id))
-          if (isRequired) Type.NotNull(fieldType) else fieldType
+          val fieldType = Type.NamedType(getName(schema.id))
+          if (isRequired) Type.NotNullType(fieldType) else fieldType
 
         case Schema.Primitive(standardType, _) =>
           import StandardType._
           val fieldType = standardType match {
-            case BigDecimalType        => Named("BigDecimal")
-            case BigIntegerType        => Named("BigInteger")
-            case BinaryType            => Named("Binary")
-            case BoolType              => Named("Boolean")
-            case ByteType              => Named("Byte")
-            case CharType              => Named("Char")
-            case DayOfWeekType         => Named("DayOfWeek")
-            case DoubleType            => Named("Float")
-            case DurationType          => Named("Duration")
-            case FloatType             => Named("Float")
-            case InstantType(_)        => Named("Instant")
-            case IntType               => Named("Int")
-            case LocalDateTimeType(_)  => Named("LocalDateTime")
-            case LocalDateType(_)      => Named("LocalDate")
-            case LocalTimeType(_)      => Named("LocalTime")
-            case LongType              => Named("Long")
-            case MonthDayType          => Named("MonthDay")
-            case MonthType             => Named("Month")
-            case OffsetDateTimeType(_) => Named("OffsetDateTime")
-            case OffsetTimeType(_)     => Named("OffsetTime")
-            case PeriodType            => Named("Period")
-            case ShortType             => Named("Short")
-            case StringType            => Named("String")
-            case UnitType              => Named("Unit")
-            case UUIDType              => Named("ID")
-            case YearMonthType         => Named("YearMonth")
-            case YearType              => Named("Year")
-            case ZonedDateTimeType(_)  => Named("ZonedDateTime")
-            case ZoneIdType            => Named("ZoneId")
-            case ZoneOffsetType        => Named("ZoneOffset")
+            case BigDecimalType        => NamedType("BigDecimal")
+            case BigIntegerType        => NamedType("BigInteger")
+            case BinaryType            => NamedType("Binary")
+            case BoolType              => NamedType("Boolean")
+            case ByteType              => NamedType("Byte")
+            case CharType              => NamedType("Char")
+            case DayOfWeekType         => NamedType("DayOfWeek")
+            case DoubleType            => NamedType("Float")
+            case DurationType          => NamedType("Duration")
+            case FloatType             => NamedType("Float")
+            case InstantType(_)        => NamedType("Instant")
+            case IntType               => NamedType("Int")
+            case LocalDateTimeType(_)  => NamedType("LocalDateTime")
+            case LocalDateType(_)      => NamedType("LocalDate")
+            case LocalTimeType(_)      => NamedType("LocalTime")
+            case LongType              => NamedType("Long")
+            case MonthDayType          => NamedType("MonthDay")
+            case MonthType             => NamedType("Month")
+            case OffsetDateTimeType(_) => NamedType("OffsetDateTime")
+            case OffsetTimeType(_)     => NamedType("OffsetTime")
+            case PeriodType            => NamedType("Period")
+            case ShortType             => NamedType("Short")
+            case StringType            => NamedType("String")
+            case UnitType              => NamedType("Unit")
+            case UUIDType              => NamedType("ID")
+            case YearMonthType         => NamedType("YearMonth")
+            case YearType              => NamedType("Year")
+            case ZonedDateTimeType(_)  => NamedType("ZonedDateTime")
+            case ZoneIdType            => NamedType("ZoneId")
+            case ZoneOffsetType        => NamedType("ZoneOffset")
           }
 
-          if (isRequired) Type.NotNull(fieldType) else fieldType
+          if (isRequired) Type.NotNullType(fieldType) else fieldType
 
         // Unhandled
         //      case Schema.Tuple(_, _, _)                => ???
@@ -137,14 +137,14 @@ case object AstGenerator {
 
   }
 
-  def getTypeDefinitions(connections: Seq[Connection]): Seq[Definitions.ObjectType] = {
-    val definitions = mutable.Set.empty[Definitions.ObjectType]
+  def getTypeDefinitions(connections: Seq[Connection]): Seq[Definitions.ObjectTypeDefinition] = {
+    val definitions = mutable.Set.empty[Definitions.ObjectTypeDefinition]
 
     connections.foreach { case Connection.Cons(name, arg, from, to, _) =>
       val fromName      = getObjectType(from)
       val toName        = getObjectType(to)
-      val conField      = Definitions.Field(name, getArguments(arg), getFieldType(to))
-      val conObjectType = Definitions.ObjectType(getName(from), conField :: Nil)
+      val conField      = Definitions.FieldDefinition(name, getArguments(arg), getFieldType(to))
+      val conObjectType = Definitions.ObjectTypeDefinition(getName(from), conField :: Nil)
       definitions.addAll(fromName).addAll(toName).add(conObjectType)
     }
 
@@ -152,15 +152,15 @@ case object AstGenerator {
   }
 
   def mergeTypeDefinitions(
-    typeDefinitions: Seq[Definitions.ObjectType],
-  ): Seq[Definitions.ObjectType] = {
-    val merged = mutable.Map.empty[String, Definitions.ObjectType]
+    typeDefinitions: Seq[Definitions.ObjectTypeDefinition],
+  ): Seq[Definitions.ObjectTypeDefinition] = {
+    val merged = mutable.Map.empty[String, Definitions.ObjectTypeDefinition]
 
     typeDefinitions.foreach { definition =>
       merged.get(definition.name) match {
-        case Some(Definitions.ObjectType(name, fields)) => merged
-            .put(name, Definitions.ObjectType(name, fields ++ definition.fields))
-        case None                                       => merged.put(definition.name, definition)
+        case Some(Definitions.ObjectTypeDefinition(name, fields)) => merged
+            .put(name, Definitions.ObjectTypeDefinition(name, fields ++ definition.fields))
+        case None => merged.put(definition.name, definition)
       }
     }
 
