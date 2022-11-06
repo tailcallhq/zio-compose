@@ -168,5 +168,7 @@ case object AstGenerator {
     Chunk.fromIterable(merged.values.toSeq)
   }
 
-  def gen(connections: Chunk[Connection]): Ast = { Ast.Document(getTypeDefinitions(connections)) }
+  def gen(connections: Connection*): Ast = {
+    Ast.Document(getTypeDefinitions(Chunk.fromIterable(connections)))
+  }
 }

@@ -4,7 +4,6 @@ import compose.graphql.{AstGenerator, AstPrinter}
 import compose.{Lambda, ~>}
 import zio.schema.{DeriveSchema, Schema}
 import zio.test.{ZIOSpecDefault, assertTrue}
-import zio.Chunk
 
 object ConnectionSpec extends ZIOSpecDefault {
 
@@ -50,7 +49,7 @@ object ConnectionSpec extends ZIOSpecDefault {
 
   def spec = suite("ConnectionSpec")(suite("schema")(test("render") {
     val connection = Connection.arg("root", die[Unit, Root])
-    val graphQL    = AstGenerator.gen(Chunk(connection))
+    val graphQL    = AstGenerator.gen(connection)
     val actual     = AstPrinter.render(graphQL)
     val expected   = """
                      |type ConnectionSpecOptionalSequences {
