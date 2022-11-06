@@ -70,5 +70,6 @@ lazy val zioComposeGraphQL = project.in(file("./compose-graphql"))
       ZIOTest,
       ZIOTestSbt,
       PPrint,
+      ZIOParser
     ),
   )

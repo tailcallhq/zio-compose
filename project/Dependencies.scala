@@ -13,6 +13,7 @@ object Dependencies {
   val ZIOSchemaJson       = "dev.zio"     %% "zio-schema-json"       % zioSchemaVersion
   val ZIOSchemaDerivation = "dev.zio"     %% "zio-schema-derivation" % zioSchemaVersion
   val PPrint              = "com.lihaoyi" %% "pprint"                % pprintVersion
+  val ZIOParser           = "dev.zio"     %% "zio-parser"            % "0.1.7"
   val Netty               = Seq(
     "io.netty" % "netty-codec-http"             % nettyVersions,
     "io.netty" % "netty-handler-proxy"          % nettyVersions,
