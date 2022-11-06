@@ -2,7 +2,7 @@ package compose.graphql.internal
 
 import compose.{Lambda, ~>}
 import compose.graphql.Connection
-import compose.graphql.ast.{Ast, AstGenerator}
+import compose.graphql.{Ast, AstGenerator}
 import compose.macros.DeriveAccessors
 import zio.schema.{DeriveSchema, Schema}
 

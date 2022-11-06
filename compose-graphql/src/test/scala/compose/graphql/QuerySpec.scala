@@ -1,6 +1,6 @@
 package compose.graphql
 import zio.test._
-import compose.graphql.ast.Query
+import compose.graphql.Query
 import zio.Chunk
 
 object QuerySpec extends ZIOSpecDefault {

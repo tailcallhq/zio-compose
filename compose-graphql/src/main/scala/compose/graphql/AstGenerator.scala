@@ -1,9 +1,9 @@
-package compose.graphql.ast
+package compose.graphql
 
 import compose.graphql.Connection
 import compose.graphql.SchemaExtensions.Extensions
-import compose.graphql.ast.Ast.Type.NamedType
-import compose.graphql.ast.Ast.{Definitions, Type}
+import compose.graphql.Ast.Type.NamedType
+import compose.graphql.Ast.{Definitions, Type}
 import zio.schema.TypeId.{Nominal, Structural}
 import zio.schema.{Schema, StandardType, TypeId}
 

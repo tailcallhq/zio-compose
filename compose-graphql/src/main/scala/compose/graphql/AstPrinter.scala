@@ -1,4 +1,4 @@
-package compose.graphql.ast
+package compose.graphql
 
 object AstPrinter {
   import Ast._

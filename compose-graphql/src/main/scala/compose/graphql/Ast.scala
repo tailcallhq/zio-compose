@@ -1,4 +1,4 @@
-package compose.graphql.ast
+package compose.graphql
 
 /**
  * GraphQL is the AST used to represent a GraphQL query,

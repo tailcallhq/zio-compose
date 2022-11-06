@@ -1,6 +1,6 @@
 package compose.graphql
 
-import compose.graphql.ast.{AstGenerator, AstPrinter}
+import compose.graphql.{AstGenerator, AstPrinter}
 import compose.{Lambda, ~>}
 import zio.schema.{DeriveSchema, Schema}
 import zio.test.{ZIOSpecDefault, assertTrue}

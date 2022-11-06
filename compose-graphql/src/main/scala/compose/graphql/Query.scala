@@ -1,4 +1,4 @@
-package compose.graphql.ast
+package compose.graphql
 
 import zio.parser.Syntax
 import zio.Chunk

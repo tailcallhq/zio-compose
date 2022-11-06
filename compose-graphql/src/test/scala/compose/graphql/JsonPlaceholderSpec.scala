@@ -1,6 +1,6 @@
 package compose.graphql
 
-import compose.graphql.ast.{AstPrinter}
+import compose.graphql.{AstPrinter}
 import zio.Scope
 import zio.test.{Spec, TestEnvironment, ZIOSpecDefault, assertTrue}
 

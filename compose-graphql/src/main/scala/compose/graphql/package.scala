@@ -1,7 +1,7 @@
-package compose.graphql
+package compose
 
 import zio.parser.Syntax
 
-package object ast {
+package object graphql {
   type GraphQLSyntax[A] = Syntax[String, Char, Char, A]
 }
