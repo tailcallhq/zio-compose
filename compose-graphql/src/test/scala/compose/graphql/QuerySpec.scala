@@ -13,12 +13,9 @@ object QuerySpec extends ZIOSpecDefault {
         operation = Operation.Query,
         None,
         selectionSet = Chunk(
-          Field(
-            "a",
-            Chunk(Field("b", Chunk.empty), Field("c", Chunk.empty), Field("d", Chunk.empty)),
-          ),
-          Field("b", Chunk(Field("c", Chunk.empty), Field("d", Chunk.empty))),
-          Field("c", Chunk(Field("e", Chunk(Field(name = "f", Chunk()))))),
+          Field("a", Chunk(Field("b"), Field("c"), Field("d"))),
+          Field("b", Chunk(Field("c"), Field("d"))),
+          Field("c", Chunk(Field("e", Chunk(Field("f", Chunk()))))),
         ),
       )
 

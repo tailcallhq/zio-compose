@@ -10,7 +10,7 @@ sealed trait Query {
 
 object Query {
   object Empty                                                                extends Query
-  final case class Field(name: String, selection: Chunk[Field]) extends Query
+  final case class Field(name: String, selection: Chunk[Field] = Chunk.empty) extends Query
   sealed trait Definition
   object Definition {
     final case class OperationDefinition(
