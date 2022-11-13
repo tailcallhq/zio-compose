@@ -1,11 +1,10 @@
 package compose.graphql
 
-import compose.graphql.{AstGenerator, AstPrinter}
 import compose.{Lambda, ~>}
 import zio.schema.{DeriveSchema, Schema}
 import zio.test.{ZIOSpecDefault, assertTrue}
 
-object ConnectionSpec extends ZIOSpecDefault {
+object EdgeSpec extends ZIOSpecDefault {
 
   def die[A, B]: A ~> B = Lambda.die
 
@@ -47,47 +46,47 @@ object ConnectionSpec extends ZIOSpecDefault {
   implicit val scalarSchema: Schema[Scalars]     = DeriveSchema.gen[Scalars]
   implicit val schema: Schema[Root]              = DeriveSchema.gen[Root]
 
-  def spec = suite("ConnectionSpec")(suite("schema")(test("render") {
-    val connection = Connection.arg("root", die[Unit, Root])
+  def spec = suite("EdgeSpec")(suite("schema")(test("render") {
+    val connection = Edge[Unit, Unit]("root", die[Unit, Root] <<< Lambda._1)
     val graphQL    = AstGenerator.gen(connection)
     val actual     = AstPrinter.render(graphQL)
     val expected   = """
-                     |type ConnectionSpecOptionalSequences {
+                     |type OptionalSequences {
                      |  a1: [Int!]
                      |  a2: [Int]
                      |  a3: [Int]!
                      |  a4: [[Int!]]!
                      |}
-                     |type ConnectionSpecOptionals {
+                     |type Optionals {
                      |  a1: Int
                      |  a2: String
                      |  a3: Boolean
                      |  a4: Float
                      |  a5: Int
                      |}
-                     |type ConnectionSpecRoot {
-                     |  optionalSequences: ConnectionSpecOptionalSequences!
-                     |  optionals: ConnectionSpecOptionals!
-                     |  scalars: ConnectionSpecScalars!
-                     |  sequences: ConnectionSpecSequences!
+                     |type Query {
+                     |  root: Root!
                      |}
-                     |type ConnectionSpecScalars {
+                     |type Root {
+                     |  optionalSequences: OptionalSequences!
+                     |  optionals: Optionals!
+                     |  scalars: Scalars!
+                     |  sequences: Sequences!
+                     |}
+                     |type Scalars {
                      |  a1: Int!
                      |  a2: String!
                      |  a3: Boolean!
                      |  a4: Float!
                      |}
-                     |type ConnectionSpecSequences {
+                     |type Sequences {
                      |  a1: [Int!]!
                      |  a2: [String!]!
                      |  a3: [Boolean!]!
                      |  a4: [Float!]!
-                     |  a5: [ConnectionSpecScalars!]!
-                     |  a6: [ConnectionSpecOptionals!]!
+                     |  a5: [Scalars!]!
+                     |  a6: [Optionals!]!
                      |  a7: [[Int!]!]!
-                     |}
-                     |type Query {
-                     |  root: ConnectionSpecRoot!
                      |}
                      |""".stripMargin
 

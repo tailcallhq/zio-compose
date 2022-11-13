@@ -15,68 +15,68 @@ object JsonPlaceholderSpec extends ZIOSpecDefault {
     suite("JsonPlaceholderSpec")(test("schema") {
       val actual   = AstPrinter.render(JsonPlaceholder.ast)
       val expected = """
-                       |type JsonPlaceholderAddress {
+                       |type Address {
                        |  city: String!
-                       |  geo: JsonPlaceholderGeo!
+                       |  geo: Geo!
                        |  street: String!
                        |  suite: String!
                        |  zipcode: String!
                        |}
-                       |type JsonPlaceholderAlbum {
+                       |type Album {
                        |  id: Int!
-                       |  photos: [JsonPlaceholderPhoto!]!
+                       |  photos: [Photo!]!
                        |  title: String!
-                       |  user: JsonPlaceholderUser!
+                       |  user: User!
                        |  userId: Int!
                        |}
-                       |type JsonPlaceholderComment {
+                       |type Comment {
                        |  body: String!
                        |  email: String!
                        |  id: Int!
                        |  name: String!
                        |  postId: Int!
                        |}
-                       |type JsonPlaceholderCompany {
+                       |type Company {
                        |  bs: String!
                        |  catchPhrase: String!
                        |  name: String!
                        |}
-                       |type JsonPlaceholderGeo {
+                       |type Geo {
                        |  lat: String!
                        |  lng: String!
                        |}
-                       |type JsonPlaceholderPhoto {
-                       |  album: JsonPlaceholderAlbum!
+                       |type Photo {
+                       |  album: Album!
                        |  albumId: Int!
                        |  id: Int!
                        |  thumbnailUrl: String!
                        |  title: String!
                        |  url: String!
                        |}
-                       |type JsonPlaceholderPost {
+                       |type Post {
                        |  body: String!
-                       |  comments: [JsonPlaceholderComment!]!
+                       |  comments: [Comment!]!
                        |  id: Int!
                        |  title: String!
-                       |  user: JsonPlaceholderUser!
+                       |  user: User!
                        |  userId: Int!
                        |}
-                       |type JsonPlaceholderUser {
-                       |  address: JsonPlaceholderAddress!
-                       |  albums: [JsonPlaceholderAlbum!]!
-                       |  comments: [JsonPlaceholderComment!]!
-                       |  company: JsonPlaceholderCompany!
+                       |type Query {
+                       |  posts: [Post!]!
+                       |  users: [User!]!
+                       |}
+                       |type User {
+                       |  address: Address!
+                       |  albums: [Album!]!
+                       |  comments: [Comment!]!
+                       |  company: Company!
                        |  email: String!
                        |  id: Int!
                        |  name: String!
                        |  phone: String!
-                       |  posts: [JsonPlaceholderPost!]!
+                       |  posts: [Post!]!
                        |  username: String!
                        |  website: String!
-                       |}
-                       |type Query {
-                       |  posts: [JsonPlaceholderPost!]!
-                       |  users: [JsonPlaceholderUser!]!
                        |}
                        |""".stripMargin
       assertTrue(actual == expected)

@@ -1,14 +1,13 @@
 package compose.graphql
 
-import compose.graphql.Connection
-import compose.graphql.SchemaExtensions.Extensions
 import compose.graphql.Ast.Type.NamedType
 import compose.graphql.Ast.{Definition, Type}
+import compose.graphql.SchemaExtensions.Extensions
+import zio.Chunk
 import zio.schema.TypeId.{Nominal, Structural}
 import zio.schema.{Schema, StandardType, TypeId}
 
 import scala.collection.mutable
-import zio.Chunk
 
 case object AstGenerator {
   def getArguments(schema: Schema[_]): Chunk[Definition.InputValueDefinition] = schema match {
@@ -56,8 +55,8 @@ case object AstGenerator {
 
   def getName(typeId: TypeId): String = {
     typeId match {
-      case Nominal(_, objectNames, typeName) => objectNames.mkString("") + typeName
-      case Structural                        => "Structural"
+      case Nominal(_, _, typeName) => typeName
+      case Structural              => "Structural"
     }
   }
 
@@ -138,10 +137,12 @@ case object AstGenerator {
 
   }
 
-  def getTypeDefinitions(connections: Chunk[Connection]): Chunk[Definition.ObjectTypeDefinition] = {
+  def getTypeDefinitions(
+    connections: Chunk[Edge.Cons[_, _, _]],
+  ): Chunk[Definition.ObjectTypeDefinition] = {
     val definitions = mutable.Set.empty[Definition.ObjectTypeDefinition]
 
-    connections.foreach { case Connection.Cons(name, arg, from, to, _) =>
+    connections.foreach { case Edge.Cons(name, arg, from, to, _) =>
       val fromName      = getObjectType(from)
       val toName        = getObjectType(to)
       val conField      = Definition.FieldDefinition(name, getArguments(arg), getFieldType(to))
@@ -168,7 +169,7 @@ case object AstGenerator {
     Chunk.fromIterable(merged.values.toSeq)
   }
 
-  def gen(connections: Connection*): Ast = {
-    Ast.Document(getTypeDefinitions(Chunk.fromIterable(connections)))
+  def gen(connections: Edge): Ast = {
+    Ast.Document(getTypeDefinitions(Chunk.fromIterable(connections.cons)))
   }
 }

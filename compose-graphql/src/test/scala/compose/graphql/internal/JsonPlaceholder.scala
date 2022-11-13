@@ -1,7 +1,7 @@
 package compose.graphql.internal
 
 import compose.{Lambda, ~>}
-import compose.graphql.Connection
+import compose.graphql.Edge
 import compose.graphql.{Ast, AstGenerator}
 import compose.macros.DeriveAccessors
 import zio.schema.{DeriveSchema, Schema}
@@ -86,15 +86,15 @@ object JsonPlaceholder {
   }
 
   val ast: Ast = AstGenerator.gen(
-    Connection.root("posts", fetch.posts),
-    Connection.root("users", fetch.users),
-    Connection.from("albums", fetch.userAlbums),
-    Connection.from("comments", fetch.postComments),
-    Connection.from("comments", fetch.userComments),
-    Connection.from("photos", fetch.albumPhotos),
-    Connection.from("posts", fetch.userPosts),
-    Connection.from("user", fetch.albumUser),
-    Connection.from("user", fetch.postUser),
-    Connection.from("album", fetch.photoAlbum),
+    Edge[Unit, Unit]("posts", fetch.posts) ++
+      Edge[Unit, Unit]("users", fetch.users) ++
+      Edge[Unit, User]("albums", fetch.userAlbums <<< Lambda._2) ++
+      Edge[Unit, Post]("comments", fetch.postComments <<< Lambda._2) ++
+      Edge[Unit, User]("comments", fetch.userComments <<< Lambda._2) ++
+      Edge[Unit, Album]("photos", fetch.albumPhotos <<< Lambda._2) ++
+      Edge[Unit, User]("posts", fetch.userPosts <<< Lambda._2) ++
+      Edge[Unit, Album]("user", fetch.albumUser <<< Lambda._2) ++
+      Edge[Unit, Post]("user", fetch.postUser <<< Lambda._2) ++
+      Edge[Unit, Photo]("album", fetch.photoAlbum <<< Lambda._2),
   )
 }
