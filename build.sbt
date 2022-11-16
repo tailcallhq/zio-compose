@@ -3,7 +3,7 @@ import Dependencies._
 // Flags
 Global / semanticdbEnabled    := true
 Global / onChangedBuildSource := ReloadOnSourceChanges
-Global / scalacOptions := Seq("-Ywarn-unused", "-Werror", "-feature", "-language:reflectiveCalls")
+Global / scalacOptions := Seq("-Ywarn-unused", "-Werror", "-feature", "-language:reflectiveCalls", "-deprecation")
 Global / scalaVersion  := "2.13.8"
 ThisBuild / versionScheme         := Some("early-semver")
 ThisBuild / testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
@@ -62,7 +62,7 @@ lazy val zioComposeGraphQL = project.in(file("./compose-graphql"))
   .dependsOn(zioCompose, zioComposeMacros).settings(
     name                := "zio-compose-graphql",
     publish / skip      := true,
-    libraryDependencies := Netty ++ Seq(
+    libraryDependencies := Seq(
       ZIOCore,
       ZIOSchema,
       ZIOSchemaJson,
@@ -70,6 +70,7 @@ lazy val zioComposeGraphQL = project.in(file("./compose-graphql"))
       ZIOTest,
       ZIOTestSbt,
       PPrint,
-      ZIOParser
+      ZIOParser,
+      Caliban,
     ),
   )
