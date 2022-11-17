@@ -1,11 +1,10 @@
 package compose.graphql
 
-import compose.graphql.ast.AstGenerator
 import compose.{Lambda, ~>}
 import zio.schema.{DeriveSchema, Schema}
 import zio.test.{ZIOSpecDefault, assertTrue}
 
-object GraphQLSpec extends ZIOSpecDefault {
+object EdgeSpec extends ZIOSpecDefault {
 
   def die[A, B]: A ~> B = Lambda.die
 
@@ -43,52 +42,51 @@ object GraphQLSpec extends ZIOSpecDefault {
     optionalSequences: OptionalSequences,
   )
 
-  object Root {
-    implicit val schema: Schema[Root] = DeriveSchema.gen[Root]
-  }
+  implicit val optionalSchema: Schema[Optionals] = DeriveSchema.gen[Optionals]
+  implicit val scalarSchema: Schema[Scalars]     = DeriveSchema.gen[Scalars]
+  implicit val schema: Schema[Root]              = DeriveSchema.gen[Root]
 
-  def spec = suite("GraphQLSpec")(suite("schema")(test("render") {
-    val connection = GraphQL.arg("root", die[Unit, Root])
+  def spec = suite("EdgeSpec")(suite("schema")(test("render") {
+    val connection = Edge[Unit, Unit]("root", die[Unit, Root] <<< Lambda._1)
     val graphQL    = AstGenerator.gen(connection)
-
-    val actual   = graphQL.encode
-    val expected = """
-                     |type GraphQLSpecOptionalSequences {
+    val actual     = AstPrinter.render(graphQL)
+    val expected   = """
+                     |type OptionalSequences {
                      |  a1: [Int!]
                      |  a2: [Int]
                      |  a3: [Int]!
                      |  a4: [[Int!]]!
                      |}
-                     |type GraphQLSpecOptionals {
+                     |type Optionals {
                      |  a1: Int
                      |  a2: String
                      |  a3: Boolean
                      |  a4: Float
                      |  a5: Int
                      |}
-                     |type GraphQLSpecRoot {
-                     |  optionals: GraphQLSpecOptionals!
-                     |  scalars: GraphQLSpecScalars!
-                     |  sequences: GraphQLSpecSequences!
-                     |  optionalSequences: GraphQLSpecOptionalSequences!
+                     |type Query {
+                     |  root: Root!
                      |}
-                     |type GraphQLSpecScalars {
+                     |type Root {
+                     |  optionalSequences: OptionalSequences!
+                     |  optionals: Optionals!
+                     |  scalars: Scalars!
+                     |  sequences: Sequences!
+                     |}
+                     |type Scalars {
                      |  a1: Int!
                      |  a2: String!
                      |  a3: Boolean!
                      |  a4: Float!
                      |}
-                     |type GraphQLSpecSequences {
+                     |type Sequences {
                      |  a1: [Int!]!
                      |  a2: [String!]!
                      |  a3: [Boolean!]!
                      |  a4: [Float!]!
-                     |  a5: [GraphQLSpecScalars!]!
-                     |  a6: [GraphQLSpecOptionals!]!
+                     |  a5: [Scalars!]!
+                     |  a6: [Optionals!]!
                      |  a7: [[Int!]!]!
-                     |}
-                     |type Query {
-                     |  root: GraphQLSpecRoot!
                      |}
                      |""".stripMargin
 

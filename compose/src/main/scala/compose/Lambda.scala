@@ -37,6 +37,10 @@ object Lambda
     with RandomDSL.Ctr
     with RemoteDSL.Ctr {
 
+  def _1[A, B]: (A, B) ~> A = id[(A, B)]._1
+
+  def _2[A, B]: (A, B) ~> B = id[(A, B)]._2
+
   def constant[B](b: B)(implicit schema: Schema[B]): Any ~> B = Lambda.unsafe
     .attempt[Any, B] { Sources.Constant(schema.toDynamic(b)) }
 

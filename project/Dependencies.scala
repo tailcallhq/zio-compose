@@ -1,6 +1,6 @@
 object Dependencies {
   import sbt._
-  val zioVersion       = "2.0.2"
+  val zioVersion       = "2.0.3"
   val zioSchemaVersion = "0.2.1"
   val nettyVersions    = "4.1.84.Final"
   val calibanVersion   = "2.0.1"
@@ -12,8 +12,9 @@ object Dependencies {
   val ZIOSchema           = "dev.zio"               %% "zio-schema"            % zioSchemaVersion
   val ZIOSchemaJson       = "dev.zio"               %% "zio-schema-json"       % zioSchemaVersion
   val ZIOSchemaDerivation = "dev.zio"               %% "zio-schema-derivation" % zioSchemaVersion
-  val Caliban             = "com.github.ghostdogpr" %% "caliban"               % calibanVersion
   val PPrint              = "com.lihaoyi"           %% "pprint"                % pprintVersion
+  val Caliban             = "com.github.ghostdogpr" %% "caliban"               % calibanVersion
+  val ZIOParser           = "dev.zio"               %% "zio-parser"            % "0.1.7"
   val Netty               = Seq(
     "io.netty" % "netty-codec-http"             % nettyVersions,
     "io.netty" % "netty-handler-proxy"          % nettyVersions,
