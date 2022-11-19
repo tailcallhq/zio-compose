@@ -1,16 +1,10 @@
 import Dependencies._
 
 // Flags
-Global / semanticdbEnabled        := true
-Global / onChangedBuildSource     := ReloadOnSourceChanges
-Global / scalacOptions            := Seq(
-  "-Ywarn-unused",
-  "-Werror",
-  "-feature",
-  "-language:reflectiveCalls",
-  "-deprecation",
-)
-Global / scalaVersion             := "2.13.10"
+Global / semanticdbEnabled    := true
+Global / onChangedBuildSource := ReloadOnSourceChanges
+Global / scalacOptions := Seq("-Ywarn-unused", "-Werror", "-feature", "-language:reflectiveCalls", "-deprecation")
+Global / scalaVersion  := "2.13.8"
 ThisBuild / versionScheme         := Some("early-semver")
 ThisBuild / testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
 ThisBuild / githubWorkflowTargetTags ++= Seq("v*")
