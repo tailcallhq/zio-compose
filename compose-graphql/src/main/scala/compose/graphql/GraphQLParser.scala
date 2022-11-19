@@ -27,9 +27,9 @@ object GraphQLParser {
   private lazy val fieldSyntax: GraphQLSyntax[Chunk[Field]] =
     block((nestedField | leafField).repeatWithSep0(emptySpace))
 
-  lazy val querySyntax: GraphQLSyntax[Definition.OperationDefinition] = (Syntax
-    .string("query", {}) ~ emptySpace ~ fieldSyntax).transform[Definition.OperationDefinition](
-    { fields => Definition.OperationDefinition(Operation.Query, None, fields) },
+  lazy val querySyntax: GraphQLSyntax[OperationDefinition] = (Syntax
+    .string("query", {}) ~ emptySpace ~ fieldSyntax).transform[OperationDefinition](
+    { fields => OperationDefinition(Operation.Query, None, fields) },
     { operation => operation.selectionSet },
   )
 }

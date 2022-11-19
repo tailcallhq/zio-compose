@@ -1,7 +1,6 @@
 package compose.graphql
 
 import compose.graphql.Ast.Type.NamedType
-import compose.graphql.Ast.{Definition, Type}
 import compose.graphql.SchemaExtensions.Extensions
 import zio.Chunk
 import zio.schema.TypeId.{Nominal, Structural}
@@ -10,21 +9,23 @@ import zio.schema.{Schema, StandardType, TypeId}
 import scala.collection.mutable
 
 case object AstGenerator {
-  def getArguments(schema: Schema[_]): Chunk[Definition.InputValueDefinition] = schema match {
+  import compose.graphql.Ast._
+
+  def getArguments(schema: Schema[_]): Chunk[InputValueDefinition] = schema match {
     case schema: Schema.Record[_] => schema.structure.map { field =>
-        Definition.InputValueDefinition(field.label, getFieldType(field.schema))
+        InputValueDefinition(field.label, getFieldType(field.schema))
       }
 
     case schema @ Schema.Primitive(standardType, _) if standardType != StandardType.UnitType =>
-      Chunk(Definition.InputValueDefinition("value", getFieldType(schema)))
+      Chunk(InputValueDefinition("value", getFieldType(schema)))
 
     case _ => Chunk.empty
   }
 
-  def getFields(schema: Schema.Record[_]): Chunk[Definition.FieldDefinition] = schema.structure
-    .map(field => Definition.FieldDefinition(field.label, Chunk.empty, getFieldType(field.schema)))
+  def getFields(schema: Schema.Record[_]): Chunk[FieldDefinition] = schema.structure
+    .map(field => FieldDefinition(field.label, Chunk.empty, getFieldType(field.schema)))
 
-  def getObjectType(schema: Schema[_]): Seq[Definition.ObjectTypeDefinition] = {
+  def getObjectType(schema: Schema[_]): Seq[ObjectTypeDefinition] = {
     schema.eval match {
       case Schema.Optional(schema, _) => getObjectType(schema)
 
@@ -32,10 +33,10 @@ case object AstGenerator {
 
       case schema: Schema.Record[_] =>
         val children = schema.structure.map(_.schema).filter(_.isRecord).flatMap(getObjectType)
-        val fields   = Seq(Definition.ObjectTypeDefinition(getName(schema.id), getFields(schema)))
+        val fields   = Seq(ObjectTypeDefinition(getName(schema.id), getFields(schema)))
         children ++ fields
 
-      case Schema.Primitive(_, _) => Chunk(Definition.ObjectTypeDefinition("Query", Chunk.empty))
+      case Schema.Primitive(_, _) => Chunk(ObjectTypeDefinition("Query", Chunk.empty))
 
       // Unhandled
       //      case Schema.Tuple(left, right, annotations)                => ???
@@ -137,16 +138,14 @@ case object AstGenerator {
 
   }
 
-  def getTypeDefinitions(
-    connections: Chunk[Edge.Cons[_, _, _]],
-  ): Chunk[Definition.ObjectTypeDefinition] = {
-    val definitions = mutable.Set.empty[Definition.ObjectTypeDefinition]
+  def getTypeDefinitions(connections: Chunk[Edge.Cons[_, _, _]]): Chunk[ObjectTypeDefinition] = {
+    val definitions = mutable.Set.empty[ObjectTypeDefinition]
 
     connections.foreach { case Edge.Cons(name, arg, from, to, _) =>
       val fromName      = getObjectType(from)
       val toName        = getObjectType(to)
-      val conField      = Definition.FieldDefinition(name, getArguments(arg), getFieldType(to))
-      val conObjectType = Definition.ObjectTypeDefinition(getName(from), Chunk(conField))
+      val conField      = FieldDefinition(name, getArguments(arg), getFieldType(to))
+      val conObjectType = ObjectTypeDefinition(getName(from), Chunk(conField))
       definitions.addAll(fromName).addAll(toName).add(conObjectType)
     }
 
@@ -154,15 +153,15 @@ case object AstGenerator {
   }
 
   def mergeTypeDefinitions(
-    typeDefinitions: Seq[Definition.ObjectTypeDefinition],
-  ): Chunk[Definition.ObjectTypeDefinition] = {
-    val merged = mutable.Map.empty[String, Definition.ObjectTypeDefinition]
+    typeDefinitions: Seq[ObjectTypeDefinition],
+  ): Chunk[ObjectTypeDefinition] = {
+    val merged = mutable.Map.empty[String, ObjectTypeDefinition]
 
     typeDefinitions.foreach { definition =>
       merged.get(definition.name) match {
-        case Some(Definition.ObjectTypeDefinition(name, fields)) => merged
-            .put(name, Definition.ObjectTypeDefinition(name, fields ++ definition.fields))
-        case None => merged.put(definition.name, definition)
+        case Some(ObjectTypeDefinition(name, fields)) => merged
+            .put(name, ObjectTypeDefinition(name, fields ++ definition.fields))
+        case None                                     => merged.put(definition.name, definition)
       }
     }
 

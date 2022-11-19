@@ -10,7 +10,7 @@ object GraphQLParserSpec extends ZIOSpecDefault {
       val actual = GraphQLParser.querySyntax
         .parseString("query { a { b c d } b {c d} c { e { f } } }")
 
-      val expected = Definition.OperationDefinition(
+      val expected = OperationDefinition(
         operation = Operation.Query,
         None,
         selectionSet = Chunk(

@@ -18,22 +18,22 @@ object Ast {
     def name: String
   }
 
-  object Definition {
-    final case class ObjectTypeDefinition(name: String, fields: Chunk[FieldDefinition])
-        extends Definition
-    final case class FieldDefinition(
-      name: String,
-      arguments: Chunk[InputValueDefinition],
-      fieldType: Type,
-    ) extends Definition
-    final case class InputValueDefinition(name: String, fieldType: Type) extends Definition
+  final case class ObjectTypeDefinition(name: String, fields: Chunk[FieldDefinition])
+      extends Definition
 
-    final case class OperationDefinition(
-      operation: Operation,
-      name: Option[String],
-      selectionSet: Chunk[Field],
-    )
-  }
+  final case class FieldDefinition(
+    name: String,
+    arguments: Chunk[InputValueDefinition],
+    fieldType: Type,
+  ) extends Definition
+
+  final case class InputValueDefinition(name: String, fieldType: Type) extends Definition
+
+  final case class OperationDefinition(
+    operation: Operation,
+    name: Option[String],
+    selectionSet: Chunk[Field],
+  )
 
   final case class Field(name: String, selection: Chunk[Field] = Chunk.empty)
 
