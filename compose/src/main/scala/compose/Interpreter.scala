@@ -4,7 +4,7 @@ import compose.internal.netty.HttpClient
 import compose.model.{Decoder, Ref, Scope}
 import compose.model.Decoder.HasDecoder
 import compose.model.http.{Request, Response}
-import zio.schema.codec.JsonCodec
+import zio.schema.codec.{DecodeError, JsonCodec}
 import zio.schema.{DynamicValue, Schema}
 import zio.{Chunk, Task, UIO, ZIO}
 
@@ -96,9 +96,10 @@ object Interpreter {
           .map { case decoder: Decoder.HasDecoder[_] =>
             decoder match {
               case HasDecoder.ResponseDecoder     =>
-                val schema    = ast.toSchema.asInstanceOf[Schema[Any]]
-                val jsonCodec = JsonCodec.decode(schema)
-                val value = input.toTypedValue(Schema[Response]).flatMap(res => jsonCodec(res.body))
+                val schema = ast.toSchema.asInstanceOf[Schema[Any]]
+                val jsonCodec: Chunk[Byte] => Either[DecodeError, Any] = JsonCodec.decode(schema)
+                val value: Either[String, Any] = input.toTypedValue(Schema[Response])
+                  .flatMap(res => jsonCodec(res.body).left.map(_.message))
                 Schema.either(Schema[String], schema).toDynamic(value)
               case HasDecoder.DynamicValueDecoder =>
                 val schema = ast.toSchema.asInstanceOf[Schema[Any]]

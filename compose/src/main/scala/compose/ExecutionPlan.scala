@@ -2,8 +2,8 @@ package compose
 
 import compose.model.Ref.Id
 import compose.model.Scope
-import zio.schema.ast.SchemaAst
 import zio.schema.codec.JsonCodec
+import zio.schema.meta.MetaSchema
 import zio.schema.{DeriveSchema, DynamicValue, Schema}
 import zio.{Chunk, ZIO}
 
@@ -82,7 +82,7 @@ object ExecutionPlan {
     final case class Pipe(first: ExecutionPlan, second: ExecutionPlan) extends Arrow
     case object ToInt                                                  extends Arrow
     case object Identity                                               extends Arrow
-    case class AsString(ast: SchemaAst)                                extends Arrow
+    case class AsString(ast: MetaSchema)                               extends Arrow
   }
 
   sealed trait Debugger extends ExecutionPlan
@@ -119,9 +119,9 @@ object ExecutionPlan {
 
   sealed trait Fold extends ExecutionPlan
   object Fold {
-    final case class FoldOption(isEmpty: ExecutionPlan, f: ExecutionPlan)            extends Fold
-    final case class FoldEither(left: ExecutionPlan, right: ExecutionPlan)           extends Fold
-    final case class FoldList(ast: SchemaAst, seed: ExecutionPlan, f: ExecutionPlan) extends Fold
+    final case class FoldOption(isEmpty: ExecutionPlan, f: ExecutionPlan)             extends Fold
+    final case class FoldEither(left: ExecutionPlan, right: ExecutionPlan)            extends Fold
+    final case class FoldList(ast: MetaSchema, seed: ExecutionPlan, f: ExecutionPlan) extends Fold
   }
 
   sealed trait Optional extends ExecutionPlan
@@ -147,12 +147,12 @@ object ExecutionPlan {
 
   sealed trait Codec extends ExecutionPlan
   object Codec {
-    case object Encode                                       extends Codec
-    case class Decode(ast: SchemaAst, decoder: DynamicValue) extends Codec
+    case object Encode                                        extends Codec
+    case class Decode(ast: MetaSchema, decoder: DynamicValue) extends Codec
   }
 
   sealed trait ListLike extends ExecutionPlan
   object ListLike {
-    case class Find(ast: SchemaAst, cond: ExecutionPlan) extends ListLike
+    case class Find(ast: MetaSchema, cond: ExecutionPlan) extends ListLike
   }
 }

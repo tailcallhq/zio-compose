@@ -12,8 +12,8 @@ case object AstGenerator {
   import compose.graphql.Ast._
 
   def getArguments(schema: Schema[_]): Chunk[InputValueDefinition] = schema match {
-    case schema: Schema.Record[_] => schema.structure.map { field =>
-        InputValueDefinition(field.label, getFieldType(field.schema))
+    case schema: Schema.Record[_] => schema.fields.map { field =>
+        InputValueDefinition(field.name, getFieldType(field.schema))
       }
 
     case schema @ Schema.Primitive(standardType, _) if standardType != StandardType.UnitType =>
@@ -22,8 +22,8 @@ case object AstGenerator {
     case _ => Chunk.empty
   }
 
-  def getFields(schema: Schema.Record[_]): Chunk[FieldDefinition] = schema.structure
-    .map(field => FieldDefinition(field.label, Chunk.empty, getFieldType(field.schema)))
+  def getFields(schema: Schema.Record[_]): Chunk[FieldDefinition] = schema.fields
+    .map(field => FieldDefinition(field.name, Chunk.empty, getFieldType(field.schema)))
 
   def getObjectType(schema: Schema[_]): Seq[ObjectTypeDefinition] = {
     schema.eval match {
@@ -32,7 +32,7 @@ case object AstGenerator {
       case Schema.Sequence(schemaA, _, _, _, _) => getObjectType(schemaA)
 
       case schema: Schema.Record[_] =>
-        val children = schema.structure.map(_.schema).filter(_.isRecord).flatMap(getObjectType)
+        val children = schema.fields.map(_.schema).filter(_.isRecord).flatMap(getObjectType)
         val fields   = Seq(ObjectTypeDefinition(getName(schema.id), getFields(schema)))
         children ++ fields
 
@@ -83,39 +83,7 @@ case object AstGenerator {
           if (isRequired) Type.NotNullType(fieldType) else fieldType
 
         case Schema.Primitive(standardType, _) =>
-          import StandardType._
-          val fieldType = standardType match {
-            case BigDecimalType        => NamedType("BigDecimal")
-            case BigIntegerType        => NamedType("BigInteger")
-            case BinaryType            => NamedType("Binary")
-            case BoolType              => NamedType("Boolean")
-            case ByteType              => NamedType("Byte")
-            case CharType              => NamedType("Char")
-            case DayOfWeekType         => NamedType("DayOfWeek")
-            case DoubleType            => NamedType("Float")
-            case DurationType          => NamedType("Duration")
-            case FloatType             => NamedType("Float")
-            case InstantType(_)        => NamedType("Instant")
-            case IntType               => NamedType("Int")
-            case LocalDateTimeType(_)  => NamedType("LocalDateTime")
-            case LocalDateType(_)      => NamedType("LocalDate")
-            case LocalTimeType(_)      => NamedType("LocalTime")
-            case LongType              => NamedType("Long")
-            case MonthDayType          => NamedType("MonthDay")
-            case MonthType             => NamedType("Month")
-            case OffsetDateTimeType(_) => NamedType("OffsetDateTime")
-            case OffsetTimeType(_)     => NamedType("OffsetTime")
-            case PeriodType            => NamedType("Period")
-            case ShortType             => NamedType("Short")
-            case StringType            => NamedType("String")
-            case UnitType              => NamedType("Unit")
-            case UUIDType              => NamedType("ID")
-            case YearMonthType         => NamedType("YearMonth")
-            case YearType              => NamedType("Year")
-            case ZonedDateTimeType(_)  => NamedType("ZonedDateTime")
-            case ZoneIdType            => NamedType("ZoneId")
-            case ZoneOffsetType        => NamedType("ZoneOffset")
-          }
+          val fieldType = NamedType(standardType.tag.capitalize)
 
           if (isRequired) Type.NotNullType(fieldType) else fieldType
 

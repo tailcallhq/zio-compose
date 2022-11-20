@@ -4,7 +4,6 @@ import compose.macros.DeriveAccessors
 import compose.model.Ref
 import compose.model.http.{Method, Request, Response}
 import zio.durationInt
-import zio.schema.Schema._
 import zio.schema.{DeriveSchema, Schema}
 import zio.test.Assertion.{equalTo, isRight, isTrue}
 import zio.test.TestAspect.timeout
@@ -31,7 +30,7 @@ object LambdaSpec extends ZIOSpecDefault {
     },
     suite("fromMap")(
       test("key found") {
-        val found = constant("A") >>> fromMap(Map[String, Int]("A" -> 100, "B" -> 200))
+        val found = constant("A") >>> fromMap[String, Int](Map[String, Int]("A" -> 100, "B" -> 200))
         assertZIO(found.eval {})(equalTo(Some(100)))
       },
       test("key not found") {

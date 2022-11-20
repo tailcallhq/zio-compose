@@ -61,7 +61,7 @@ object EdgeSpec extends ZIOSpecDefault {
                      |  a1: Int
                      |  a2: String
                      |  a3: Boolean
-                     |  a4: Float
+                     |  a4: Double
                      |  a5: Int
                      |}
                      |type Query {
@@ -77,13 +77,13 @@ object EdgeSpec extends ZIOSpecDefault {
                      |  a1: Int!
                      |  a2: String!
                      |  a3: Boolean!
-                     |  a4: Float!
+                     |  a4: Double!
                      |}
                      |type Sequences {
                      |  a1: [Int!]!
                      |  a2: [String!]!
                      |  a3: [Boolean!]!
-                     |  a4: [Float!]!
+                     |  a4: [Double!]!
                      |  a5: [Scalars!]!
                      |  a6: [Optionals!]!
                      |  a7: [[Int!]!]!
