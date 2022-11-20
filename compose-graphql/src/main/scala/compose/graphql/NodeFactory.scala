@@ -105,7 +105,7 @@ case object NodeFactory {
 
   }
 
-  def getTypeDefinitions(connections: Chunk[Edge.Cons[_, _, _]]): Chunk[ObjectTypeDefinition] = {
+  def getTypeDefinitions(connections: Chunk[Edge.Cons]): Chunk[ObjectTypeDefinition] = {
     val definitions = mutable.Set.empty[ObjectTypeDefinition]
 
     connections.foreach { case Edge.Cons(name, arg, from, to, _) =>

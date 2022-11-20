@@ -1,31 +1,35 @@
 package compose.graphql
 
-import compose.~>
+import compose.{ExecutionPlan, ~>}
 import zio.Chunk
-import zio.schema.Schema
+import zio.schema.codec.JsonCodec.JsonEncoder
+import zio.schema.{DeriveSchema, Schema}
 
 /**
  * A `GraphQL` represents a connection between two nodes in
  * a graph.
  */
+
 sealed trait Edge {
   self =>
-  def ++(other: Edge): Edge           = Edge.Concat(self, other)
-  def combine(other: Edge): Edge      = self ++ other
-  def cons: Chunk[Edge.Cons[_, _, _]] = self match {
-    case self: Edge.Cons[_, _, _] => Chunk.single(self)
+  final def ++(other: Edge): Edge      = Edge.Concat(self, other)
+  final def combine(other: Edge): Edge = self ++ other
+  final def cons: Chunk[Edge.Cons]     = self match {
+    case self: Edge.Cons          => Chunk.single(self)
     case Edge.Concat(left, right) => left.cons ++ right.cons
     case Edge.Empty               => Chunk.empty
   }
+  final def binary: Chunk[Byte]        = JsonEncoder.encode(Edge.schema, self)
+  final def toJson: String             = new String(binary.toArray)
 }
 
 object Edge {
-  final case class Cons[Arg, From, To](
+  final case class Cons(
     name: String,
-    arg: Schema[Arg],
-    from: Schema[From],
-    to: Schema[To],
-    resolve: (Arg, From) ~> To,
+    argType: Schema[Any],
+    fromType: Schema[Any],
+    toType: Schema[Any],
+    executable: ExecutionPlan,
   ) extends Edge
 
   case object Empty                                extends Edge
@@ -39,8 +43,16 @@ object Edge {
       arg: Schema[Arg],
       from: Schema[From],
       to: Schema[To],
-    ): Edge = Cons(name, arg, from, to, resolve)
+    ): Edge = Cons(
+      name,
+      arg.asInstanceOf[Schema[Any]],
+      from.asInstanceOf[Schema[Any]],
+      to.asInstanceOf[Schema[Any]],
+      resolve.compile,
+    )
   }
 
   def empty: Edge = Empty
+
+  implicit val schema = DeriveSchema.gen[Edge]
 }

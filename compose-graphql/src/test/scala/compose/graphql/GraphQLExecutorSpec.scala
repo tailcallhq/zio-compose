@@ -1,20 +1,22 @@
 package compose.graphql
 
-import zio.test._
 import compose.Lambda
-import compose.graphql.GraphQLParser
+import zio.json.ast.Json
 import zio.test.Assertion._
-import zio.test.TestAspect._
+import zio.test._
 
 object GraphQLExecutorSpec extends ZIOSpecDefault {
-  val thousand = Lambda.constant(1000)
-  def spec     = suite("GraphQLExecutorSpec")(test("simple query") {
 
-    // schema: type Root { thousand: Int }
-    val edges  = Edge[Unit, Unit]("thousand", thousand)
-    val query  = GraphQLParser.querySyntax.parseString("query { thousand }")
-    val result = GraphQLExecutor.execute(edges, query)
+  def spec = suite("GraphQLExecutorSpec")(test("simple query") {
 
-    assertZIO(result)(equalTo(1000))
-  }) @@ failing
+    val thousand = Lambda.constant(1000)
+    val edges    = Edge[Unit, Unit]("thousand", thousand)
+
+    val query    = GraphQLParser.parse("query { thousand }")
+    val expected = Json.Obj("thousand" -> Json.Num(1000))
+
+    val program = GraphQLExecutor.execute(edges, query.getOrElse(null))
+
+    assertZIO(program)(equalTo(expected))
+  })
 }

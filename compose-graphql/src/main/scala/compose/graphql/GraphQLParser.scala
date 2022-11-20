@@ -1,6 +1,6 @@
 package compose.graphql
 
-import zio.parser.Syntax
+import zio.parser.{Parser, Syntax}
 import zio.Chunk
 
 object GraphQLParser {
@@ -32,4 +32,7 @@ object GraphQLParser {
     { fields => OperationDefinition(QueryOperation, None, fields) },
     { operation => operation.selectionSet },
   )
+
+  def parse(input: String): Either[Parser.ParserError[String], OperationDefinition] = querySyntax
+    .parseString(input)
 }
