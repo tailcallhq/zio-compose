@@ -105,10 +105,10 @@ case object NodeFactory {
 
   }
 
-  def getTypeDefinitions(connections: Chunk[Edge.Cons]): Chunk[ObjectTypeDefinition] = {
+  def getTypeDefinitions(connections: Chunk[Graph.Cons]): Chunk[ObjectTypeDefinition] = {
     val definitions = mutable.Set.empty[ObjectTypeDefinition]
 
-    connections.foreach { case Edge.Cons(name, arg, from, to, _) =>
+    connections.foreach { case Graph.Cons(name, arg, from, to, _) =>
       val fromName      = getObjectType(from)
       val toName        = getObjectType(to)
       val conField      = FieldDefinition(name, getArguments(arg), getFieldType(to))
@@ -135,7 +135,7 @@ case object NodeFactory {
     Chunk.fromIterable(merged.values.toSeq)
   }
 
-  def gen(connections: Edge): Node = {
+  def gen(connections: Graph): Node = {
     Node.Document(getTypeDefinitions(Chunk.fromIterable(connections.cons)))
   }
 }

@@ -10,30 +10,30 @@ import zio.schema.{DeriveSchema, Schema}
  * a graph.
  */
 
-sealed trait Edge {
+sealed trait Graph {
   self =>
-  final def ++(other: Edge): Edge      = Edge.Concat(self, other)
-  final def combine(other: Edge): Edge = self ++ other
-  final def cons: Chunk[Edge.Cons]     = self match {
-    case self: Edge.Cons          => Chunk.single(self)
-    case Edge.Concat(left, right) => left.cons ++ right.cons
-    case Edge.Empty               => Chunk.empty
+  final def ++(other: Graph): Graph      = Graph.Concat(self, other)
+  final def combine(other: Graph): Graph = self ++ other
+  final def cons: Chunk[Graph.Cons]      = self match {
+    case self: Graph.Cons          => Chunk.single(self)
+    case Graph.Concat(left, right) => left.cons ++ right.cons
+    case Graph.Empty               => Chunk.empty
   }
-  final def binary: Chunk[Byte]        = JsonEncoder.encode(Edge.schema, self)
-  final def toJson: String             = new String(binary.toArray)
+  final def binary: Chunk[Byte]          = JsonEncoder.encode(Graph.schema, self)
+  final def toJson: String               = new String(binary.toArray)
 }
 
-object Edge {
+object Graph {
   final case class Cons(
     name: String,
     argType: Schema[Any],
     fromType: Schema[Any],
     toType: Schema[Any],
     executable: ExecutionPlan,
-  ) extends Edge
+  ) extends Graph
 
-  case object Empty                                extends Edge
-  final case class Concat(left: Edge, right: Edge) extends Edge
+  case object Empty                                  extends Graph
+  final case class Concat(left: Graph, right: Graph) extends Graph
 
   def apply[Arg, From]: PartiallyAppliedConnection[Arg, From] =
     new PartiallyAppliedConnection[Arg, From](())
@@ -43,7 +43,7 @@ object Edge {
       arg: Schema[Arg],
       from: Schema[From],
       to: Schema[To],
-    ): Edge = Cons(
+    ): Graph = Cons(
       name,
       arg.asInstanceOf[Schema[Any]],
       from.asInstanceOf[Schema[Any]],
@@ -52,7 +52,7 @@ object Edge {
     )
   }
 
-  def empty: Edge = Empty
+  def empty: Graph = Empty
 
-  implicit val schema = DeriveSchema.gen[Edge]
+  implicit val schema = DeriveSchema.gen[Graph]
 }

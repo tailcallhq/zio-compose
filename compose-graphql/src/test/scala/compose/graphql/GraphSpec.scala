@@ -4,7 +4,7 @@ import compose.{Lambda, ~>}
 import zio.schema.{DeriveSchema, Schema}
 import zio.test.{ZIOSpecDefault, assertTrue}
 
-object EdgeSpec extends ZIOSpecDefault {
+object GraphSpec extends ZIOSpecDefault {
 
   def die[A, B]: A ~> B = Lambda.die
 
@@ -47,7 +47,7 @@ object EdgeSpec extends ZIOSpecDefault {
   implicit val schema: Schema[Root]              = DeriveSchema.gen[Root]
 
   def spec = suite("EdgeSpec")(suite("schema")(test("render") {
-    val connection = Edge[Unit, Unit]("root", die[Unit, Root] <<< Lambda._1)
+    val connection = Graph[Unit, Unit]("root", die[Unit, Root] <<< Lambda._1)
     val graphQL    = NodeFactory.gen(connection)
     val actual     = NodePrinter.render(graphQL)
     val expected   = """

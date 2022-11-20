@@ -7,10 +7,10 @@ import zio._
 import zio.json.ast.Json
 import zio.schema.DynamicValue
 
-final class GraphQLExecutor(interpreter: Interpreter) {
+final class Executor(interpreter: Interpreter) {
 
-  def execute(edge: Edge, operation: OperationDefinition): Task[Json] = {
-    val edges: Map[String, Edge.Cons] = edge.cons.map(e => e.name -> e).toMap
+  def execute(edge: Graph, operation: OperationDefinition): Task[Json] = {
+    val edges: Map[String, Graph.Cons] = edge.cons.map(e => e.name -> e).toMap
     operation.operation match {
       case Node.QueryOperation =>
         val map = ZIO.foreach(operation.selectionSet) { field =>
@@ -29,10 +29,10 @@ final class GraphQLExecutor(interpreter: Interpreter) {
   }
 }
 
-object GraphQLExecutor {
-  def execute(edge: Edge, operation: OperationDefinition): ZIO[Any, Throwable, Json] = for {
+object Executor {
+  def execute(edge: Graph, operation: OperationDefinition): ZIO[Any, Throwable, Json] = for {
     i <- Interpreter.inMemory
-    e = new GraphQLExecutor(i)
+    e = new Executor(i)
     d <- e.execute(edge, operation)
   } yield d
 
