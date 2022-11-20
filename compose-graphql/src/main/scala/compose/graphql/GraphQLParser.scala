@@ -4,7 +4,7 @@ import zio.parser.Syntax
 import zio.Chunk
 
 object GraphQLParser {
-  import Ast._
+  import Node._
 
   private lazy val emptySpace  = (Syntax.char('\n') | Syntax.char(' ')).repeat.unit(Chunk {})
   private lazy val emptySpace0 = (Syntax.char('\n') | Syntax.char(' ')).repeat0.unit(Chunk {})
@@ -29,7 +29,7 @@ object GraphQLParser {
 
   lazy val querySyntax: GraphQLSyntax[OperationDefinition] = (Syntax
     .string("query", {}) ~ emptySpace ~ fieldSyntax).transform[OperationDefinition](
-    { fields => OperationDefinition(Operation.Query, None, fields) },
+    { fields => OperationDefinition(QueryOperation, None, fields) },
     { operation => operation.selectionSet },
   )
 }

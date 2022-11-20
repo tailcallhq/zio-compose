@@ -1,6 +1,5 @@
 package compose.graphql
 
-import compose.graphql.Ast.Type.NamedType
 import compose.graphql.SchemaExtensions.Extensions
 import zio.Chunk
 import zio.schema.TypeId.{Nominal, Structural}
@@ -8,8 +7,8 @@ import zio.schema.{Schema, StandardType, TypeId}
 
 import scala.collection.mutable
 
-case object AstGenerator {
-  import compose.graphql.Ast._
+case object NodeFactory {
+  import compose.graphql.Node._
 
   def getArguments(schema: Schema[_]): Chunk[InputValueDefinition] = schema match {
     case schema: Schema.Record[_] => schema.fields.map { field =>
@@ -75,17 +74,17 @@ case object AstGenerator {
         case Schema.Optional(schema, _) => loop(schema, false)
 
         case Schema.Sequence(schemaA, _, _, _, _) =>
-          val fieldType = Type.ListType(getFieldType(schemaA))
-          if (isRequired) Type.NotNullType(fieldType) else fieldType
+          val fieldType = ListType(getFieldType(schemaA))
+          if (isRequired) NotNullType(fieldType) else fieldType
 
         case schema: Schema.Record[_] =>
-          val fieldType = Type.NamedType(getName(schema.id))
-          if (isRequired) Type.NotNullType(fieldType) else fieldType
+          val fieldType = NamedType(getName(schema.id))
+          if (isRequired) NotNullType(fieldType) else fieldType
 
         case Schema.Primitive(standardType, _) =>
           val fieldType = NamedType(standardType.tag.capitalize)
 
-          if (isRequired) Type.NotNullType(fieldType) else fieldType
+          if (isRequired) NotNullType(fieldType) else fieldType
 
         // Unhandled
         //      case Schema.Tuple(_, _, _)                => ???
@@ -136,7 +135,7 @@ case object AstGenerator {
     Chunk.fromIterable(merged.values.toSeq)
   }
 
-  def gen(connections: Edge): Ast = {
-    Ast.Document(getTypeDefinitions(Chunk.fromIterable(connections.cons)))
+  def gen(connections: Edge): Node = {
+    Node.Document(getTypeDefinitions(Chunk.fromIterable(connections.cons)))
   }
 }

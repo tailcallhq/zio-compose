@@ -4,14 +4,14 @@ import compose.graphql.GraphQLParser
 import zio.Chunk
 
 object GraphQLParserSpec extends ZIOSpecDefault {
-  import Ast._
+  import Node._
   def spec = {
     suite("GraphQLParser")(test("parse") {
       val actual = GraphQLParser.querySyntax
         .parseString("query { a { b c d } b {c d} c { e { f } } }")
 
       val expected = OperationDefinition(
-        operation = Operation.Query,
+        operation = QueryOperation,
         None,
         selectionSet = Chunk(
           Field("a", Chunk(Field("b"), Field("c"), Field("d"))),

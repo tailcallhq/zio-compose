@@ -48,8 +48,8 @@ object EdgeSpec extends ZIOSpecDefault {
 
   def spec = suite("EdgeSpec")(suite("schema")(test("render") {
     val connection = Edge[Unit, Unit]("root", die[Unit, Root] <<< Lambda._1)
-    val graphQL    = AstGenerator.gen(connection)
-    val actual     = AstPrinter.render(graphQL)
+    val graphQL    = NodeFactory.gen(connection)
+    val actual     = NodePrinter.render(graphQL)
     val expected   = """
                      |type OptionalSequences {
                      |  a1: [Int!]

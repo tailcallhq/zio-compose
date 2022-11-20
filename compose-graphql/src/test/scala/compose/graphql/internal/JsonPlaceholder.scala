@@ -2,7 +2,7 @@ package compose.graphql.internal
 
 import compose.{Lambda, ~>}
 import compose.graphql.Edge
-import compose.graphql.{Ast, AstGenerator}
+import compose.graphql.{Node, NodeFactory}
 import compose.macros.DeriveAccessors
 import zio.schema.{DeriveSchema, Schema}
 
@@ -85,7 +85,7 @@ object JsonPlaceholder {
     def photoAlbum: Photo ~> Album          = Lambda.die
   }
 
-  val ast: Ast = AstGenerator.gen(
+  val ast: Node = NodeFactory.gen(
     Edge[Unit, Unit]("posts", fetch.posts) ++
       Edge[Unit, Unit]("users", fetch.users) ++
       Edge[Unit, User]("albums", fetch.userAlbums <<< Lambda._2) ++
