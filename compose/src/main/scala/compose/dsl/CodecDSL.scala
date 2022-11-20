@@ -12,7 +12,7 @@ object CodecDSL {
 
     def decode[C](implicit s: Schema[C], decoder: HasDecoder[B]): A ~> Either[String, C] =
       self >>> Lambda.unsafe.attempt[B, Either[String, C]] {
-        Codec.Decode(s.ast, Schema[Decoder].toDynamic(decoder.decoder))
+        Codec.Decode(s, Schema[Decoder].toDynamic(decoder.decoder))
       }
 
     def encode: A ~> DynamicValue = self >>> Lambda.unsafe.attempt[B, DynamicValue] { Codec.Encode }

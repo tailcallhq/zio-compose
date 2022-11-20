@@ -3,7 +3,6 @@ package compose
 import compose.model.Ref.Id
 import compose.model.Scope
 import zio.schema.codec.JsonCodec
-import zio.schema.meta.MetaSchema
 import zio.schema.{DeriveSchema, DynamicValue, Schema}
 import zio.{Chunk, ZIO}
 
@@ -24,7 +23,9 @@ object ExecutionPlan {
       case Right(value) => ZIO.succeed(value)
     }
 
-  implicit def schema: Schema[ExecutionPlan] = DeriveSchema.gen[ExecutionPlan]
+  implicit val schemaSchema: Schema[Schema[_]] = Schema.schemaSchema[Any]
+    .asInstanceOf[Schema[Schema[_]]]
+  implicit def schema: Schema[ExecutionPlan]   = DeriveSchema.gen[ExecutionPlan]
 
   sealed trait Scoped extends ExecutionPlan
   object Scoped {
@@ -82,7 +83,7 @@ object ExecutionPlan {
     final case class Pipe(first: ExecutionPlan, second: ExecutionPlan) extends Arrow
     case object ToInt                                                  extends Arrow
     case object Identity                                               extends Arrow
-    case class AsString(ast: MetaSchema)                               extends Arrow
+    case class AsString(schema: Schema[_])                             extends Arrow
   }
 
   sealed trait Debugger extends ExecutionPlan
@@ -119,9 +120,9 @@ object ExecutionPlan {
 
   sealed trait Fold extends ExecutionPlan
   object Fold {
-    final case class FoldOption(isEmpty: ExecutionPlan, f: ExecutionPlan)             extends Fold
-    final case class FoldEither(left: ExecutionPlan, right: ExecutionPlan)            extends Fold
-    final case class FoldList(ast: MetaSchema, seed: ExecutionPlan, f: ExecutionPlan) extends Fold
+    final case class FoldOption(isEmpty: ExecutionPlan, f: ExecutionPlan)               extends Fold
+    final case class FoldEither(left: ExecutionPlan, right: ExecutionPlan)              extends Fold
+    final case class FoldList(schema: Schema[_], seed: ExecutionPlan, f: ExecutionPlan) extends Fold
   }
 
   sealed trait Optional extends ExecutionPlan
@@ -147,12 +148,12 @@ object ExecutionPlan {
 
   sealed trait Codec extends ExecutionPlan
   object Codec {
-    case object Encode                                        extends Codec
-    case class Decode(ast: MetaSchema, decoder: DynamicValue) extends Codec
+    case object Encode                                          extends Codec
+    case class Decode(schema: Schema[_], decoder: DynamicValue) extends Codec
   }
 
   sealed trait ListLike extends ExecutionPlan
   object ListLike {
-    case class Find(ast: MetaSchema, cond: ExecutionPlan) extends ListLike
+    case class Find(schema: Schema[_], cond: ExecutionPlan) extends ListLike
   }
 }

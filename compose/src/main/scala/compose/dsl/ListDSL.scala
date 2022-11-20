@@ -8,7 +8,7 @@ object ListDSL {
     self: A ~> B =>
     def find[T](f: T ~> Boolean)(implicit schema: Schema[T], ev: B <:< List[T]): A ~> Option[T] =
       self.widen >>> Lambda.unsafe.attempt[List[T], Option[T]] {
-        ExecutionPlan.ListLike.Find(schema.ast, f.compile)
+        ExecutionPlan.ListLike.Find(schema, f.compile)
       }
   }
 }

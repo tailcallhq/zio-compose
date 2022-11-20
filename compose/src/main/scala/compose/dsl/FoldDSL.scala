@@ -29,7 +29,7 @@ object FoldDSL {
     implicit def foldSeq[T, S](implicit schema: Schema[T]): Fold[Seq[T], S, (S, T), S] =
       new Fold[Seq[T], S, (S, T), S] {
         override def fold[B1 <: S](l: S ~> B1, r: (S, T) ~> B1): Seq[T] ~> B1 = Lambda.unsafe
-          .attempt[Seq[T], B1] { ExecutionPlan.Fold.FoldList(schema.ast, l.compile, r.compile) }
+          .attempt[Seq[T], B1] { ExecutionPlan.Fold.FoldList(schema, l.compile, r.compile) }
       }
   }
 

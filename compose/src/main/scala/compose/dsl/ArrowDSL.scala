@@ -30,7 +30,7 @@ object ArrowDSL {
     final def as[C](c: C)(implicit s: Schema[C]): A ~> C = self >>> constant(c)
 
     final def asString[B1 >: B](implicit b: Schema[B1]): A ~> String = self >>> Lambda.unsafe
-      .attempt[B, String] { Arrow.AsString(b.ast) }
+      .attempt[B, String] { Arrow.AsString(b) }
 
     final def bind[A1 <: A](a: A1)(implicit ev: Schema[A1]): Any ~> B = Lambda.constant(a) >>> self
 

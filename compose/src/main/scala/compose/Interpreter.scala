@@ -77,8 +77,8 @@ object Interpreter {
     }
     private def seqLike(input: DynamicValue, operation: ListLike): Task[DynamicValue] =
       operation match {
-        case ListLike.Find(ast, cond) =>
-          val schema = ast.toSchema.asInstanceOf[Schema[Any]]
+        case ListLike.Find(sch, cond) =>
+          val schema = sch.asInstanceOf[Schema[Any]]
           for {
             list     <- effect(input.toTypedValue(Schema.list(schema)))
             filtered <- ZIO.filter(list.map(any => schema.toDynamic(any))) { input =>
@@ -92,17 +92,17 @@ object Interpreter {
 
     private def codec(input: DynamicValue, operation: Codec): Task[DynamicValue] = operation match {
       case Codec.Encode               => ZIO.succeed(Schema[DynamicValue].toDynamic(input))
-      case Codec.Decode(ast, decoder) => effect(decoder.toTypedValue(Schema[Decoder]))
+      case Codec.Decode(sch, decoder) => effect(decoder.toTypedValue(Schema[Decoder]))
           .map { case decoder: Decoder.HasDecoder[_] =>
             decoder match {
               case HasDecoder.ResponseDecoder     =>
-                val schema = ast.toSchema.asInstanceOf[Schema[Any]]
+                val schema = sch.asInstanceOf[Schema[Any]]
                 val jsonCodec: Chunk[Byte] => Either[DecodeError, Any] = JsonCodec.decode(schema)
                 val value: Either[String, Any] = input.toTypedValue(Schema[Response])
                   .flatMap(res => jsonCodec(res.body).left.map(_.message))
                 Schema.either(Schema[String], schema).toDynamic(value)
               case HasDecoder.DynamicValueDecoder =>
-                val schema = ast.toSchema.asInstanceOf[Schema[Any]]
+                val schema = sch.asInstanceOf[Schema[Any]]
                 val value  = input.toTypedValue(Schema[DynamicValue])
                   .flatMap(dv => dv.toTypedValue(schema))
                 Schema.either(Schema[String], schema).toDynamic(value)
@@ -164,8 +164,8 @@ object Interpreter {
             output <- evalDynamic(second, input)
           } yield output
 
-        case Arrow.AsString(ast) =>
-          effect(input.toTypedValue(ast.toSchema).map(any => toDynamic(any.toString)))
+        case Arrow.AsString(sch) =>
+          effect(input.toTypedValue(sch).map(any => toDynamic(any.toString)))
 
         case Arrow.Identity => ZIO.succeed(input)
 
@@ -225,8 +225,8 @@ object Interpreter {
           }
         } yield result
 
-      case Fold.FoldList(ast, seed, fun) =>
-        val schema = ast.toSchema.asInstanceOf[Schema[Any]]
+      case Fold.FoldList(sch, seed, fun) =>
+        val schema = sch.asInstanceOf[Schema[Any]]
         for {
           seed <- evalDynamic(seed, input)
           list <- effect(input.toTypedValue(Schema.list(schema)))
