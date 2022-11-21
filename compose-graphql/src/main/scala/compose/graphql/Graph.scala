@@ -1,7 +1,9 @@
 package compose.graphql
 
+import compose.graphql.Node.OperationDefinition
 import compose.{ExecutionPlan, ~>}
-import zio.Chunk
+import zio.json.ast.Json
+import zio.{Chunk, ZIO}
 import zio.schema.codec.JsonCodec.JsonEncoder
 import zio.schema.{DeriveSchema, Schema}
 
@@ -21,6 +23,17 @@ sealed trait Graph {
   }
   final def binary: Chunk[Byte]          = JsonEncoder.encode(Graph.schema, self)
   final def toJson: String               = new String(binary.toArray)
+
+  def execute(operation: OperationDefinition): ZIO[Any, Throwable, Json] = Executor
+    .execute(self, operation)
+
+  def execute(query: String): ZIO[Any, Throwable, Json] = for {
+    op     <- GraphQLParser.parse(query) match {
+      case Left(_)      => ZIO.fail(new RuntimeException("Query parse error"))
+      case Right(value) => ZIO.succeed(value)
+    }
+    result <- execute(op)
+  } yield result
 }
 
 object Graph {

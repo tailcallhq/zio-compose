@@ -9,8 +9,8 @@ object ExecutorSpec extends ZIOSpecDefault {
 
   def spec = suite("GraphQLExecutorSpec")(
     test("simple query") {
-      val edges = Graph[Unit, Unit]("thousand", Lambda.constant(1000))
-      val query = GraphQLParser.parse("query { thousand }")
+      val graph = Graph[Unit, Unit]("thousand", Lambda.constant(1000))
+      val query = "query { thousand }"
 
       val actual   = Executor.execute(edges, query.getOrElse(null)).map(_.toJson)
       val expected = """{"thousand":1000}"""
@@ -20,9 +20,9 @@ object ExecutorSpec extends ZIOSpecDefault {
     suite("JsonPlaceholder")(
       test("service call") {
         val edges = Graph[Unit, Unit]("users", JsonPlaceholder.fetch.users)
-        val query = GraphQLParser.parse("query { users { id } }")
+        val query = "query { users { id } }"
 
-        val actual   = Executor.execute(edges, query.getOrElse(null)).map(_.toJson)
+        val actual   = edges.execute(query).map(_.toJson)
         val expected = "{\"users\":[" +
           "{\"id\":1}," +
           "{\"id\":2}," +
@@ -39,10 +39,10 @@ object ExecutorSpec extends ZIOSpecDefault {
         assertZIO(actual)(equalTo(expected))
       },
       test("nested query") {
-        val edges = Graph[Unit, Unit]("users", JsonPlaceholder.fetch.users)
-        val query = GraphQLParser.parse("query { users { id address { geo { lat } } } }")
+        val graph = Graph[Unit, Unit]("users", JsonPlaceholder.fetch.users)
+        val query = "query { users { id address { geo { lat } } } }"
 
-        val actual   = Executor.execute(edges, query.getOrElse(null)).map(_.toJson)
+        val actual   = graph.execute(query).map(_.toJson)
         val expected = "{\"users\":[" +
           "{\"id\":1,\"address\":{\"geo\":{\"lat\":\"-37.3159\"}}}," +
           "{\"id\":2,\"address\":{\"geo\":{\"lat\":\"-43.9509\"}}}," +
