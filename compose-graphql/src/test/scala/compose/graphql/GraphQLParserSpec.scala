@@ -1,9 +1,8 @@
 package compose.graphql
 import compose.graphql.ast.OperationDefinition
 import compose.graphql.ast.OperationDefinition._
-import zio.test._
 import zio.Chunk
-import zio.test.TestAspect.failing
+import zio.test._
 
 object GraphQLParserSpec extends ZIOSpecDefault {
   def spec = {
@@ -25,16 +24,20 @@ object GraphQLParserSpec extends ZIOSpecDefault {
         assertTrue(actual == Right(expected))
       },
       test("parse with args") {
-        val actual = OperationDefinition.syntax.parseString("query { a (user: 10) { b } }")
+        val actual = OperationDefinition.syntax.parseString("query { a (user : 10) { b } }")
 
         val expected = OperationDefinition(
-          operation = QueryOperation,
-          None,
-          selectionSet = Chunk(Field("a", selection = Chunk(Field("b")))),
+          operation = OperationDefinition.QueryOperation,
+          name = None,
+          selectionSet = Chunk(Field(
+            name = "a",
+            arguments = Chunk(Argument(name = "user", value = IntValue(value = 10))),
+            selection = Chunk(Field(name = "b", arguments = Chunk(), selection = Chunk())),
+          )),
         )
 
         assertTrue(actual == Right(expected))
-      } @@ failing,
+      },
     )
   }
 }
