@@ -1,11 +1,11 @@
 package compose.graphql
 
-import compose.graphql.Node.OperationDefinition
+import compose.graphql.ast.OperationDefinition
 import compose.{ExecutionPlan, ~>}
 import zio.json.ast.Json
-import zio.{Chunk, ZIO}
 import zio.schema.codec.JsonCodec.JsonEncoder
 import zio.schema.{DeriveSchema, Schema}
+import zio.{Chunk, ZIO}
 
 /**
  * A `GraphQL` represents a connection between two nodes in
@@ -28,7 +28,7 @@ sealed trait Graph {
     .execute(self, operation)
 
   def execute(query: String): ZIO[Any, Throwable, Json] = for {
-    op     <- GraphQLParser.parse(query) match {
+    op     <- OperationDefinition.syntax.parseString(query) match {
       case Left(_)      => ZIO.fail(new RuntimeException("Query parse error"))
       case Right(value) => ZIO.succeed(value)
     }

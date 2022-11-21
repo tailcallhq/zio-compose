@@ -2,7 +2,9 @@ package compose.graphql
 
 import compose.Lambda
 import compose.graphql.internal.JsonPlaceholder
+import compose.graphql.internal.JsonPlaceholder.UserId
 import zio.test.Assertion._
+import zio.test.TestAspect.failing
 import zio.test._
 
 object ExecutorSpec extends ZIOSpecDefault {
@@ -12,7 +14,7 @@ object ExecutorSpec extends ZIOSpecDefault {
       val graph = Graph[Unit, Unit]("thousand", Lambda.constant(1000))
       val query = "query { thousand }"
 
-      val actual   = Executor.execute(edges, query.getOrElse(null)).map(_.toJson)
+      val actual   = graph.execute(query).map(_.toJson)
       val expected = """{"thousand":1000}"""
 
       assertZIO(actual)(equalTo(expected))
@@ -58,6 +60,18 @@ object ExecutorSpec extends ZIOSpecDefault {
 
         assertZIO(actual)(equalTo(expected))
       },
+      test("albums for user id") {
+        val graph = Graph[UserId, Unit]("albums", JsonPlaceholder.fetch.albums <<< Lambda._1)
+        val query = "query { albums (userId: 1) { id } }"
+
+        val actual   = graph.execute(query).map(_.toJson)
+        val expected = "{\"albums\":[" +
+          "{\"id\":1}," +
+          "{\"id\":2}" +
+          "]}"
+
+        assertZIO(actual)(equalTo(expected))
+      } @@ failing,
     ),
   )
 }

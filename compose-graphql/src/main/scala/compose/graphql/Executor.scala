@@ -1,15 +1,15 @@
 package compose.graphql
 
 import compose.Interpreter
-import compose.graphql.Node.OperationDefinition
+import compose.graphql.ast.OperationDefinition
+import compose.graphql.ast.OperationDefinition._
 import compose.graphql.internal.JsonUtility
 import zio._
 import zio.json.ast.{Json, JsonCursor}
 import zio.schema.DynamicValue
 
 final class Executor(interpreter: Interpreter) {
-
-  private def resolveSelection(fields: Chunk[Node.Field], json: Json): Task[Json] = {
+  private def resolveSelection(fields: Chunk[Field], json: Json): Task[Json] = {
     if (fields.isEmpty) ZIO.succeed(json)
     else json.get(JsonCursor.isArray) match {
       case Right(arr) => ZIO.foreach(arr.elements) { json => resolveSelection(fields, json) }
@@ -28,7 +28,7 @@ final class Executor(interpreter: Interpreter) {
   def execute(edge: Graph, operation: OperationDefinition): Task[Json] = {
     val edges: Map[String, Graph.Cons] = edge.cons.map(e => e.name -> e).toMap
     operation.operation match {
-      case Node.QueryOperation =>
+      case QueryOperation =>
         val map = ZIO.foreach(operation.selectionSet) { field =>
           edges.get(field.name) match {
             case Some(edge) => interpreter.evalDynamic(edge.executable, DynamicValue(()))
@@ -42,8 +42,8 @@ final class Executor(interpreter: Interpreter) {
 
         map.map(chunk => Json.Obj(chunk))
 
-      case Node.MutationOperation     => ???
-      case Node.SubscriptionOperation => ???
+      case MutationOperation     => ???
+      case SubscriptionOperation => ???
     }
   }
 }

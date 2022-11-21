@@ -1,5 +1,6 @@
-package compose.graphql
+package compose.graphql.ast
 
+import compose.graphql.Graph
 import compose.graphql.SchemaExtensions.Extensions
 import zio.Chunk
 import zio.schema.TypeId.{Nominal, Structural}
@@ -7,8 +8,10 @@ import zio.schema.{Schema, StandardType, TypeId}
 
 import scala.collection.mutable
 
-case object NodeFactory {
-  import compose.graphql.Node._
+final case class Document(definitions: Chunk[TypeDefinition])
+object Document {
+
+  import compose.graphql.ast.TypeDefinition._
 
   def getArguments(schema: Schema[_]): Chunk[InputValueDefinition] = schema match {
     case schema: Schema.Record[_] => schema.fields.map { field =>
@@ -64,7 +67,7 @@ case object NodeFactory {
     schema match {
       case schema: Schema.Record[_]                   => getName(schema.id)
       case Schema.Primitive(StandardType.UnitType, _) => "Query"
-      case _                                          => ???
+      case _ => throw new NotImplementedError(s"${schema.getClass.getName}")
     }
   }
 
@@ -135,7 +138,6 @@ case object NodeFactory {
     Chunk.fromIterable(merged.values.toSeq)
   }
 
-  def gen(connections: Graph): Node = {
-    Node.Document(getTypeDefinitions(Chunk.fromIterable(connections.cons)))
-  }
+  def fromGraph(graph: Graph): Document =
+    Document(getTypeDefinitions(Chunk.fromIterable(graph.cons)))
 }
