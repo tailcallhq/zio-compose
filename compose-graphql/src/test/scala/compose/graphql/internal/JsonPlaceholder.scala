@@ -4,6 +4,7 @@ import compose.{Lambda, ~>}
 import compose.graphql.Graph
 import compose.graphql.{Node, NodeFactory}
 import compose.macros.DeriveAccessors
+import compose.model.http.Request
 import zio.schema.{DeriveSchema, Schema}
 
 object JsonPlaceholder {
@@ -73,8 +74,15 @@ object JsonPlaceholder {
   }
 
   object fetch {
-    def users: Any ~> List[User]            = Lambda.die
-    def posts: Any ~> List[Post]            = Lambda.die
+    import Lambda._
+    def users: Any ~> List[User]            = Lambda
+      .constant(Request(url = "https://jsonplaceholder.typicode.com/users")) >>>
+      Lambda.http.decode[List[User]]
+        .fold(Lambda.constant(List.empty[User]))(Lambda.identity[List[User]])
+    def posts: Any ~> List[Post]            = Lambda
+      .constant(Request(url = "https://jsonplaceholder.typicode.com/posts")) >>>
+      Lambda.http.decode[List[Post]]
+        .fold(Lambda.constant(List.empty[Post]))(Lambda.identity[List[Post]])
     def postUser: Post ~> User              = Lambda.die
     def userPosts: User ~> List[Post]       = Lambda.die
     def userAlbums: User ~> List[Album]     = Lambda.die
