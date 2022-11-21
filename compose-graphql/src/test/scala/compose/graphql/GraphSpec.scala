@@ -50,7 +50,7 @@ object GraphSpec extends ZIOSpecDefault {
   def spec = suite("EdgeSpec")(suite("schema")(test("render") {
     val graph    = Graph[Unit, Unit]("root", die[Unit, Root] <<< Lambda._1)
     val document = Document.fromGraph(graph)
-    val actual   = NodePrinter.render(document)
+    val actual   = document.render
     val expected = """
                      |type OptionalSequences {
                      |  a1: [Int!]
