@@ -40,9 +40,18 @@ object OperationDefinition {
 
   private lazy val emptySpace  = (Syntax.char('\n') | Syntax.char(' ')).repeat.unit(Chunk {})
   private lazy val emptySpace0 = (Syntax.char('\n') | Syntax.char(' ')).repeat0.unit(Chunk {})
+  private lazy val comma: Syntax[String, Char, Char, Unit] = emptySpace0 ~ Syntax
+    .char(',') ~ emptySpace0
 
-  private lazy val anyName = Syntax.letter.repeat
-    .transform[String](_.mkString, i => Chunk.fromArray(i.toCharArray()))
+  private lazy val headChar = Syntax.charIn(('A' to 'Z'): _*) | Syntax
+    .charIn(('a' to 'z'): _*) | Syntax.charIn('_')
+
+  private lazy val tailChar = (Syntax.alphaNumeric | Syntax.charIn('_')).repeat0
+
+  lazy val anyName = (headChar ~ tailChar).transform[String](
+    { case (char, chunks) => (char +: chunks).mkString },
+    { s => (s.head, Chunk.fromArray(s.tail.toCharArray)) },
+  )
 
   private lazy val booleanValue = (Syntax.string("true", true) | Syntax.string("false", false))
     .transform[BooleanValue](BooleanValue, _.value)
@@ -62,7 +71,7 @@ object OperationDefinition {
     .widen[Value] | stringValue.widen[Value] | variableValue.widen[Value]
 
   private lazy val arguments: GraphQLSyntax[Chunk[Argument]] = (anyName ~ emptySpace0 ~ Syntax
-    .char(':') ~ emptySpace0 ~ value).repeatWithSep0(Syntax.char(',')).transform[Chunk[Argument]](
+    .char(':') ~ emptySpace0 ~ value).repeatWithSep0(comma).transform[Chunk[Argument]](
     i => i.map(i => Argument(i._1, i._2)),
     a => a.map(a => (a.name, a.value)),
   ).between(Syntax.char('('), Syntax.char(')'))
@@ -82,7 +91,7 @@ object OperationDefinition {
     .between(Syntax.char('{'), Syntax.char('}'))
 
   lazy val syntax: GraphQLSyntax[OperationDefinition] = (Syntax
-    .string("query", {}) ~ emptySpace ~ fieldSyntax).transform[OperationDefinition](
+    .string("query", {}) ~ emptySpace0 ~ fieldSyntax).transform[OperationDefinition](
     { fields => OperationDefinition(QueryOperation, None, fields) },
     { operation => operation.selectionSet },
   )

@@ -2,11 +2,20 @@ package compose.graphql
 import compose.graphql.ast.OperationDefinition
 import compose.graphql.ast.OperationDefinition._
 import zio.Chunk
+import zio.test.Assertion.{equalTo, isRight}
 import zio.test._
 
 object GraphQLParserSpec extends ZIOSpecDefault {
   def spec = {
     suite("GraphQLParser")(
+      test("anyName") {
+        val input = Seq("a", "_1", "hello", "world", "helloWorld", "hello_world", "helloWorld123")
+
+        checkAll(Gen.fromIterable(input)) { input =>
+          val actual = OperationDefinition.anyName.parseString(input)
+          assert(actual)(isRight(equalTo(input)))
+        }
+      },
       test("parse") {
         val actual = OperationDefinition.syntax
           .parseString("query { a { b c d } b {c d} c { e { f } } }")
@@ -32,6 +41,26 @@ object GraphQLParserSpec extends ZIOSpecDefault {
           selectionSet = Chunk(Field(
             name = "a",
             arguments = Chunk(Argument(name = "user", value = IntValue(value = 10))),
+            selection = Chunk(Field(name = "b", arguments = Chunk(), selection = Chunk())),
+          )),
+        )
+
+        assertTrue(actual == Right(expected))
+      },
+      test("parse with multiple args") {
+        val actual = OperationDefinition.syntax
+          .parseString("query { a (age : 10,isValid: true, name: \"Jose\") { b } }")
+
+        val expected = OperationDefinition(
+          operation = OperationDefinition.QueryOperation,
+          name = None,
+          selectionSet = Chunk(Field(
+            name = "a",
+            arguments = Chunk(
+              Argument(name = "age", value = IntValue(value = 10)),
+              Argument(name = "isValid", value = BooleanValue(value = true)),
+              Argument(name = "name", value = StringValue(value = "Jose")),
+            ),
             selection = Chunk(Field(name = "b", arguments = Chunk(), selection = Chunk())),
           )),
         )
