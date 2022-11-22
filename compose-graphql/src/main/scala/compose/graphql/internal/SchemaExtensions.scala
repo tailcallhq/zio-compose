@@ -1,4 +1,4 @@
-package compose.graphql
+package compose.graphql.internal
 
 import zio.schema.Schema
 
