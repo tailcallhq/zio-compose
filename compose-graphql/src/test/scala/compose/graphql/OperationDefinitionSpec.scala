@@ -5,9 +5,9 @@ import zio.Chunk
 import zio.test.Assertion.{equalTo, isRight}
 import zio.test._
 
-object GraphQLParserSpec extends ZIOSpecDefault {
+object OperationDefinitionSpec extends ZIOSpecDefault {
   def spec = {
-    suite("GraphQLParser")(
+    suite("Syntax")(
       test("anyName") {
         val input = Seq("a", "_1", "hello", "world", "helloWorld", "hello_world", "helloWorld123")
 
@@ -16,7 +16,7 @@ object GraphQLParserSpec extends ZIOSpecDefault {
           assert(actual)(isRight(equalTo(input)))
         }
       },
-      test("parse") {
+      test("query") {
         val actual = OperationDefinition.syntax
           .parseString("query { a { b c d } b {c d} c { e { f } } }")
 
@@ -32,7 +32,7 @@ object GraphQLParserSpec extends ZIOSpecDefault {
 
         assertTrue(actual == Right(expected))
       },
-      test("parse with args") {
+      test("query with args") {
         val actual = OperationDefinition.syntax.parseString("query { a (user : 10) { b } }")
 
         val expected = OperationDefinition(
@@ -47,7 +47,7 @@ object GraphQLParserSpec extends ZIOSpecDefault {
 
         assertTrue(actual == Right(expected))
       },
-      test("parse with multiple args") {
+      test("query with multiple args") {
         val actual = OperationDefinition.syntax
           .parseString("query { a (age : 10,isValid: true, name: \"Jose\") { b } }")
 
