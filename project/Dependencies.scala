@@ -3,7 +3,7 @@ object Dependencies {
   val zioVersion       = "2.0.4"
   val zioSchemaVersion = "0.3.0"
   val nettyVersions    = "4.1.85.Final"
-  val pprintVersion    = "0.8.0"
+  val pprintVersion    = "0.8.1"
 
   val ZIOCore             = "dev.zio"     %% "zio"                   % zioVersion
   val ZIOTest             = "dev.zio"     %% "zio-test"              % zioVersion % Test
