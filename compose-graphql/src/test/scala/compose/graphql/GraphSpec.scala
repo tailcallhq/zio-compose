@@ -1,5 +1,6 @@
 package compose.graphql
 
+import compose.graphql.ast.Document
 import compose.{Lambda, ~>}
 import zio.schema.{DeriveSchema, Schema}
 import zio.test.{ZIOSpecDefault, assertTrue}
@@ -47,10 +48,10 @@ object GraphSpec extends ZIOSpecDefault {
   implicit val schema: Schema[Root]              = DeriveSchema.gen[Root]
 
   def spec = suite("EdgeSpec")(suite("schema")(test("render") {
-    val connection = Graph[Unit, Unit]("root", die[Unit, Root] <<< Lambda._1)
-    val graphQL    = NodeFactory.gen(connection)
-    val actual     = NodePrinter.render(graphQL)
-    val expected   = """
+    val graph    = Graph[Unit, Unit]("root", die[Unit, Root] <<< Lambda._1)
+    val document = Document.fromGraph(graph)
+    val actual   = document.render
+    val expected = """
                      |type OptionalSequences {
                      |  a1: [Int!]
                      |  a2: [Int]

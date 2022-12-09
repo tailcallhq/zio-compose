@@ -1,26 +1,40 @@
 package compose.graphql
+import compose.graphql.ast.OperationDefinition
+import compose.graphql.ast.OperationDefinition._
 import zio.test._
-import compose.graphql.GraphQLParser
 import zio.Chunk
+import zio.test.TestAspect.failing
 
 object GraphQLParserSpec extends ZIOSpecDefault {
-  import Node._
   def spec = {
-    suite("GraphQLParser")(test("parse") {
-      val actual = GraphQLParser.querySyntax
-        .parseString("query { a { b c d } b {c d} c { e { f } } }")
+    suite("GraphQLParser")(
+      test("parse") {
+        val actual = OperationDefinition.syntax
+          .parseString("query { a { b c d } b {c d} c { e { f } } }")
 
-      val expected = OperationDefinition(
-        operation = QueryOperation,
-        None,
-        selectionSet = Chunk(
-          Field("a", Chunk(Field("b"), Field("c"), Field("d"))),
-          Field("b", Chunk(Field("c"), Field("d"))),
-          Field("c", Chunk(Field("e", Chunk(Field("f", Chunk()))))),
-        ),
-      )
+        val expected = OperationDefinition(
+          operation = QueryOperation,
+          None,
+          selectionSet = Chunk(
+            Field("a", selection = Chunk(Field("b"), Field("c"), Field("d"))),
+            Field("b", selection = Chunk(Field("c"), Field("d"))),
+            Field("c", selection = Chunk(Field("e", selection = Chunk(Field("f", Chunk()))))),
+          ),
+        )
 
-      assertTrue(actual == Right(expected))
-    })
+        assertTrue(actual == Right(expected))
+      },
+      test("parse with args") {
+        val actual = OperationDefinition.syntax.parseString("query { a (user: 10) { b } }")
+
+        val expected = OperationDefinition(
+          operation = QueryOperation,
+          None,
+          selectionSet = Chunk(Field("a", selection = Chunk(Field("b")))),
+        )
+
+        assertTrue(actual == Right(expected))
+      } @@ failing,
+    )
   }
 }

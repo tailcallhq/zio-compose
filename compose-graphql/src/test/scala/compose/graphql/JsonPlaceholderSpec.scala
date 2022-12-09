@@ -1,6 +1,6 @@
 package compose.graphql
 
-import compose.graphql.NodePrinter
+import compose.graphql.ast.Document
 import zio.Scope
 import zio.test.{Spec, TestEnvironment, ZIOSpecDefault, assertTrue}
 
@@ -13,7 +13,7 @@ object JsonPlaceholderSpec extends ZIOSpecDefault {
 
   override def spec: Spec[TestEnvironment with Scope, Any] =
     suite("JsonPlaceholderSpec")(test("schema") {
-      val actual   = NodePrinter.render(JsonPlaceholder.ast)
+      val actual   = Document.fromGraph(JsonPlaceholder.graph).render
       val expected = """
                        |type Address {
                        |  city: String!
@@ -62,6 +62,7 @@ object JsonPlaceholderSpec extends ZIOSpecDefault {
                        |  userId: Int!
                        |}
                        |type Query {
+                       |  albums(userId: Int): [Album!]!
                        |  posts: [Post!]!
                        |  users: [User!]!
                        |}

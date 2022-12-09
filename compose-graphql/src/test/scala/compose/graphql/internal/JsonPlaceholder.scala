@@ -1,9 +1,9 @@
 package compose.graphql.internal
 
-import compose.{Lambda, ~>}
 import compose.graphql.Graph
-import compose.graphql.{Node, NodeFactory}
 import compose.macros.DeriveAccessors
+import compose.model.http.Request
+import compose.{Lambda, ~>}
 import zio.schema.{DeriveSchema, Schema}
 
 object JsonPlaceholder {
@@ -73,11 +73,24 @@ object JsonPlaceholder {
   }
 
   object fetch {
-    def users: Any ~> List[User]            = Lambda.die
-    def posts: Any ~> List[Post]            = Lambda.die
-    def postUser: Post ~> User              = Lambda.die
-    def userPosts: User ~> List[Post]       = Lambda.die
-    def userAlbums: User ~> List[Album]     = Lambda.die
+    import Lambda._
+    def users: Any ~> List[User]        = Lambda
+      .constant(Request(url = "https://jsonplaceholder.typicode.com/users")) >>>
+      Lambda.http.decode[List[User]]
+        .fold(Lambda.constant(List.empty[User]))(Lambda.identity[List[User]])
+    def posts: Any ~> List[Post]        = Lambda
+      .constant(Request(url = "https://jsonplaceholder.typicode.com/posts")) >>>
+      Lambda.http.decode[List[Post]]
+        .fold(Lambda.constant(List.empty[Post]))(Lambda.identity[List[Post]])
+    def postUser: Post ~> User          = Lambda.die
+    def userPosts: User ~> List[Post]   = Lambda.die
+    def userAlbums: User ~> List[Album] = Lambda.die
+
+    def albums: UserId ~> List[Album] = Lambda
+      .constant(Request(url = "https://jsonplaceholder.typicode.com/albums")) >>>
+      Lambda.http.decode[List[Album]]
+        .fold(Lambda.constant(List.empty[Album]))(Lambda.identity[List[Album]])
+
     def albumPhotos: Album ~> List[Photo]   = Lambda.die
     def postComments: Post ~> List[Comment] = Lambda.die
     def albumUser: Album ~> User            = Lambda.die
@@ -85,16 +98,21 @@ object JsonPlaceholder {
     def photoAlbum: Photo ~> Album          = Lambda.die
   }
 
-  val ast: Node = NodeFactory.gen(
-    Graph[Unit, Unit]("posts", fetch.posts) ++
-      Graph[Unit, Unit]("users", fetch.users) ++
-      Graph[Unit, User]("albums", fetch.userAlbums <<< Lambda._2) ++
-      Graph[Unit, Post]("comments", fetch.postComments <<< Lambda._2) ++
-      Graph[Unit, User]("comments", fetch.userComments <<< Lambda._2) ++
-      Graph[Unit, Album]("photos", fetch.albumPhotos <<< Lambda._2) ++
-      Graph[Unit, User]("posts", fetch.userPosts <<< Lambda._2) ++
-      Graph[Unit, Album]("user", fetch.albumUser <<< Lambda._2) ++
-      Graph[Unit, Post]("user", fetch.postUser <<< Lambda._2) ++
-      Graph[Unit, Photo]("album", fetch.photoAlbum <<< Lambda._2),
-  )
+  case class UserId(userId: Option[Int])
+  object UserId {
+    implicit val schema: Schema[UserId] = DeriveSchema.gen[UserId]
+    val lens                            = DeriveAccessors.gen[UserId]
+  }
+
+  val graph: Graph = Graph[Unit, Unit]("posts", fetch.posts) ++
+    Graph[Unit, Unit]("users", fetch.users) ++
+    Graph[UserId, Unit]("albums", fetch.albums <<< Lambda._1) ++
+    Graph[Unit, User]("albums", fetch.userAlbums <<< Lambda._2) ++
+    Graph[Unit, Post]("comments", fetch.postComments <<< Lambda._2) ++
+    Graph[Unit, User]("comments", fetch.userComments <<< Lambda._2) ++
+    Graph[Unit, Album]("photos", fetch.albumPhotos <<< Lambda._2) ++
+    Graph[Unit, User]("posts", fetch.userPosts <<< Lambda._2) ++
+    Graph[Unit, Album]("user", fetch.albumUser <<< Lambda._2) ++
+    Graph[Unit, Post]("user", fetch.postUser <<< Lambda._2) ++
+    Graph[Unit, Photo]("album", fetch.photoAlbum <<< Lambda._2)
 }
