@@ -1,7 +1,7 @@
 package compose.graphql.ast
 
 import compose.graphql.Graph
-import compose.graphql.SchemaExtensions.Extensions
+import compose.graphql.internal.SchemaExtensions.Extensions
 import compose.graphql.ast.TypeDefinition._
 import zio.Chunk
 import zio.schema.TypeId.{Nominal, Structural}
