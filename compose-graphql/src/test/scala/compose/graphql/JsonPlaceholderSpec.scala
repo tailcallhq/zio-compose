@@ -33,7 +33,7 @@ object JsonPlaceholderSpec extends ZIOSpecDefault {
       import ResponseValue._
 
       val result = for {
-        g <- CalibanExecutor.make(graph)
+        g <- Executor.make(graph)
         i <- g.interpreter
         _ <- i.check(query)
         r <- i.execute(query)
@@ -92,7 +92,7 @@ object JsonPlaceholderSpec extends ZIOSpecDefault {
     test("schema") {
       val graph = JsonPlaceholder.graph
 
-      val actual = CalibanExecutor.make(graph).map(_.render)
+      val actual = Executor.make(graph).map(_.render)
 
       val expected = """|schema {
                         |  query: Query

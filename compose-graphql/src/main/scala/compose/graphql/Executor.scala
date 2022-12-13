@@ -4,9 +4,7 @@ import zio._
 import caliban._
 import caliban.schema._
 
-// TODO: rename to executor
-object CalibanExecutor {
-
+object Executor {
   // TODO: support mutations and subscriptions
   def make(query: Graph): IO[CalibanError, GraphQL[Any]] = for {
     querySchema <- SchemaGenerator.gen(query)
