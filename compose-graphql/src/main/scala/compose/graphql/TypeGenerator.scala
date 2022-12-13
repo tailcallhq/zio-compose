@@ -1,14 +1,11 @@
 package compose.graphql
-import caliban.introspection.adt.__Type
-import caliban.schema.Step
-import caliban.introspection.adt.__TypeKind
-import caliban.introspection.adt.__Field
 
 import zio.schema.meta.MetaSchema
-
+import caliban.introspection.adt._
 import scala.collection.mutable
 
-final class ASTGenerator(graph: Graph) {
+final class TypeGenerator(graph: Graph) {
+  self =>
 
   private val pending: mutable.Map[zio.schema.TypeId, Graph] = mutable.Map.empty
 
@@ -59,33 +56,24 @@ final class ASTGenerator(graph: Graph) {
     }
   }
 
-  private def generateSchema(graph: Graph): caliban.schema.Schema[Any, Graph] =
-    new caliban.schema.Schema[Any, Graph] {
-      override protected[this] def toType(isInput: Boolean, isSubscription: Boolean): __Type = {
-
-        graph.cons.map(cons => cons.fromType.ast -> cons).collect {
-          case (product: MetaSchema.Product, cons) => product.id -> cons
-        }.foreach { case (id, cons) =>
-          pending.get(id) match {
-            case None        => pending += (id -> cons)
-            case Some(value) => pending += id  -> (value ++ cons)
-          }
-        }
-
-        __Type(
-          kind = __TypeKind.OBJECT,
-          name = Some("Query"),
-          fields = _ =>
-            Some(
-              graph.cons.filter(_.fromType == zio.schema.Schema[Unit])
-                .map(cons => __Field(cons.name, None, Nil, () => generateType(cons.toType.ast)))
-                .toList,
-            ),
-        )
+  def __type: __Type = {
+    graph.cons.map(cons => cons.fromType.ast -> cons).collect {
+      case (product: MetaSchema.Product, cons) => product.id -> cons
+    }.foreach { case (id, cons) =>
+      pending.get(id) match {
+        case None        => pending += (id -> cons)
+        case Some(value) => pending += id  -> (value ++ cons)
       }
-
-      override def resolve(value: Graph): Step[Any] = Step.NullStep
     }
 
-  def generateSchema: caliban.schema.Schema[Any, Graph] = generateSchema(graph)
+    __Type(
+      kind = __TypeKind.OBJECT,
+      name = Some("Query"),
+      fields = _ =>
+        Some(
+          graph.cons.filter(_.fromType == zio.schema.Schema[Unit])
+            .map(cons => __Field(cons.name, None, Nil, () => generateType(cons.toType.ast))).toList,
+        ),
+    )
+  }
 }
