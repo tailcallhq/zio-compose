@@ -1,11 +1,10 @@
 package compose.graphql
 
-import compose.graphql.ast.OperationDefinition
 import compose.{ExecutionPlan, ~>}
-import zio.json.ast.Json
+
 import zio.schema.codec.JsonCodec.JsonEncoder
 import zio.schema.{DeriveSchema, Schema}
-import zio.{Chunk, ZIO}
+import zio.Chunk
 
 /**
  * A `GraphQL` represents a connection between two nodes in
@@ -23,17 +22,6 @@ sealed trait Graph {
   }
   final def binary: Chunk[Byte]          = JsonEncoder.encode(Graph.schema, self)
   final def toJson: String               = new String(binary.toArray)
-
-  final def execute(operation: OperationDefinition): ZIO[Any, Throwable, Json] = Executor
-    .execute(self, operation)
-
-  final def execute(query: String): ZIO[Any, Throwable, Json] = for {
-    op     <- OperationDefinition.syntax.parseString(query) match {
-      case Left(_)      => ZIO.fail(new RuntimeException("Query parse error"))
-      case Right(value) => ZIO.succeed(value)
-    }
-    result <- execute(op)
-  } yield result
 }
 
 object Graph {
