@@ -2,17 +2,18 @@ object Dependencies {
   import sbt._
   val zioVersion       = "2.0.5"
   val zioSchemaVersion = "0.3.1"
-  val nettyVersions    = "4.1.85.Final"
   val pprintVersion    = "0.8.1"
+  val nettyVersions    = "4.1.86.Final"
 
-  val ZIOCore             = "dev.zio"     %% "zio"                   % zioVersion
-  val ZIOTest             = "dev.zio"     %% "zio-test"              % zioVersion % Test
-  val ZIOTestSbt          = "dev.zio"     %% "zio-test-sbt"          % zioVersion % Test
-  val ZIOSchema           = "dev.zio"     %% "zio-schema"            % zioSchemaVersion
-  val ZIOSchemaJson       = "dev.zio"     %% "zio-schema-json"       % zioSchemaVersion
-  val ZIOSchemaDerivation = "dev.zio"     %% "zio-schema-derivation" % zioSchemaVersion
-  val PPrint              = "com.lihaoyi" %% "pprint"                % pprintVersion
-  val ZIOParser           = "dev.zio"     %% "zio-parser"            % "0.1.7"
+  val ZIOCore             = "dev.zio"               %% "zio"                   % zioVersion
+  val ZIOTest             = "dev.zio"               %% "zio-test"              % zioVersion % Test
+  val ZIOTestSbt          = "dev.zio"               %% "zio-test-sbt"          % zioVersion % Test
+  val ZIOSchema           = "dev.zio"               %% "zio-schema"            % zioSchemaVersion
+  val ZIOSchemaJson       = "dev.zio"               %% "zio-schema-json"       % zioSchemaVersion
+  val ZIOSchemaDerivation = "dev.zio"               %% "zio-schema-derivation" % zioSchemaVersion
+  val PPrint              = "com.lihaoyi"           %% "pprint"                % "0.8.1"
+  val ZIOParser           = "dev.zio"               %% "zio-parser"            % "0.1.7"
+  val Caliban             = "com.github.ghostdogpr" %% "caliban"               % "2.0.1"
   val Netty               = Seq(
     "io.netty" % "netty-codec-http"             % nettyVersions,
     "io.netty" % "netty-handler-proxy"          % nettyVersions,

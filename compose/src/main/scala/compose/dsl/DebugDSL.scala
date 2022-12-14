@@ -7,8 +7,8 @@ object DebugDSL {
 
     import ExecutionPlan._
 
-    final def debug[B1 >: B](name: String): A ~> B1 = Lambda.unsafe
-      .attempt[A, B1] { Debugger.Debug(self.compile, name) }
+    final def debug(name: String): A ~> B = Lambda.unsafe
+      .attempt[A, B] { Debugger.Debug(self.compile, name) }
 
     final def show(name: String): A ~> B = Lambda.unsafe
       .attempt[A, B](Debugger.Show(self.compile, name))
