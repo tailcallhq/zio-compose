@@ -74,28 +74,30 @@ object JsonPlaceholder {
 
   object fetch {
     import Lambda._
-    def users: Any ~> List[User]        = Lambda
+
+    def users: Any ~> List[User] = Lambda
       .constant(Request(url = "https://jsonplaceholder.typicode.com/users")) >>>
       Lambda.http.decode[List[User]]
         .fold(Lambda.constant(List.empty[User]))(Lambda.identity[List[User]])
-    def posts: Any ~> List[Post]        = Lambda
+
+    def posts: Any ~> List[Post] = Lambda
       .constant(Request(url = "https://jsonplaceholder.typicode.com/posts")) >>>
       Lambda.http.decode[List[Post]]
         .fold(Lambda.constant(List.empty[Post]))(Lambda.identity[List[Post]])
-    def postUser: Post ~> User          = Lambda.die
-    def userPosts: User ~> List[Post]   = Lambda.die
-    def userAlbums: User ~> List[Album] = Lambda.die
 
     def albums: UserId ~> List[Album] = Lambda
       .constant(Request(url = "https://jsonplaceholder.typicode.com/albums")) >>>
       Lambda.http.decode[List[Album]]
         .fold(Lambda.constant(List.empty[Album]))(Lambda.identity[List[Album]])
 
-    def albumPhotos: Album ~> List[Photo]   = Lambda.die
-    def postComments: Post ~> List[Comment] = Lambda.die
-    def albumUser: Album ~> User            = Lambda.die
-    def userComments: User ~> List[Comment] = Lambda.die
-    def photoAlbum: Photo ~> Album          = Lambda.die
+    def diePostUser: Post ~> User              = Lambda.die
+    def dieUserPosts: User ~> List[Post]       = Lambda.die
+    def dieUserAlbums: User ~> List[Album]     = Lambda.die
+    def dieAlbumPhotos: Album ~> List[Photo]   = Lambda.die
+    def diePostComments: Post ~> List[Comment] = Lambda.die
+    def dieAlbumUser: Album ~> User            = Lambda.die
+    def dieUserComments: User ~> List[Comment] = Lambda.die
+    def diePhotoAlbum: Photo ~> Album          = Lambda.die
   }
 
   case class UserId(userId: Option[Int])
@@ -104,15 +106,18 @@ object JsonPlaceholder {
     val lens                            = DeriveAccessors.gen[UserId]
   }
 
-  val graph: Graph = Graph[Unit, Unit]("posts", fetch.posts) ++
-    Graph[Unit, Unit]("users", fetch.users) ++
-    Graph[UserId, Unit]("albums", fetch.albums <<< Lambda._1) ++
-    Graph[Unit, User]("albums", fetch.userAlbums <<< Lambda._2) ++
-    Graph[Unit, Post]("comments", fetch.postComments <<< Lambda._2) ++
-    Graph[Unit, User]("comments", fetch.userComments <<< Lambda._2) ++
-    Graph[Unit, Album]("photos", fetch.albumPhotos <<< Lambda._2) ++
-    Graph[Unit, User]("posts", fetch.userPosts <<< Lambda._2) ++
-    Graph[Unit, Album]("user", fetch.albumUser <<< Lambda._2) ++
-    Graph[Unit, Post]("user", fetch.postUser <<< Lambda._2) ++
-    Graph[Unit, Photo]("album", fetch.photoAlbum <<< Lambda._2)
+  val graph: Graph = Graph.empty
+    .add[Unit, Unit]("posts", fetch.posts)
+    .add[Unit, Unit]("users", fetch.users)
+    .add[UserId, Unit]("albums", fetch.albums <<< Lambda._1)
+
+    // TODO: remove die implementations
+    .add[Unit, User]("albums", fetch.dieUserAlbums <<< Lambda._2)
+    .add[Unit, Post]("comments", fetch.diePostComments <<< Lambda._2)
+    .add[Unit, User]("comments", fetch.dieUserComments <<< Lambda._2)
+    .add[Unit, Album]("photos", fetch.dieAlbumPhotos <<< Lambda._2)
+    .add[Unit, User]("posts", fetch.dieUserPosts <<< Lambda._2)
+    .add[Unit, Album]("user", fetch.dieAlbumUser <<< Lambda._2)
+    .add[Unit, Post]("user", fetch.diePostUser <<< Lambda._2)
+    .add[Unit, Photo]("album", fetch.diePhotoAlbum <<< Lambda._2)
 }

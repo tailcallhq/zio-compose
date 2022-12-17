@@ -22,6 +22,8 @@ sealed trait Graph {
   }
   final def binary: Chunk[Byte]          = JsonEncoder.encode(Graph.schema, self)
   final def toJson: String               = new String(binary.toArray)
+  final def add[Arg, From]: Graph.PartiallyAppliedConnection[Arg, From] =
+    new Graph.PartiallyAppliedConnection[Arg, From](self)
 }
 
 object Graph {
@@ -37,14 +39,14 @@ object Graph {
   final case class Concat(left: Graph, right: Graph) extends Graph
 
   def apply[Arg, From]: PartiallyAppliedConnection[Arg, From] =
-    new PartiallyAppliedConnection[Arg, From](())
+    new PartiallyAppliedConnection[Arg, From](empty)
 
-  final class PartiallyAppliedConnection[Arg, From](val unit: Unit) extends AnyVal {
+  final class PartiallyAppliedConnection[Arg, From](val graph: Graph) extends AnyVal {
     def apply[To](name: String, resolve: (Arg, From) ~> To)(implicit
       arg: Schema[Arg],
       from: Schema[From],
       to: Schema[To],
-    ): Graph = Cons(
+    ): Graph = graph ++ Cons(
       name,
       arg.asInstanceOf[Schema[Any]],
       from.asInstanceOf[Schema[Any]],
