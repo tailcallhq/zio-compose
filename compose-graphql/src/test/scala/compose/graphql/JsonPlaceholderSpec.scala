@@ -13,9 +13,6 @@ import caliban.ResponseValue
 object JsonPlaceholderSpec extends ZIOSpecDefault {
   import compose.graphql.internal._
 
-  def obj(list: (String, ResponseValue)*): ResponseValue = ResponseValue.ObjectValue(list.toList)
-  def list(list: ResponseValue*): ResponseValue          = ResponseValue.ListValue(list.toList)
-
   override def spec: Spec[TestEnvironment with Scope, Any] = suite("JsonPlaceholderSpec")(
     test("query") {
       val graph = JsonPlaceholder.graph
