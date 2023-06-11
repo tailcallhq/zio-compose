@@ -10,7 +10,7 @@ Global / scalacOptions            := Seq(
   "-language:reflectiveCalls",
   "-deprecation",
 )
-Global / scalaVersion             := "2.13.8"
+Global / scalaVersion             := "2.13.11"
 ThisBuild / versionScheme         := Some("early-semver")
 ThisBuild / testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
 ThisBuild / githubWorkflowTargetTags ++= Seq("v*")
@@ -76,6 +76,6 @@ lazy val zioComposeGraphQL = project.in(file("./compose-graphql"))
       ZIOTest,
       ZIOTestSbt,
       PPrint,
-      Caliban
+      Caliban,
     ),
   )
