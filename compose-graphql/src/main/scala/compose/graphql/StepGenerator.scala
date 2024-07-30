@@ -77,7 +77,7 @@ final class StepGenerator(graph: Graph, i: Interpreter) {
       // case MetaSchema.FailNode(message, path, optional)        => ???
       // case MetaSchema.Either(path, left, right, optional)      => ???
       // case MetaSchema.Sum(id, path, cases, optional)           => ???
-      case schema                            => throw new MatchError(schema)
+      case schema => throw new MatchError(schema)
     }
 
   }
