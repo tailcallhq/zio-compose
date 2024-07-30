@@ -62,7 +62,7 @@ final class TypeGenerator(graph: Graph) {
     }.foreach { case (id, cons) =>
       pending.get(id) match {
         case None        => pending += (id -> cons)
-        case Some(value) => pending += id  -> (value ++ cons)
+        case Some(value) => pending += id -> (value ++ cons)
       }
     }
 
