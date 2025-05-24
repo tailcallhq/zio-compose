@@ -13,6 +13,7 @@ Global / scalacOptions            := Seq(
 Global / scalaVersion             := "2.13.8"
 ThisBuild / versionScheme         := Some("early-semver")
 ThisBuild / testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
+ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
 ThisBuild / githubWorkflowTargetTags ++= Seq("v*")
 ThisBuild / githubWorkflowPublishTargetBranches += RefPredicate.StartsWith(Ref.Tag("v"))
 
