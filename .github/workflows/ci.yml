@@ -27,28 +27,25 @@ jobs:
         java: [temurin@11]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout current branch (full)
-        uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
 
-      - name: Setup Java (temurin@11)
-        if: matrix.java == 'temurin@11'
-        uses: actions/setup-java@v4.7.1
+      - uses: actions/setup-java@v4.7.1
         with:
           distribution: temurin
-          java-version: 11
+          java-version: ${{ matrix.java }}
 
-      - name: Cache sbt
-        uses: actions/cache@v4.2.3
+      - uses: actions/cache@v4.2.3
         with:
           path: |
-            ~/.sbt
-            ~/.ivy2/cache
-            ~/.coursier/cache/v1
-            ~/.cache/coursier/v1
-            ~/AppData/Local/Coursier/Cache/v1
-            ~/Library/Caches/Coursier/v1
+
+                    ~/.sbt
+                    ~/.ivy2/cache
+                    ~/.coursier/cache/v1
+                    ~/.cache/coursier/v1
+                    ~/AppData/Local/Coursier/Cache/v1
+                    ~/Library/Caches/Coursier/v1
           key: ${{ runner.os }}-sbt-cache-v2-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
 
       - name: Check that workflows are up to date
@@ -60,8 +57,7 @@ jobs:
       - name: Compress target directories
         run: tar cf targets.tar target compose-examples/target compose/target compose-macros/target compose-graphql/target project/target
 
-      - name: Upload target directories
-        uses: actions/upload-artifact@v4.6.2
+      - uses: actions/upload-artifact@v4.6.2
         with:
           name: target-${{ matrix.os }}-${{ matrix.scala }}-${{ matrix.java }}
           path: targets.tar
@@ -77,32 +73,28 @@ jobs:
         java: [temurin@11]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout current branch (full)
-        uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
 
-      - name: Setup Java (temurin@11)
-        if: matrix.java == 'temurin@11'
-        uses: actions/setup-java@v4.7.1
+      - uses: actions/setup-java@v4.7.1
         with:
           distribution: temurin
-          java-version: 11
+          java-version: ${{ matrix.java }}
 
-      - name: Cache sbt
-        uses: actions/cache@v4.2.3
+      - uses: actions/cache@v4.2.3
         with:
           path: |
-            ~/.sbt
-            ~/.ivy2/cache
-            ~/.coursier/cache/v1
-            ~/.cache/coursier/v1
-            ~/AppData/Local/Coursier/Cache/v1
-            ~/Library/Caches/Coursier/v1
+
+                    ~/.sbt
+                    ~/.ivy2/cache
+                    ~/.coursier/cache/v1
+                    ~/.cache/coursier/v1
+                    ~/AppData/Local/Coursier/Cache/v1
+                    ~/Library/Caches/Coursier/v1
           key: ${{ runner.os }}-sbt-cache-v2-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
 
-      - name: Download target directories (2.13.8)
-        uses: actions/download-artifact@v4.3.0
+      - uses: actions/download-artifact@v4.3.0
         with:
           name: target-${{ matrix.os }}-2.13.8-${{ matrix.java }}
 
