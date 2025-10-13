@@ -1,6 +1,6 @@
 package compose.dsl
 
-import compose.{ExecutionPlan, Lambda, ~>}
+import compose.{~>, ExecutionPlan, Lambda}
 import zio.schema.Schema
 
 object FoldDSL {

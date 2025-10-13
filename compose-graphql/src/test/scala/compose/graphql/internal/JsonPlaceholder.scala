@@ -3,7 +3,7 @@ package compose.graphql.internal
 import compose.graphql.Graph
 import compose.macros.DeriveAccessors
 import compose.model.http.Request
-import compose.{Lambda, ~>}
+import compose.{~>, Lambda}
 import zio.schema.{DeriveSchema, Schema}
 
 object JsonPlaceholder {

@@ -1,7 +1,7 @@
 package compose.dsl
 
 import compose.ExecutionPlan.Textual
-import compose.{Lambda, ~>}
+import compose.{~>, Lambda}
 
 object StringDSL {
   trait Op[-A, +B] {

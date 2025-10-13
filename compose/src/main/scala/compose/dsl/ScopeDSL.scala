@@ -2,7 +2,7 @@ package compose.dsl
 
 import compose.ExecutionPlan.Scoped
 import compose.model.Scope
-import compose.{Lambda, ~>}
+import compose.{~>, Lambda}
 
 object ScopeDSL {
 

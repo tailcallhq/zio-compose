@@ -7,7 +7,7 @@ import zio.durationInt
 import zio.schema.{DeriveSchema, Schema}
 import zio.test.Assertion.{equalTo, isRight, isTrue}
 import zio.test.TestAspect.timeout
-import zio.test.{Gen, TestConsole, ZIOSpecDefault, assert, assertZIO, check, checkAll}
+import zio.test.{assert, assertZIO, check, checkAll, Gen, TestConsole, ZIOSpecDefault}
 
 import scala.language.postfixOps
 

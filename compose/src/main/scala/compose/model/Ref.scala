@@ -1,7 +1,7 @@
 package compose.model
 
 import compose.ExecutionPlan.Scoped
-import compose.{Lambda, ~>}
+import compose.{~>, Lambda}
 import zio.schema.Schema
 
 /**

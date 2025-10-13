@@ -2,7 +2,7 @@ package compose.dsl
 
 import compose.ExecutionPlan.Numeric
 import compose.Lambda.constant
-import compose.{Lambda, ~>}
+import compose.{~>, Lambda}
 import zio.schema.Schema
 
 object NumericDSL {
