@@ -2,7 +2,7 @@ package compose.dsl
 
 import compose.ExecutionPlan.Logical
 import compose.Lambda.constant
-import compose.{Lambda, ~>}
+import compose.{~>, Lambda}
 
 object BooleanDSL {
   trait Op[-A, +B] {
