@@ -2,7 +2,7 @@ package compose.dsl
 
 import compose.ExecutionPlan.Remote
 import compose.model.http.{Request, Response}
-import compose.{Lambda, ~>}
+import compose.{~>, Lambda}
 
 object RemoteDSL {
   trait Ctr {

@@ -3,7 +3,7 @@ package compose.dsl
 import compose.ExecutionPlan._
 import compose.Lambda.constant
 import compose.model.Transformation
-import compose.{Interpreter, Lambda, model, ~>}
+import compose.{~>, model, Interpreter, Lambda}
 import zio.Task
 import zio.schema.Schema
 
