@@ -1,23 +1,23 @@
 import Dependencies._
 
 // Flags
-Global / semanticdbEnabled        := true
-Global / onChangedBuildSource     := ReloadOnSourceChanges
-Global / scalacOptions            := Seq(
+Global / semanticdbEnabled             := true
+Global / onChangedBuildSource          := ReloadOnSourceChanges
+Global / scalacOptions                 := Seq(
   "-Ywarn-unused",
   "-Werror",
   "-feature",
   "-language:reflectiveCalls",
   "-deprecation",
 )
-Global / scalaVersion             := "2.13.8"
-ThisBuild / versionScheme         := Some("early-semver")
+Global / scalaVersion                  := "2.13.18"
+ThisBuild / versionScheme              := Some("early-semver")
 ThisBuild / testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
 ThisBuild / githubWorkflowTargetTags ++= Seq("v*")
 ThisBuild / githubWorkflowPublishTargetBranches += RefPredicate.StartsWith(Ref.Tag("v"))
 
-ThisBuild / githubWorkflowPublish := Seq(WorkflowStep.Sbt(
+ThisBuild / githubWorkflowPublish      := Seq(WorkflowStep.Sbt(
   List("ci-release"),
   env = Map(
     "PGP_PASSPHRASE"    -> "${{ secrets.PGP_PASSPHRASE }}",
@@ -77,6 +77,6 @@ lazy val zioComposeGraphQL = project.in(file("./compose-graphql"))
       ZIOTest,
       ZIOTestSbt,
       PPrint,
-      Caliban
+      Caliban,
     ),
   )
