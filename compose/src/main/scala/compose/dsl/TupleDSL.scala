@@ -1,7 +1,7 @@
 package compose.dsl
 
 import compose.ExecutionPlan.Tupled
-import compose.{Lambda, ~>}
+import compose.{~>, Lambda}
 
 object TupleDSL {
   trait Op[-A, +B] {

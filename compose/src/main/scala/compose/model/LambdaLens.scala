@@ -1,7 +1,7 @@
 package compose.model
 
 import compose.ExecutionPlan.Optical
-import compose.{Lambda, ~>}
+import compose.{~>, Lambda}
 import zio.prelude.NonEmptyList
 import zio.schema.Schema
 

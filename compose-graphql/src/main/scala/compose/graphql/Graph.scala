@@ -1,6 +1,6 @@
 package compose.graphql
 
-import compose.{ExecutionPlan, ~>}
+import compose.{~>, ExecutionPlan}
 
 import zio.schema.codec.JsonCodec.JsonEncoder
 import zio.schema.{DeriveSchema, Schema}

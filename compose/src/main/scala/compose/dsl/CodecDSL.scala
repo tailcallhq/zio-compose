@@ -3,7 +3,7 @@ package compose.dsl
 import compose.ExecutionPlan.Codec
 import compose.model.Decoder
 import compose.model.Decoder.HasDecoder
-import compose.{Lambda, ~>}
+import compose.{~>, Lambda}
 import zio.schema.{DynamicValue, Schema}
 
 object CodecDSL {
