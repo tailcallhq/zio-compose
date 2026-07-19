@@ -6,8 +6,9 @@ import zio.schema.Schema
 object FoldDSL {
   trait Op[-A, +B] {
     self: A ~> B =>
-    def fold[L, R, C](l: L ~> C)(r: R ~> C)(implicit ev: Fold[B, L, R, C]): A ~> C = self >>> ev
-      .fold(l, r)
+    def fold[L, R, C](l: L ~> C)(r: R ~> C)(implicit ev: Fold[B, L, R, C]): A ~> C = self >>>
+      ev
+        .fold(l, r)
   }
 
   sealed trait Fold[-A, +L, +R, -B] {

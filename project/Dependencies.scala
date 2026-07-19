@@ -18,7 +18,8 @@ object Dependencies {
     "io.netty" % "netty-handler-proxy"          % nettyVersions,
     "io.netty" % "netty-transport-native-epoll" % nettyVersions,
     "io.netty" % "netty-transport-native-epoll" % nettyVersions % Runtime classifier "linux-x86_64",
-    "io.netty" % "netty-transport-native-epoll" % nettyVersions % Runtime classifier "linux-aarch_64",
+    "io.netty" % "netty-transport-native-epoll" % nettyVersions % Runtime classifier
+      "linux-aarch_64",
     "io.netty" % "netty-transport-native-kqueue" % nettyVersions,
     "io.netty" % "netty-transport-native-kqueue" % nettyVersions % Runtime classifier "osx-x86_64",
     "io.netty" % "netty-transport-native-kqueue" % nettyVersions % Runtime classifier "osx-aarch_64",
