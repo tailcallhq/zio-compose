@@ -29,8 +29,9 @@ object ArrowDSL {
 
     final def as[C](c: C)(implicit s: Schema[C]): A ~> C = self >>> constant(c)
 
-    final def asString[B1 >: B](implicit b: Schema[B1]): A ~> String = self >>> Lambda.unsafe
-      .attempt[B, String] { Arrow.AsString(b) }
+    final def asString[B1 >: B](implicit b: Schema[B1]): A ~> String = self >>>
+      Lambda.unsafe
+        .attempt[B, String] { Arrow.AsString(b) }
 
     final def bind[A1 <: A](a: A1)(implicit ev: Schema[A1]): Any ~> B = Lambda.constant(a) >>> self
 
@@ -44,8 +45,9 @@ object ArrowDSL {
     final def pipe[C](other: B ~> C): A ~> C = Lambda.unsafe
       .attempt[A, C] { Arrow.Pipe(self.compile, other.compile) }
 
-    final def toInt: A ~> Either[String, Int] = self >>> Lambda.unsafe
-      .attempt[Any, Either[String, Int]](Arrow.ToInt)
+    final def toInt: A ~> Either[String, Int] = self >>>
+      Lambda.unsafe
+        .attempt[Any, Either[String, Int]](Arrow.ToInt)
 
     final def transform[I >: B, C](other: (C, I) ~> C): Transformation[A, C] = model
       .Transformation[A, C, I](self, other)
