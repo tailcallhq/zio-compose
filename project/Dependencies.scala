@@ -11,7 +11,7 @@ object Dependencies {
   val ZIOSchemaJson       = "dev.zio"               %% "zio-schema-json"       % zioSchemaVersion
   val ZIOSchemaDerivation = "dev.zio"               %% "zio-schema-derivation" % zioSchemaVersion
   val PPrint              = "com.lihaoyi"           %% "pprint"                % "0.8.1"
-  val ZIOParser           = "dev.zio"               %% "zio-parser"            % "0.1.8"
+  val ZIOParser           = "dev.zio"               %% "zio-parser"            % "0.1.11"
   val Caliban             = "com.github.ghostdogpr" %% "caliban"               % "2.0.1"
   val Netty               = Seq(
     "io.netty" % "netty-codec-http"             % nettyVersions,
